@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: hairy-popsicles-mmo-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm run start -w @hptm/server
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.11.0
