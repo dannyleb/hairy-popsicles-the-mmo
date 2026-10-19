@@ -1,0 +1,12 @@
+{
+  "name": "hairy-popsicles-the-mmo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w @hptm/server",
+    "dev:client": "npm run dev -w @hptm/client"
+  }
+}
