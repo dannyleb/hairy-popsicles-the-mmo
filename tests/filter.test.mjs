@@ -1,0 +1,15 @@
+import { maskText, hasBlocked } from '../packages/server/src/game/filter.js';
+let failures = 0;
+const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
+check('clean text untouched', maskText('this pimple is ripe, go squeeze it') === 'this pimple is ripe, go squeeze it');
+check('gross is fine', maskText('pus snot puke drool scab') === 'pus snot puke drool scab');
+check('slur masked', maskText('you fag') === 'you ***');
+check('l33t and repeats caught', maskText('n1gggaaa lol') === '******** lol');
+check('punctuation inside a word caught', hasBlocked('f.a.g'));
+check('whole-word roots spare longer words', maskText('spice up the spicy scunthorpe grapes') === 'spice up the spicy scunthorpe grapes');
+check('anywhere roots inside words caught', hasBlocked('superretardedness'));
+check('allowed words kept', maskText('cucumber document drape') === 'cucumber document drape');
+check('no false alarms on look-alikes', !['therapist', 'torpedo', 'vacuum', 'Nigeria', 'scum', 'grape', 'raccoon', 'speedometer', 'accumulate', 'scrape', 'circumstance'].some(hasBlocked));
+check('whole-word forms caught', ['raped', 'r4pe', 'p0rn', 'Nazi!'].every(hasBlocked));
+check('names checked', hasBlocked('xXRapistXx') && !hasBlocked('Danny'));
+process.exit(failures ? 1 : 0);

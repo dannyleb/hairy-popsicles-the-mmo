@@ -197,13 +197,14 @@ Npm workspaces monorepo:
 packages/
   shared/   characters, rarities, seeds, levels, quests, chat/emote rules: imported by client and server
   server/   Colyseus room: authoritative state, lives on a Node host
-    src/rooms/WorldRoom.js   players, plots, planting, harvesting, squeezing, chat, events
-    src/game/                rolling characters, dealing quests, The Boil
+    src/rooms/WorldRoom.js   players, plots, planting, harvesting, squeezing, chat, gifts, events
+    src/game/                saves, daily streak, quests, The Boil, Pus Rain, rolls, chat filter
   client/   Phaser 3 + Vite: the actual game, runs in the browser
     src/scenes/   Boot (loads assets) → Menu → World
     src/world/    backdrop, The Boil, effects, layout constants
     src/ui/       HTML overlays: loading, menu, HUD, chat, album, sheets, reveals, minimap, coach
-    src/audio/    procedural sound effects, music
+    src/audio/    procedural sound effects (and vibration), music
+tests/      server test suites and their runner
 ```
 
 ## Running it locally
@@ -220,6 +221,22 @@ with devtools in mobile emulation. To test without waiting, speed things up:
 The Boil, the Blood Moon and the Pus Rain come (and go) 5x sooner, e.g.
 `GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`. `SHINY_BOOST=40`
 makes every crop shiny.
+
+## Testing
+
+```
+npm test                 # every server suite (a few minutes)
+npm test -- saves gifts  # just those
+```
+
+`tests/run.mjs` starts fresh game servers for each suite (timers sped up
+with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them
+with real Colyseus clients. Suites: `game` (planting, levels, quests,
+chat, squeezing, The Boil, Blood Moon), `reconnect`, `saves` (signing,
+restore, takeover, daily streak and quest), `shinies` (plus stars and wear
+bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
+`filter`. GitHub Actions runs them on every push and pull request
+(`.github/workflows/test.yml`).
 
 ## What's stubbed / not real yet
 
