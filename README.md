@@ -108,7 +108,13 @@ Timers are short on purpose while nothing persists. Rarities live in
   reconnects into the same seat. Pinch (or the mouse wheel) zooms the
   world out to see more or in to see detail, and it's remembered; taps act
   when the finger lifts, so a second finger turns one into a pinch.
-  Settings has sound, music, speech
+  Graphics adapt to the device: the canvas is capped at about 3.6M pixels
+  (phones keep full density; big high-density laptop screens draw slightly
+  softer), frames are capped at 60 even on 120 Hz screens, and if frames still
+  come slowly the game steps down by itself (lower resolution, then no
+  ambient glows) and remembers it; Settings has "Try full graphics again". A
+  browser drawing without the graphics card is detected and told how to fix
+  it. Settings has sound, music, speech
   bubbles, vibration and Reduce motion (no screen shake or flashes, nothing
   pulsing forever), which starts on if the phone already asks for less
   motion.

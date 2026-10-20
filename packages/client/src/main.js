@@ -1,19 +1,28 @@
 import Phaser from 'phaser';
-import { DPR } from './display.js';
+import { applyRenderScale, canvasSize, renderScale } from './display.js';
 import { BootScene } from './scenes/BootScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
+const [width, height] = canvasSize();
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
-  width: window.innerWidth * DPR,
-  height: window.innerHeight * DPR,
+  width,
+  height,
   backgroundColor: '#0e0608',
-  // Sprites are drawn well below their texture size; without mipmaps they sparkle when shrunk.
-  render: { mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
-  scale: { mode: Phaser.Scale.NONE, zoom: 1 / DPR },
+  render: {
+    // Sprites are drawn well below their texture size; without mipmaps they sparkle when shrunk.
+    mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+    // On laptops with two GPUs, the faster one.
+    powerPreference: 'high-performance',
+  },
+  // 120 Hz laptop screens would otherwise draw every frame twice as often as a
+  // phone does. Just over 60, so a 60 Hz screen never skips one.
+  fps: { limit: 62 },
+  scale: { mode: Phaser.Scale.NONE, zoom: 1 / renderScale() },
   scene: [BootScene, MenuScene, WorldScene],
 });
 
-window.addEventListener('resize', () => game.scale.resize(window.innerWidth * DPR, window.innerHeight * DPR));
+window.addEventListener('resize', () => applyRenderScale(game));

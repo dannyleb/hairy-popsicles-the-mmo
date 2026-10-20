@@ -87,7 +87,15 @@ export function createBackdrop(scene) {
     spores.push({ mote, u: rand(), v: rand(), vu: between(0.004, 0.012), vv: between(-0.012, -0.004), phase: rand() * 1000 });
   }
 
+  let lite = false;  // ambient glows off, when the device is struggling
+
   return {
+    setLite(on) {
+      lite = on;
+      for (const c of candles) c.glow.setVisible(!on);
+      for (const f of flies) f.halo.setVisible(!on);
+    },
+
     // Everything goes red while a Blood Moon is up.
     setBloodMoon(on) {
       ground.setTint(on ? BLOOD_TINT : NIGHT_TINT);
@@ -101,7 +109,10 @@ export function createBackdrop(scene) {
     update(time, delta, camera) {
       const view = camera.worldView;
       for (const c of candles) {
-        if (c.x < view.x - GLOW_SIZE || c.x > view.right + GLOW_SIZE || c.y < view.y - GLOW_SIZE || c.y > view.bottom + GLOW_SIZE) continue;
+        // Lights well off screen aren't drawn at all.
+        const near = !(c.x < view.x - GLOW_SIZE || c.x > view.right + GLOW_SIZE || c.y < view.y - GLOW_SIZE || c.y > view.bottom + GLOW_SIZE);
+        c.glow.setVisible(near && !lite);
+        if (!near) continue;
         const flicker = 0.88 + 0.08 * Math.sin(time * 0.011 + c.phase) + 0.05 * Math.sin(time * 0.037 + c.phase * 2.3);
         c.glow.setScale((GLOW_SIZE / 256) * (0.96 + 0.04 * flicker)).setAlpha(0.42 * flicker);
         c.flame.setScale((11 / 64) * (0.9 + 0.1 * flicker), (11 / 64) * flicker);

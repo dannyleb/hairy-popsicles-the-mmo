@@ -1,5 +1,6 @@
 import { CHARACTERS, CHARACTER_BY_ID, NAME_COLORS, RARITIES, SEASONS, SEASON_COLORS, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
 import { hasHaptics, sfx } from '../audio/sfx.js';
+import { fullQuality, resetQuality } from '../display.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
@@ -331,9 +332,20 @@ export function createSheets(actions) {
       code,
       copy,
     );
+    // The game lightens its graphics by itself on devices that struggle; this undoes it.
+    const graphics = [];
+    if (!fullQuality()) {
+      graphics.push(
+        el('p', 'overlay-hint', 'Graphics were lightened to keep the game smooth on this device.'),
+        button('sheet-button quiet', 'Try full graphics again', () => {
+          resetQuality();
+          window.location.reload();
+        }),
+      );
+    }
     const leave = button('sheet-button quiet', 'Leave the world', () => actions.leave());
     const note = el('p', 'overlay-hint', "Your progress is saved on this device. Your plot comes back with you and keeps growing while you're away.");
-    open('Settings', list, rules, move, note, leave);
+    open('Settings', list, rules, move, ...graphics, note, leave);
   }
 
   return {

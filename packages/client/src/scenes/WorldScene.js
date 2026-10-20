@@ -20,7 +20,9 @@ import {
   wearBonus,
 } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
-import { DPR, cameraZoom, lookAhead, textResolution } from '../display.js';
+import {
+  applyRenderScale, cameraZoom, drawingInSoftware, lookAhead, lowerQuality, quality, renderScale, textResolution,
+} from '../display.js';
 import { reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
@@ -57,6 +59,10 @@ const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long wai
 const REPLACED = 4001;            // close code: this save was opened somewhere else
 const ZOOM_RANGE = [0.55, 1.6];   // how far a pinch (or the mouse wheel) zooms the world, around the usual view
 const TAP_SLOP = 12;              // px a finger can drift and still count as a tap
+// Frames slower than this (median, over a few seconds) step the graphics down a notch.
+const SLOW_FRAME_MS = 26;
+const FRAME_WINDOW_MS = 3000;
+const FRAME_SETTLE_MS = 5000;     // let loading finish (and the last change take hold) before judging
 const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint
 // Walking as a Rare or better leaves a trail everyone sees: how often, and in what color.
 const TRAILS = { rare: { every: 120, tint: 0x7fb2e5, size: 11 }, legendary: { every: 70, tint: 0xffc95a, size: 15 } };
@@ -99,6 +105,8 @@ export class WorldScene extends Phaser.Scene {
     this.scale.on('resize', onResize);
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
+    this.backdrop.setLite(quality().lite);
+    this.frames = { from: 0, deltas: [], told: false };
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
     this.drops = createDropsView(this, this.fx);
@@ -160,6 +168,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.bindRoom(this.room);
     offerInstallLater();
+    this.checkRenderer();
   }
 
   // ---------- connection ----------
@@ -381,7 +390,7 @@ export class WorldScene extends Phaser.Scene {
     if (fingers.length < 2) return;
     const [a, b] = fingers;
     const distance = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
-    if (!this.pinch.active && Math.abs(distance - this.pinch.from) > TAP_SLOP * DPR) {
+    if (!this.pinch.active && Math.abs(distance - this.pinch.from) > TAP_SLOP * renderScale()) {
       this.pinch.active = true;
       this.pendingTaps.clear();
     }
@@ -396,7 +405,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.pinch.active) settings.set('zoom', this.userZoom);
       this.pinch = null;
     }
-    if (!tap || Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * DPR) return;
+    if (!tap || Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * renderScale()) return;
     this.handleTap(pointer);
   }
 
@@ -1096,7 +1105,49 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- frame ----------
 
+  // ---------- keeping it smooth ----------
+
+  // A browser drawing without the graphics card goes straight to the lightest
+  // graphics, and says how to fix it.
+  checkRenderer() {
+    if (!drawingInSoftware(this.game)) return;
+    if (lowerQuality(true)) this.applyQuality();
+    const text = "Your browser is drawing the game without the graphics card, so it'll be slow. In Chrome: Settings, System, turn on \"Use graphics acceleration when available\", then relaunch.";
+    this.hud.announce(text, 'info');
+    this.hud.chatLine({ text, kind: 'system' });
+  }
+
+  // If frames keep coming slowly, step the graphics down (and remember it).
+  watchFrameRate(time, delta) {
+    const frames = this.frames;
+    if (!frames.from) frames.from = time + FRAME_SETTLE_MS;
+    if (time < frames.from || document.hidden) return;
+    frames.deltas.push(delta);
+    if (time - frames.from < FRAME_WINDOW_MS) return;
+    const sorted = frames.deltas.sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    frames.deltas = [];
+    frames.from = time;
+    if (median <= SLOW_FRAME_MS || !lowerQuality()) return;
+    this.applyQuality();
+    frames.from = time + FRAME_SETTLE_MS;
+    if (!frames.told) {
+      frames.told = true;
+      this.hud.toast('Running a bit slow here, so the graphics are lighter now.');
+    }
+  }
+
+  applyQuality() {
+    applyRenderScale(this.game);
+    this.cameras.main.setZoom(cameraZoom() * this.userZoom);
+    this.backdrop.setLite(quality().lite);
+  }
+
   trail(avatar, time, view) {
+    if (quality().lite) {
+      avatar.nextTrail = time + 1000;
+      return;
+    }
     const { x, y } = avatar.container;
     const style = avatar.shiny ? SHINY_TRAIL : TRAILS[CHARACTER_BY_ID[avatar.characterId]?.rarity];
     if (!style || !view.contains(x, y)) {
@@ -1148,6 +1199,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(time, delta) {
     const camera = this.cameras.main;
+    this.watchFrameRate(time, delta);
     this.backdrop.update(time, delta, camera);
     if (!this.state) return;
 
