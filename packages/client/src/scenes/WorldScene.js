@@ -830,9 +830,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   onAnnounce({ text, kind }) {
-    // My own rare harvests already get the big reveal.
+    // My own rare harvests and album rows already get the big reveal.
     const myName = this.me()?.name;
-    if (myName && (RANK[kind] !== undefined || kind === 'shiny') && text.startsWith(`${myName} grew`)) return;
+    if (myName && (RANK[kind] !== undefined || kind === 'shiny') && text.startsWith(`${myName} `)) return;
     this.hud.announce(text, kind);
     this.hud.chatLine({ text, kind: 'system' });
     if (kind === 'boss' && text.includes('swelling')) sfx.rumble();
@@ -955,6 +955,10 @@ export class WorldScene extends Phaser.Scene {
     } else if (notice.kind === 'daily') {
       this.hud.daily(notice);
       if (notice.reward.boil) this.hud.selectSeed('boil');
+    } else if (notice.kind === 'row') {
+      this.hud.albumRow(notice);
+      sfx.fanfare();
+      if (notice.boil) this.hud.selectSeed('boil');
     }
   }
 

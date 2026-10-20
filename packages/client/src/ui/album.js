@@ -1,4 +1,4 @@
-import { CHARACTERS, RARITIES, RARITY_ORDER, STAR_COPIES, describeBonus, starsFor, wearBonus } from '@hptm/shared';
+import { ALBUM_ROWS, CHARACTERS, RARITIES, RARITY_ORDER, STAR_COPIES, describeBonus, starsFor, wearBonus } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 
@@ -16,9 +16,12 @@ export function createAlbum({ onWear, onOpen }) {
   for (const rarity of RARITY_ORDER) {
     const heading = el('h3', 'album-section');
     heading.style.color = RARITIES[rarity].color;
+    const label = el('span');
+    const reward = el('span', 'album-row-reward');
+    heading.append(label, reward);
     const grid = el('div', 'album-grid');
     root.append(heading, grid);
-    sections.set(rarity, heading);
+    sections.set(rarity, { label, reward });
     for (const character of CHARACTERS.filter((c) => c.rarity === rarity)) {
       const card = button('album-card', null, () => {
         sfx.click();
@@ -47,14 +50,20 @@ export function createAlbum({ onWear, onOpen }) {
     },
     isOpen: () => !root.hidden,
 
-    update(collection, shinies, wearing) {
+    update(collection, shinies, wearing, rows = []) {
       const owned = Object.keys(collection).length;
       const shinyCount = Object.keys(shinies).length;
       title.textContent = `Album ${owned}/${CHARACTERS.length}${shinyCount ? ` · ✦${shinyCount}` : ''}`;
       for (const rarity of RARITY_ORDER) {
         const all = CHARACTERS.filter((c) => c.rarity === rarity);
         const have = all.filter((c) => collection[c.id]).length;
-        sections.get(rarity).textContent = `${RARITIES[rarity].label} · ${have}/${all.length}`;
+        const { label, reward } = sections.get(rarity);
+        label.textContent = `${RARITIES[rarity].label} · ${have}/${all.length}`;
+        const { scraps, boil } = ALBUM_ROWS[rarity];
+        reward.textContent = rows.includes(rarity)
+          ? 'Row complete ✓'
+          : `Complete the row: +${scraps} scraps${boil ? ` · +${boil} Boil Seed${boil > 1 ? 's' : ''}` : ''}`;
+        reward.classList.toggle('done', rows.includes(rarity));
       }
       for (const { card, name, count, stars, bonus, character } of cards.values()) {
         const n = collection[character.id] ?? 0;

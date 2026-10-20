@@ -105,14 +105,19 @@ Timers are short on purpose while nothing persists. Rarities live in
   Play as a character you have a shiny of and you wear the gold. Growing 3,
   10 and 25 copies of a character earns it stars, shown in the album and
   next to your level while you play as it.
+- **Album rows.** Grow every character of a rarity and that row of the
+  album pays out once: Common 40 scraps, Uncommon 100 + a Boil Seed, Rare
+  250 + 2, Legendary 600 + 3 (plus XP), with its own reveal and a world
+  announcement. Album headings show each row's reward. Saves from before
+  this get paid for rows they already finished.
 - **Wear bonuses.** Who you play as matters: an Uncommon gives +10% scraps
   from harvests, a Rare also makes your crops grow 10% faster, a Legendary
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Eleven lifetime goals (harvest 25 and 150, squeeze 20, top The
+- **Titles.** Twelve lifetime goals (harvest 25 and 150, squeeze 20, top The
   Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
-  a 7-day streak, 15 characters, all of them) each earn a title, announced to the
+  scratch The Itch 5 times, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
 - **Shop.** Somewhere to spend scraps besides seeds (tap your card, then
@@ -255,7 +260,7 @@ chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
 `shop`, `integrity` (old saves, squeezes and boss damage across reloads),
 `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
-bonuses), `rain`, `itch`, `titles`, `gifts`, `hardening` (filter, rate limits) and
+bonuses), `rain`, `itch`, `rows` (album row rewards), `titles`, `gifts`, `hardening` (filter, rate limits) and
 `filter`. GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 

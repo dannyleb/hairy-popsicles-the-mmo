@@ -241,7 +241,7 @@ export function createHud(actions) {
       renderCard();
       renderQuests();
       renderSeeds();
-      album.update(me.collection, me.shinies ?? {}, pub?.avatar);
+      album.update(me.collection, me.shinies ?? {}, pub?.avatar, me.rows);
       sheets.setMe(me);
       if (firstTime) lastScraps = me.currency;
     },
@@ -249,7 +249,7 @@ export function createHud(actions) {
     setPublic(nextPub) {
       pub = nextPub;
       renderCard();
-      if (me) album.update(me.collection, me.shinies ?? {}, pub.avatar);
+      if (me) album.update(me.collection, me.shinies ?? {}, pub.avatar, me.rows);
     },
 
     setPlayers(players, myId) {
@@ -331,6 +331,7 @@ export function createHud(actions) {
 
     reveal: reveal.character,
     levelUp: reveal.levelUp,
+    albumRow: reveal.albumRow,
     welcome: reveal.welcome,
     daily: reveal.daily,
     shop: () => sheets.shop(),

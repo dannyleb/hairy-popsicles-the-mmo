@@ -1,4 +1,4 @@
-import { CHARACTER_BY_ID } from './characters.js';
+import { CHARACTERS, CHARACTER_BY_ID } from './characters.js';
 
 // Cumulative XP needed to reach each level (index 0 = level 1).
 export const LEVEL_XP = [0, 40, 110, 220, 380, 600, 880, 1250, 1700, 2250, 2900, 3700, 4600, 5700, 7000];
@@ -58,6 +58,15 @@ export const SHINY_SCRAPS = 3;  // a shiny pays this many times the usual scraps
 // Growing more copies of a character earns it stars (shown in the album and
 // over your head while you play as it).
 export const STAR_COPIES = [3, 10, 25];
+
+// Growing every character of a rarity completes that row of the album, for a one-time reward.
+export const ALBUM_ROWS = {
+  common: { scraps: 40, xp: 80, boil: 0 },
+  uncommon: { scraps: 100, xp: 180, boil: 1 },
+  rare: { scraps: 250, xp: 350, boil: 2 },
+  legendary: { scraps: 600, xp: 700, boil: 3 },
+};
+export const rowComplete = (rarity, collection) => CHARACTERS.every((c) => c.rarity !== rarity || collection[c.id]);
 export const starsFor = (copies) => STAR_COPIES.filter((n) => copies >= n).length;
 
 // Playing as a character pays off: rarer characters boost your farming, and

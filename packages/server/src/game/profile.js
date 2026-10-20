@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
-  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
+  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
 } from '@hptm/shared';
 import { hasBlocked } from './filter.js';
 
@@ -48,6 +48,7 @@ export function saveToken(player, plot, plotKey) {
     stats: player.stats,
     titles: player.titles,
     title: player.title,
+    rows: player.rows,
     colors: player.colors,
     nameColor: player.nameColor,
     plot: plot && {
@@ -114,6 +115,7 @@ export function readToken(token) {
     stats: Object.fromEntries(STAT_NAMES.map((name) => [name, count(p.stats?.[name])])),
     titles: Array.isArray(p.titles) ? p.titles.filter((id) => Object.hasOwn(TITLE_BY_ID, id)) : [],
     title: Object.hasOwn(TITLE_BY_ID, p.title) && p.titles?.includes(p.title) ? p.title : null,
+    rows: Array.isArray(p.rows) ? [...new Set(p.rows.filter((r) => RARITY_ORDER.includes(r)))] : [],
     colors: Array.isArray(p.colors) ? p.colors.filter((c) => Object.hasOwn(NAME_COLORS, c)) : [],
     nameColor: Object.hasOwn(NAME_COLORS, p.nameColor) && p.colors?.includes(p.nameColor) ? p.nameColor : null,
     plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,

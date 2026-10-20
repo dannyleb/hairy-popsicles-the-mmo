@@ -1,5 +1,6 @@
 import colyseus from 'colyseus';
 import {
+  ALBUM_ROWS,
   CHARACTER_BY_ID,
   CHAT_COOLDOWN_MS,
   CHAT_MAX,
@@ -36,6 +37,7 @@ import {
   greenThumb,
   holeOpen,
   levelFor,
+  rowComplete,
   starsFor,
   titleProgress,
   wearBonus,
@@ -154,6 +156,7 @@ export class WorldRoom extends Room {
       player.notices.push({ kind: 'daily', ...daily });
     }
     this.checkTitles(player);  // a streak can earn one just by showing up
+    this.checkRows(player);    // and a save from before row rewards may have some due
     recordJoin(player.profileId, Object.keys(this.players).length);
     console.log(`join ${player.id} ${player.name}${save ? ' (saved)' : ''} (${this.clients.length} here)`);
     topUp(player, this.othersPresent(player));
@@ -187,6 +190,7 @@ export class WorldRoom extends Room {
       stats: Object.fromEntries(STAT_NAMES.map((name) => [name, 0])),
       titles: [],
       title: null,
+      rows: [],            // album rows (rarities) completed and paid for
       notices: [],         // shown once the client is listening ('sync')
       synced: false,
       saveDirty: true,
@@ -216,6 +220,7 @@ export class WorldRoom extends Room {
         stats: save.stats,
         titles: save.titles,
         title: save.title,
+        rows: save.rows,
       });
       if (Object.keys(save.collection).length) {
         player.collection = save.collection;
@@ -371,12 +376,12 @@ export class WorldRoom extends Room {
   }
 
   sendMe(player) {
-    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor } = player;
+    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, rows } = player;
     const streak = player.daily.streak;
     const itchShare = this.itch.share(player.profileId);
     this.clientOf(player)?.send('me', {
       profileId: player.profileId,
-      currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, streak, itchShare,
+      currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, rows, streak, itchShare,
     });
     player.saveDirty = true;
   }
@@ -413,6 +418,23 @@ export class WorldRoom extends Room {
       this.announce(`${player.name} earned the title ${title.name}.`, 'title');
       player.saveDirty = true;
       this.markDirty();
+    }
+  }
+
+  // Growing the last character of a rarity completes that row of the album, paid once.
+  checkRows(player) {
+    for (const rarity of RARITY_ORDER) {
+      if (player.rows.includes(rarity) || !rowComplete(rarity, player.collection)) continue;
+      player.rows.push(rarity);
+      const reward = ALBUM_ROWS[rarity];
+      player.currency += reward.scraps;
+      player.inventory.boil += reward.boil;
+      const notice = { kind: 'row', rarity, ...reward };
+      if (player.synced) this.clientOf(player)?.send('notice', notice);
+      else player.notices.push(notice);
+      this.announce(`${player.name} completed the ${RARITIES[rarity].label} row of the album!`, rarity);
+      this.grantXp(player, reward.xp);
+      player.saveDirty = true;
     }
   }
 
@@ -583,6 +605,7 @@ export class WorldRoom extends Room {
     if (rank(characterId) >= 1) this.progress(player, 'uncommon');
     if (rank(characterId) >= 2) this.progress(player, 'rare');
     if (isNew) this.progress(player, 'discover');
+    if (isNew) this.checkRows(player);
     this.sendMe(player);
     this.markDirty();
   }
@@ -677,6 +700,7 @@ export class WorldRoom extends Room {
     this.clientOf(player)?.send('gave', { to: other.name, characterId });
     this.announce(`${player.name} gave ${other.name} a ${name}.`, 'gift');
     if (isNew) this.progress(other, 'discover');
+    if (isNew) this.checkRows(other);
     this.bump(player, 'gifts');
     this.checkTitles(other);
     this.sendMe(player);

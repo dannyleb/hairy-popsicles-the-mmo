@@ -1,5 +1,5 @@
-import { CHARACTER_BY_ID, DAILY_REWARDS, RARITIES, dailyReward, linesOf } from '@hptm/shared';
-import { button, el, img, bigSpriteUrl, worldUrl } from './dom.js';
+import { CHARACTERS, CHARACTER_BY_ID, DAILY_REWARDS, RARITIES, dailyReward, linesOf } from '@hptm/shared';
+import { button, el, img, bigSpriteUrl, spriteUrl, worldUrl } from './dom.js';
 
 const LEVEL_UP_MS = 3800;
 const TAP_GUARD_MS = 700;  // ignore taps right after it opens, which were meant for the world
@@ -131,6 +131,28 @@ export function createReveal({ onWear }) {
           el('h2', 'reveal-name', name),
           el('p', 'reveal-line', `${goal}. Everyone sees it under your name.`),
           actions,
+        );
+        root.append(card);
+      });
+    },
+
+    // Every character of a rarity grown: the whole row lined up, and its reward.
+    albumRow({ rarity, scraps, xp, boil }) {
+      enqueue(() => {
+        root.classList.add('daily');
+        const { label, color } = RARITIES[rarity];
+        const row = el('div', 'reveal-row');
+        for (const c of CHARACTERS.filter((ch) => ch.rarity === rarity)) row.append(img(spriteUrl(c.id)));
+        const card = el('div', 'reveal-card');
+        card.style.setProperty('--rarity', color);
+        const heading = el('h2', 'reveal-name', `Every ${label}`);
+        heading.style.color = color;
+        card.append(
+          el('p', 'reveal-rarity', 'Album row complete'),
+          heading,
+          row,
+          el('p', 'reveal-line', `${[...rewardParts({ scraps, boil }), `+${xp} xp`].join(' · ')}`),
+          button('reveal-button primary', 'Sweet', () => next()),
         );
         root.append(card);
       });
