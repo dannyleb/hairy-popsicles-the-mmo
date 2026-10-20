@@ -221,7 +221,10 @@ makes every crop shiny.
   public world state at most 10 times a second when something changes.
   Fine at small scale; swap in `@colyseus/schema` delta encoding before it
   matters.
-- **No moderation** beyond a per-player mute and chat rate limits.
+- **Light moderation only:** a word filter masks slurs and the worst sexual
+  terms in chat and turns offending names into Guest names
+  (`packages/server/src/game/filter.js`), players can mute each other, and
+  each player's messages are rate limited. No reporting or bans yet.
 - **World art is procedural placeholder** (see "World art").
 
 ## Deploy

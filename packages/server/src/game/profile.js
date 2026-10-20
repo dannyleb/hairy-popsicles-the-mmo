@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { CHARACTER_BY_ID, NAME_MAX, PLOT_SIZE, SEED_BY_ID, levelFor } from '@hptm/shared';
+import { hasBlocked } from './filter.js';
 
 // Saves live on the player's device, signed by the server so they can't be
 // edited: no database needed, and progress survives the free host restarting.
@@ -20,8 +21,10 @@ const time = (t) => (Number.isFinite(t) && t > 0 ? t : 0);
 
 export const newProfileId = () => randomUUID();
 
+// A display name, or '' if it's empty or crosses the line (the player becomes a Guest).
 export function cleanName(name) {
-  return String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+  const clean = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+  return hasBlocked(clean) ? '' : clean;
 }
 
 // Everything about a player worth keeping, except where they're standing.

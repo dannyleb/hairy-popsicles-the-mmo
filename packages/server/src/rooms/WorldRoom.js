@@ -32,6 +32,7 @@ import {
 import { createBoss } from '../game/boss.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { createRain } from '../game/rain.js';
+import { maskText } from '../game/filter.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
@@ -51,6 +52,7 @@ const RECONNECT_SECONDS = 90;
 const SAVE_MS = 2000;            // a player's save goes out at most this often
 const WELCOME_AFTER_MS = 60_000; // away at least this long to get a "welcome back"
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
+const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
 const BLOOD_MOON = { firstMs: 150_000, everyMs: 9 * 60_000, lastsMs: 90_000 };
 
@@ -74,7 +76,7 @@ export class WorldRoom extends Room {
 
     const on = (type, handler) => this.onMessage(type, (client, message) => {
       const player = this.players[client.sessionId];
-      if (player) handler(player, message ?? {}, client);
+      if (player && this.withinBudget(player)) handler(player, message ?? {}, client);
     });
     on('move', (p, m) => this.handleMove(p, m));
     on('claimPlot', (p, m) => this.handleClaimPlot(p, m));
@@ -144,6 +146,8 @@ export class WorldRoom extends Room {
       lastEmoteAt: 0,
       lastHitAt: 0,
       arrivesAt: 0,
+      budget: MESSAGES.burst,
+      budgetAt: Date.now(),
       away: false,
     };
     if (save) {
@@ -269,6 +273,16 @@ export class WorldRoom extends Room {
   }
 
   // ---------- helpers ----------
+
+  // A leaky bucket per player, so a misbehaving client can't flood the room.
+  withinBudget(player) {
+    const now = Date.now();
+    player.budget = Math.min(MESSAGES.burst, player.budget + ((now - player.budgetAt) / 1000) * MESSAGES.perSecond);
+    player.budgetAt = now;
+    if (player.budget < 1) return false;
+    player.budget -= 1;
+    return true;
+  }
 
   clientOf(player) {
     return this.clients.getById(player.id);
@@ -502,7 +516,7 @@ export class WorldRoom extends Room {
   handleChat(player, { text }) {
     const now = Date.now();
     if (now - player.lastChatAt < CHAT_COOLDOWN_MS) return;
-    const clean = String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX);
+    const clean = maskText(String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX));
     if (!clean) return;
     player.lastChatAt = now;
     const line = { id: player.id, name: player.name, text: clean, at: now };
