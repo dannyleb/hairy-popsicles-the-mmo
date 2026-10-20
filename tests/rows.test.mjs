@@ -11,7 +11,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 async function join(profile) {
   const room = await new Client(URL).joinOrCreate('world', { profile });
-  const p = { room, rows: [], announce: [] };
+  const p = { room, rows: [], announce: [], quests: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
   room.onMessage('state', (s) => { p.state = s; });
@@ -19,6 +19,7 @@ async function join(profile) {
   room.onMessage('save', ({ token }) => { p.token = token; });
   room.onMessage('notice', (n) => { if (n.kind === 'row') p.rows.push(n); });
   room.onMessage('announce', (a) => p.announce.push(a));
+  room.onMessage('questDone', (q) => p.quests.push(q));
   room.send('sync');
   await sleep(300);
   return p;
@@ -40,7 +41,9 @@ const scraps = collector.me.currency;
 giver.room.send('gift', { to: collector.room.sessionId, characterId: last });
 await sleep(400);
 const row = collector.rows[0];
-check('finishing a row pays its reward', row?.rarity === 'common' && row.scraps === ALBUM_ROWS.common.scraps && collector.me.currency === scraps + ALBUM_ROWS.common.scraps);
+// A new character can also finish a "grow someone new" quest, which pays on its own.
+const questScraps = collector.quests.reduce((n, q) => n + q.scraps, 0);
+check('finishing a row pays its reward', row?.rarity === 'common' && row.scraps === ALBUM_ROWS.common.scraps && collector.me.currency === scraps + questScraps + ALBUM_ROWS.common.scraps);
 check('the row is marked done', collector.me.rows.includes('common'));
 check('everyone hears about it', giver.announce.some((a) => a.kind === 'common' && a.text.includes('completed the Common row')));
 await sleep(2200);  // let a save go out
