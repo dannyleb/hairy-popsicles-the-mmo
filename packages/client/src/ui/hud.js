@@ -1,4 +1,4 @@
-import { CHARACTERS, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { CHARACTERS, ITCH, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, levelProgress, MAX_LEVEL } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -42,6 +42,17 @@ export function createHud(actions) {
   const questsHeader = button('hud-quests-header', 'Quests', () => quests.classList.toggle('collapsed'));
   const questList = el('ul', 'hud-quest-list');
   quests.append(questsHeader, questList);
+
+  // The Itch sits on top of the quests while it's on: one goal for the whole world.
+  const itchRow = el('li', 'quest itch');
+  const itchText = el('span', 'quest-text');
+  const itchCount = el('span', 'quest-count');
+  const itchFill = el('div', 'quest-fill');
+  const itchBar = el('div', 'quest-bar');
+  itchBar.append(itchFill);
+  const itchNote = el('span', 'quest-note');
+  itchRow.append(itchText, itchCount, itchBar, itchNote);
+  itchRow.hidden = true;
 
   // ---- top right: menus, minimap, live events
   const corner = el('div', 'hud-corner');
@@ -184,7 +195,7 @@ export function createHud(actions) {
       row.append(el('span', 'quest-text', 'Daily quest done. New one tomorrow.'));
       rows.unshift(row);
     }
-    questList.replaceChildren(...rows);
+    questList.replaceChildren(itchRow, ...rows);
   }
 
   function renderCard() {
@@ -258,7 +269,7 @@ export function createHud(actions) {
     },
 
     // Live events: the boss, the blood moon and the pus rain, with countdowns.
-    setEvents({ boss, bloodMoon: moon, rain }, now) {
+    setEvents({ boss, bloodMoon: moon, rain, itch }, now) {
       bossPill.hidden = !boss;
       if (boss) {
         bossTime.textContent = formatClock(boss.expiresAt - now);
@@ -269,6 +280,17 @@ export function createHud(actions) {
       if (moon) moonTime.textContent = formatClock(moon.endsAt - now);
       rainPill.hidden = !rain;
       if (rain) rainTime.textContent = formatClock(rain.endsAt - now);
+      this.setItch(itch, now);
+    },
+
+    setItch(itch, now) {
+      itchRow.hidden = !itch;
+      if (!itch) return;
+      itchText.textContent = `The Itch: ${ITCH.kinds[itch.kind].text(itch.target)}`;
+      itchCount.textContent = `${itch.progress}/${itch.target}`;
+      itchFill.style.width = `${(itch.progress / itch.target) * 100}%`;
+      const share = me?.itchShare?.id === itch.id ? me.itchShare.count : 0;
+      itchNote.textContent = `${formatClock(itch.endsAt - now)} left · ${share ? `you've helped ${share}` : 'help to share the reward'}`;
     },
 
     // Screen position (CSS px) of an off-screen boss, or null to hide the arrow.
@@ -292,12 +314,13 @@ export function createHud(actions) {
       }, BANNER_MS);
     },
 
-    questDone({ text, scraps: s, xp, daily, boil }) {
-      if (daily) sfx.fanfare();
+    questDone({ text, scraps: s, xp, daily, itch, boil }) {
+      if (daily || itch) sfx.fanfare();
       else sfx.quest();
-      const node = el('div', `banner ${daily ? 'banner-legendary' : 'banner-quest'}`);
+      const node = el('div', `banner ${daily ? 'banner-legendary' : itch ? 'banner-itch' : 'banner-quest'}`);
       const extra = boil ? ` · +${boil} Boil Seed` : '';
-      node.append(el('strong', null, daily ? 'Daily quest done! ' : 'Quest done! '), document.createTextNode(`${text} · +${s} scraps · +${xp} xp${extra}`));
+      const heading = daily ? 'Daily quest done! ' : itch ? 'Itch scratched! ' : 'Quest done! ';
+      node.append(el('strong', null, heading), document.createTextNode(`${text} · +${s} scraps · +${xp} xp${extra}`));
       banners.append(node);
       while (banners.children.length > MAX_BANNERS) banners.firstElementChild.remove();
       setTimeout(() => {

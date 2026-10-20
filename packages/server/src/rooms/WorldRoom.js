@@ -8,6 +8,7 @@ import {
   EMOTE_COOLDOWN_MS,
   FERTILIZER_SPEEDUP,
   GIFT_COOLDOWN_MS,
+  ITCH,
   NAME_COLORS,
   PLOT_SIZE,
   QUEST_KINDS,
@@ -42,6 +43,7 @@ import {
 import { createBoss } from '../game/boss.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
+import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
 import { maskText } from '../game/filter.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
@@ -83,6 +85,7 @@ export class WorldRoom extends Room {
     this.dirty = false;
     this.boss = createBoss(this, EVENT_SCALE);
     this.rain = createRain(this, EVENT_SCALE);
+    this.itch = createItch(this, EVENT_SCALE);
     this.bloodMoon = null;
     this.nextBloodMoon = Date.now() + BLOOD_MOON.firstMs * EVENT_SCALE;
 
@@ -370,9 +373,10 @@ export class WorldRoom extends Room {
   sendMe(player) {
     const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor } = player;
     const streak = player.daily.streak;
+    const itchShare = this.itch.share(player.profileId);
     this.clientOf(player)?.send('me', {
       profileId: player.profileId,
-      currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, streak,
+      currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, streak, itchShare,
     });
     player.saveDirty = true;
   }
@@ -438,6 +442,23 @@ export class WorldRoom extends Room {
       player.inventory.boil += boil;
       this.clientOf(player)?.send('questDone', { daily: true, text: QUEST_KINDS[dailyKind].text(target), scraps, xp, boil });
       this.grantXp(player, xp);
+    }
+    const helpers = this.itch.progress(player, kind, amount);
+    if (helpers) this.rewardItch(helpers);
+  }
+
+  // Everyone still here who helped scratch The Itch gets the same reward.
+  rewardItch(helpers) {
+    const { scraps, xp, boil } = ITCH.reward;
+    for (const helper of Object.values(this.players)) {
+      const share = helpers.get(helper.profileId);
+      if (!share) continue;
+      helper.currency += scraps;
+      helper.inventory.boil += boil;
+      this.clientOf(helper)?.send('itchScratched', { share, helpers: helpers.size, scraps, xp, boil });
+      this.grantXp(helper, xp);
+      this.bump(helper, 'itches');
+      this.sendMe(helper);
     }
   }
 
@@ -725,6 +746,7 @@ export class WorldRoom extends Room {
     const now = Date.now();
     this.boss.tick(now);
     this.rain.tick(now);
+    this.itch.tick(now);
     if (!this.bloodMoon && now >= this.nextBloodMoon) {
       this.bloodMoon = { endsAt: now + BLOOD_MOON.lastsMs * EVENT_SCALE };
       this.announce('Blood Moon! Rare characters are sprouting everywhere.', 'bloodMoon');
@@ -779,6 +801,7 @@ export class WorldRoom extends Room {
       boss: this.boss.view(),
       bloodMoon: this.bloodMoon,
       rain: this.rain.view(),
+      itch: this.itch.view(),
       drops: this.rain.drops(),
       serverNow: Date.now(),
     };

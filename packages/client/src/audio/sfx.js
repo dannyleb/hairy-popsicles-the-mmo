@@ -146,6 +146,10 @@ const SOUNDS = {
     tone('sine', f, f * 1.7, 0.08, 0.3);
     if (gold) [988, 1319].forEach((g, i) => tone('triangle', g, g, 0.12, 0.12, 0.06 + i * 0.06));
   },
+  // Fingernails on skin: The Itch starting.
+  scratch() {
+    for (let i = 0; i < 5; i++) burst(2400 + Math.random() * 1600, 2, 0.07, 0.3, 'bandpass', i * 0.09);
+  },
   chat() {
     tone('triangle', 900 + Math.random() * 200, 1300, 0.05, 0.14);
   },
@@ -171,6 +175,7 @@ const BUZZ = {
   splat: [60, 40, 140],
   fanfare: [40, 60, 40, 60, 110],
   bloop: 14,
+  scratch: [20, 60, 20, 60, 20],
   nope: [15, 40, 15],
 };
 const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';

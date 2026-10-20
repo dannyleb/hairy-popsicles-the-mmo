@@ -1568,3 +1568,33 @@
   border-radius: 10px;
   resize: none;
 }
+
+/* ---------- The Itch ---------- */
+
+.quest.itch .quest-text {
+  color: #f0a7d8;
+}
+
+.quest.itch .quest-fill {
+  background: linear-gradient(90deg, #c8509a, #f0a7d8);
+}
+
+.quest-note {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.quest.itch[hidden] {
+  display: none;
+}
+
+.banner-itch {
+  border-color: #e07ac0;
+  background: rgba(60, 14, 44, 0.95);
+}
+
+.banner-itch strong {
+  color: #f0a7d8;
+  font-weight: 400;
+}

@@ -152,6 +152,11 @@ export class WorldScene extends Phaser.Scene {
     on('harvested', this.onHarvested);
     on('levelUp', this.onLevelUp);
     on('questDone', (quest) => this.hud.questDone(quest));
+    on('itchScratched', ({ share, helpers, scraps, xp, boil }) => {
+      const text = helpers > 1 ? `You helped ${share}× of ${helpers} players` : `You did it all yourself (${share}×)`;
+      this.hud.questDone({ itch: true, text, scraps, xp, boil });
+      this.hud.selectSeed('boil');
+    });
     on('chat', this.onChat);
     on('chatLog', (lines) => this.hud.chatHistory(lines.filter((l) => !this.hud.isMuted(l.id))));
     on('emote', this.onEmote);
@@ -832,6 +837,7 @@ export class WorldScene extends Phaser.Scene {
     this.hud.chatLine({ text, kind: 'system' });
     if (kind === 'boss' && text.includes('swelling')) sfx.rumble();
     if (kind === 'bloodMoon' && text.startsWith('Blood Moon')) sfx.rumble();
+    if (kind === 'itch' && text.startsWith('The Itch!')) sfx.scratch();
   }
 
   // Now and then, someone on screen says something about themselves.

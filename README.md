@@ -70,6 +70,12 @@ Timers are short on purpose while nothing persists. Rarities live in
   nearest wins the race. The same rule applies to squeezing and to The Boil.
 - **Blood Moon (event).** Every 9 minutes, for 90 seconds, the world goes
   red and every seed's Rare odds are x2.5 and Legendary x3.
+- **The Itch (world goal).** Every 20 minutes or so the whole world itches:
+  one shared target for everyone online ("Harvest 30 characters together"),
+  sized by how many are on when it starts, with 12 minutes to hit it. It
+  sits on top of the quest list with everyone's progress and your share.
+  Everyone who helped gets 30 scraps, 60 XP and a Boil Seed; 5 scratches
+  earn the Scratcher title.
 - **Social.** Chat (log over the dock, bubbles over heads), six emotes, a
   "who's here" leaderboard ranked by album size, tap anyone to see their
   card (level, album, best character) and walk over, wave, or mute them.
@@ -211,7 +217,7 @@ packages/
   shared/   characters, rarities, seeds, levels, quests, chat/emote rules: imported by client and server
   server/   Colyseus room: authoritative state, lives on a Node host
     src/rooms/WorldRoom.js   players, plots, planting, harvesting, squeezing, chat, gifts, events
-    src/game/                saves, daily streak, quests, The Boil, Pus Rain, rolls, chat filter
+    src/game/                saves, daily streak, quests, The Boil, Pus Rain, The Itch, rolls, chat filter
   client/   Phaser 3 + Vite: the actual game, runs in the browser
     src/scenes/   Boot (loads assets) → Menu → World
     src/world/    backdrop, The Boil, effects, layout constants
@@ -249,7 +255,7 @@ chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
 `shop`, `integrity` (old saves, squeezes and boss damage across reloads),
 `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
-bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
+bonuses), `rain`, `itch`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 `filter`. GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 

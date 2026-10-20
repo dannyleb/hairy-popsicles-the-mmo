@@ -11,13 +11,14 @@ export const TITLES = [
   { id: 'glob-goblin', name: 'Glob Goblin', goal: 'Grab 50 globs in Pus Rains', stat: 'globs', count: 50 },
   { id: 'shiny-hunter', name: 'Shiny Hunter', goal: 'Grow 3 shinies', stat: 'shinies', count: 3 },
   { id: 'chatterbox', name: 'Chatterbox', goal: 'Say 50 things in chat', stat: 'chats', count: 50 },
+  { id: 'scratcher', name: 'Scratcher', goal: 'Help scratch The Itch 5 times', stat: 'itches', count: 5 },
   { id: 'generous', name: 'Generous', goal: 'Give 10 characters to other players', stat: 'gifts', count: 10 },
   { id: 'regular', name: 'Regular', goal: 'Visit 7 days in a row', stat: 'streak', count: 7 },
   { id: 'collector', name: 'Collector', goal: 'Have 15 characters in your album', stat: 'album', count: 15 },
   { id: 'completionist', name: 'Completionist', goal: 'Have every character in your album', stat: 'album', count: CHARACTERS.length },
 ];
 export const TITLE_BY_ID = Object.fromEntries(TITLES.map((t) => [t.id, t]));
-export const STAT_NAMES = ['harvests', 'squeezes', 'bossTops', 'globs', 'shinies', 'chats', 'gifts'];
+export const STAT_NAMES = ['harvests', 'squeezes', 'bossTops', 'globs', 'shinies', 'chats', 'gifts', 'itches'];
 
 // Where a player stands on a title's goal.
 export function titleProgress(title, stats, albumSize, streak) {

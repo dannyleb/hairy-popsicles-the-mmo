@@ -7,11 +7,13 @@ import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.5';
+const VERSION = 'v0.6';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',
+    'Move your save to another phone: Settings, then Move to another phone.',
     'Your progress saves on this device, and your plot keeps growing while you\'re away.',
     'A daily gift for coming back, and a bigger daily quest.',
     'Shiny crops, stars for duplicates, and bonuses for who you play as.',

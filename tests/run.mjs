@@ -23,6 +23,7 @@ const SUITES = {
   levels: [{ PORT: 2575, GROW_SCALE: 0.01 }],
   shop: [{ PORT: 2576 }],
   integrity: [{ PORT: 2577, EVENT_SCALE: 0.1 }],
+  itch: [{ PORT: 2578, GROW_SCALE: 0.01, EVENT_SCALE: 0.01 }],
 };
 
 function startServer(settings) {
