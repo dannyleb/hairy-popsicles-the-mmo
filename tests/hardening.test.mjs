@@ -8,7 +8,7 @@ async function join(name) {
   const p = { room, chat: [], quests: 0 };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('chat', (c) => p.chat.push(c));
   room.send('sync');
   await sleep(300);

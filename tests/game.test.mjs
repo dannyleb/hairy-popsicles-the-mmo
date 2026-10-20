@@ -13,7 +13,7 @@ async function join(name, url = 'ws://localhost:2567') {
   const record = (type) => room.onMessage(type, (m) => { (p.events[type] ??= []).push(m); });
   ['harvested', 'levelUp', 'questDone', 'chat', 'chatLog', 'emote', 'announce', 'tend', 'tended', 'tendDone', 'bossHp', 'bossPopped', 'bossGone', 'bossReward'].forEach(record);
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { p.me = m; });
   room.send('sync');  // listening for everything now, as the real client says once it's ready
   await sleep(300);

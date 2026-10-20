@@ -263,6 +263,8 @@ export class WorldScene extends Phaser.Scene {
   }
 
   applyState(state) {
+    // Plots only come when they've changed; otherwise they're as they were.
+    state.plots ??= this.state?.plots ?? {};
     this.clockOffset = state.serverNow - Date.now();
     if (this.state) this.noticeComings(this.state.players, state.players);
     else this.greetPals(state.players);

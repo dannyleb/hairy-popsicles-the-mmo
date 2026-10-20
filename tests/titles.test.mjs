@@ -20,7 +20,7 @@ const room = await new Client(URL).joinOrCreate('world', { profile: token });
 const p = { notices: [], earned: [], saves: [] };
 room.onMessage('*', () => {});
 room.onMessage('init', (s) => { p.state = s; });
-room.onMessage('state', (s) => { p.state = s; });
+room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
 room.onMessage('me', (m) => { p.me = m; });
 room.onMessage('notice', (n) => p.notices.push(n));
 room.onMessage('titleEarned', (t) => p.earned.push(t.id));

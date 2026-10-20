@@ -14,7 +14,7 @@ async function join(profile) {
   const p = { room, rows: [], announce: [], quests: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { p.me = m; });
   room.onMessage('save', ({ token }) => { p.token = token; });
   room.onMessage('notice', (n) => { if (n.kind === 'row') p.rows.push(n); });

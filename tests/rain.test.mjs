@@ -9,7 +9,7 @@ async function join(name) {
   const p = { room, got: [], grabbed: [], announce: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { p.me = m; });
   room.onMessage('gotGlob', (g) => p.got.push(g));
   room.onMessage('grabbed', (g) => p.grabbed.push(g));

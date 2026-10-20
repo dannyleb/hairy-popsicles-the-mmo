@@ -317,9 +317,10 @@ and pull request (`.github/workflows/test.yml`).
 - **One room, no sharding.** Everyone joins the same `world` room (200
   max). Fine until it gets crowded; then it needs zones or shards.
 - **State sync is a blunt instrument.** The server broadcasts the whole
-  public world state at most 10 times a second when something changes.
-  Fine at small scale; swap in `@colyseus/schema` delta encoding before it
-  matters.
+  public world state at most 10 times a second when something changes,
+  leaving out the plots (most of it) unless a plot changed since the last
+  broadcast. Fine at small scale; swap in `@colyseus/schema` delta encoding
+  before it matters.
 - **Light moderation only:** a word filter masks slurs and the worst sexual
   terms in chat and turns offending names into Guest names
   (`packages/server/src/game/filter.js`), players can mute each other, and

@@ -15,7 +15,7 @@ async function join(url, profile) {
   const p = { room, harvested: [], titles: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { p.me = m; });
   room.onMessage('harvested', (h) => p.harvested.push(h));
   room.onMessage('titleEarned', (t) => p.titles.push(t.id));

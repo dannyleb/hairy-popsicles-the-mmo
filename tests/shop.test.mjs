@@ -14,7 +14,7 @@ async function join(profile) {
   const p = { room, bought: [], saves: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { p.me = m; });
   room.onMessage('bought', (b) => p.bought.push(b));
   room.onMessage('save', ({ token }) => p.saves.push(token));

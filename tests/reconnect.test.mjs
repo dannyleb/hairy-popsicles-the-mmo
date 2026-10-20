@@ -8,7 +8,7 @@ const client = new Client(URL);
 const watch = (room, box) => {
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { box.state = s; box.inits = (box.inits ?? 0) + 1; });
-  room.onMessage('state', (s) => { box.state = s; });
+  room.onMessage('state', (s) => { box.state = { ...s, plots: s.plots ?? box.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => { box.me = m; });
   return room;
 };

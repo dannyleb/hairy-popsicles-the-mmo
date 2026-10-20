@@ -17,7 +17,7 @@ const token = saveToken({
 const room = await new Client('ws://localhost:2575').joinOrCreate('world', { profile: token });
 let state = null;
 room.onMessage('*', () => {});
-room.onMessage('state', (s) => { state = s; });
+room.onMessage('state', (s) => { state = { ...s, plots: s.plots ?? state?.plots }; });  // plots come only when changed
 room.onMessage('init', (s) => { state = s; });
 room.send('sync');
 await sleep(300);

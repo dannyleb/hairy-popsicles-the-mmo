@@ -874,7 +874,13 @@ export class WorldRoom extends Room {
     if (hp) this.broadcast('bossHp', hp);
     if (!this.dirty) return;
     this.dirty = false;
-    this.broadcast('state', this.snapshot());
+    // Plots (every crop of everyone, held ones too) are most of the state and
+    // change far less often than people walk about: they go out only when changed.
+    const state = this.snapshot();
+    const plots = JSON.stringify(this.plots);
+    if (plots === this.sentPlots) delete state.plots;
+    else this.sentPlots = plots;
+    this.broadcast('state', state);
   }
 
   seasonView() {

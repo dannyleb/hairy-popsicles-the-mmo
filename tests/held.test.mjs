@@ -16,7 +16,10 @@ async function join(options) {
   const p = { room, notices: [], saves: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => {
+    p.raw = s;
+    p.state = { ...s, plots: s.plots ?? p.state?.plots };  // plots come only when changed
+  });
   room.onMessage('me', (m) => { p.me = m; });
   room.onMessage('notice', (n) => p.notices.push(n));
   room.onMessage('save', ({ token }) => p.saves.push(token));
@@ -87,6 +90,14 @@ await sleep(HOLD_MS + 1500);
 check('and let go once the hold runs out', !b.state.plots['7,7']);
 const again = await join({ profile: token2 });
 check('after which the save brings it back as usual', again.state.plots['7,7']?.ownerId === again.room.sessionId);
+
+// ---- walking about doesn't resend every plot
+b.room.send('move', { x: 300, y: 300 });
+await sleep(400);
+check("a move that changes no plot doesn't resend the plots", b.raw && !('plots' in b.raw) && Object.keys(b.state.plots).length > 0);
+b.room.send('claimPlot', { plotX: 15, plotY: 15 });
+await sleep(400);
+check('a plot change does', b.raw && 'plots' in b.raw);
 
 await again.room.leave(true);
 await b.room.leave(true);

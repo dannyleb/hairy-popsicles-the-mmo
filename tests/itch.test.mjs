@@ -12,7 +12,7 @@ function listen(room) {
   const p = { room, scratched: [], announce: [], shares: [], notices: [] };
   room.onMessage('*', () => {});
   room.onMessage('init', (s) => { p.state = s; });
-  room.onMessage('state', (s) => { p.state = s; });
+  room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });  // plots come only when changed
   room.onMessage('me', (m) => {
     p.me = m;
     if (m.itchShare) p.shares.push(m.itchShare);
