@@ -1261,3 +1261,36 @@
   color: #ffe08a;
   font-weight: 400;
 }
+
+/* ---------- short screens (phones on their side) ---------- */
+
+.reveal {
+  overflow-y: auto;
+}
+
+@media (max-height: 520px) {
+  .reveal-art {
+    width: min(150px, 34vh);
+  }
+
+  .reveal-name {
+    font-size: 30px;
+  }
+
+  .reveal-level {
+    font-size: 84px;
+  }
+
+  .reveal-line {
+    min-height: 0;
+    margin: 6px 0 10px;
+  }
+
+  .daily-track {
+    margin-top: 10px;
+  }
+
+  .sheet {
+    max-height: 92vh;
+  }
+}

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { music } from '../audio/music.js';
 import { unlock } from '../audio/sfx.js';
-import { DPR } from '../display.js';
+import { cameraZoom } from '../display.js';
 import { connect } from '../net/connection.js';
 import { loading } from '../ui/loading.js';
 import { createMenu } from '../ui/menu.js';
@@ -18,7 +18,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#0e0608').setZoom(DPR).setBounds(0, 0, WORLD_W, WORLD_H);
+    this.cameras.main.setBackgroundColor('#0e0608').setZoom(cameraZoom()).setBounds(0, 0, WORLD_W, WORLD_H);
+    const onResize = () => this.cameras.main.setZoom(cameraZoom());
+    this.scale.on('resize', onResize);
+    this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
     this.drift = Math.random() * Math.PI * 2;
     this.menu = createMenu({ onPlay: (name) => this.play(name) });

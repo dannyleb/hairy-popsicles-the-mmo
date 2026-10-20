@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DPR } from '../display.js';
+import { textResolution } from '../display.js';
 import { DEPTH, FONT } from './layout.js';
 
 const GRAVITY = 520;  // px/s² for flying goo
@@ -37,7 +37,7 @@ export function createFx(scene) {
       color,
       stroke: '#1a0a0d',
       strokeThickness: 4,
-      resolution: DPR,
+      resolution: textResolution(),
     }).setOrigin(0.5, 1).setDepth(DEPTH.bubbles + 1).setAlpha(0);
     scene.tweens.add({ targets: label, alpha: 1, duration: 120, delay });
     scene.tweens.add({

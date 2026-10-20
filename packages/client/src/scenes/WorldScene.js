@@ -17,7 +17,7 @@ import {
   travelMs,
 } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
-import { DPR } from '../display.js';
+import { cameraZoom, lookAhead, textResolution } from '../display.js';
 import { reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
@@ -38,9 +38,6 @@ const SILHOUETTE = 0x120a0d;
 const TEXT = '#ffe8d6';
 const MUTTER_GAP = [3500, 7500];
 const FRONT_OF_PLOT = 26;
-// The camera sits this far above you, so your plot (just above you) lands in the
-// clear middle of the screen rather than under the quest panel.
-const LOOK_AHEAD = 70;
 const BUBBLE_MS = { mutter: 2800, chat: 4500, emote: 2600 };
 const BUBBLE_STYLE = {
   mutter: { color: '#2a1a1a', backgroundColor: '#f3e3d3' },
@@ -58,7 +55,7 @@ const RAIN_DROP_MS = 60;          // how often a drop falls on screen during a P
 const SHEEN = 0xffcf5a;
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
-const textStyle = (size, color = TEXT) => ({ fontFamily: FONT, fontSize: `${size}px`, color, resolution: DPR });
+const textStyle = (size, color = TEXT) => ({ fontFamily: FONT, fontSize: `${size}px`, color, resolution: textResolution() });
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function plotVariant(key) {
@@ -85,7 +82,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#0e0608').setZoom(DPR).setBounds(0, 0, WORLD_W, WORLD_H);
+    this.cameras.main.setBackgroundColor('#0e0608').setZoom(cameraZoom()).setBounds(0, 0, WORLD_W, WORLD_H);
+    // Turning the phone or resizing the window changes the zoom and where the camera looks.
+    const onResize = () => this.cameras.main.setZoom(cameraZoom()).setFollowOffset(0, lookAhead());
+    this.scale.on('resize', onResize);
+    this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
@@ -638,8 +639,8 @@ export class WorldScene extends Phaser.Scene {
         avatar = { container, sheen, image, name, level, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false, shiny: false };
         this.avatars.set(p.id, avatar);
         if (mine) {
-          this.cameras.main.centerOn(p.x, p.y - LOOK_AHEAD);
-          this.cameras.main.startFollow(container, false, 0.1, 0.1, 0, LOOK_AHEAD);
+          this.cameras.main.centerOn(p.x, p.y - lookAhead());
+          this.cameras.main.startFollow(container, false, 0.1, 0.1, 0, lookAhead());
         } else if (this.state) {
           container.setAlpha(0);
           this.tweens.add({ targets: container, alpha: 1, duration: 400 });

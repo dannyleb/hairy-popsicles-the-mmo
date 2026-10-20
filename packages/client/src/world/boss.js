@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DPR } from '../display.js';
+import { textResolution } from '../display.js';
 import { DEPTH, FONT } from './layout.js';
 
 const SIZE = 170;           // on-screen width at full health
@@ -33,7 +33,7 @@ export function createBossView(scene, fx) {
     scene.tweens.add({ targets: glow, alpha: 0.5, duration: 1400 });
     bar = scene.add.graphics().setDepth(DEPTH.bubbles - 1);
     label = scene.add.text(boss.x, boss.y, 'The Boil', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffd9c0', stroke: '#1a0a0d', strokeThickness: 4, resolution: DPR,
+      fontFamily: FONT, fontSize: '16px', color: '#ffd9c0', stroke: '#1a0a0d', strokeThickness: 4, resolution: textResolution(),
     }).setOrigin(0.5, 1).setDepth(DEPTH.bubbles - 1);
     fx.droplets(boss.x, boss.y, { count: 10, key: 'drop-blood', speed: [60, 140] });
   }
