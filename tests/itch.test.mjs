@@ -2,7 +2,7 @@
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const { ITCH, itchTarget } = await import('@hptm/shared');
+const { CHARACTERS, ITCH, RARITY_ORDER, itchTarget } = await import('@hptm/shared');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0;
 const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
@@ -45,10 +45,11 @@ async function farm(p, key, done, ms = 60_000) {
 // A high-level farmer with plenty of scraps, so bone seeds (always Uncommon or
 // rarer) can go in every hole.
 const today = new Date().toISOString().slice(0, 10);
+// A full album with every row paid, and today's daily quest already done, so
+// no other Boil Seed can muddle the count.
 const farmer = (name) => saveToken({
   profileId: `itch-${name}-${Date.now()}`, name, avatar: 'pimples', xp: 2900, currency: 5000,
-  collection: { pimples: 1 }, shinies: {}, inventory: { boil: 0 }, quests: [],
-  // Today's daily quest already done, so its Boil Seed can't muddle the count.
+  collection: Object.fromEntries(CHARACTERS.map((c) => [c.id, 1])), rows: RARITY_ORDER, shinies: {}, inventory: { boil: 0 }, quests: [],
   daily: { last: today, streak: 1 }, dailyQuest: { day: today, kind: 'boss', target: 25, progress: 25 },
   stats: {}, titles: [], title: null,
 }, null, null);
