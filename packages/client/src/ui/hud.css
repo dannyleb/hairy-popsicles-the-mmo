@@ -1244,3 +1244,20 @@
   border-color: #d8c84a;
   background: rgba(50, 42, 8, 0.95);
 }
+
+.quest.daily .quest-text {
+  color: #f3d27a;
+}
+
+.quest.daily .quest-fill {
+  background: linear-gradient(90deg, #e8b04a, #ffe08a);
+}
+
+.quest.daily.done .quest-text {
+  opacity: 0.7;
+}
+
+.banner-legendary strong {
+  color: #ffe08a;
+  font-weight: 400;
+}

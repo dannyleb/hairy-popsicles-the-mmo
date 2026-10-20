@@ -13,3 +13,16 @@ export const QUEST_KINDS = {
   grab: { counts: [5, 10], text: (n) => `Grab ${n} globs in a Pus Rain`, scraps: 2, xp: 3 },
   wear: { counts: [1], text: () => 'Play as a different character', scraps: 5, xp: 10 },
 };
+
+// One bigger quest a day (UTC), on top of the three above. Its kinds share
+// QUEST_KINDS' wording; only the counts and the reward are bigger.
+export const DAILY_QUEST = {
+  reward: { scraps: 60, xp: 120, boil: 1 },
+  counts: {
+    harvest: [12, 20],
+    uncommon: [4, 6],
+    plant: [15, 25],
+    discover: [2, 3],
+    boss: [25],
+  },
+};

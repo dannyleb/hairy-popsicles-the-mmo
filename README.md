@@ -46,6 +46,8 @@ Timers are short on purpose while nothing persists. Rarities live in
   plant, discover something new, squeeze a neighbor, chat, emote, hit the
   boss, change character). Finishing one pays scraps and XP and deals the
   next. Squeeze quests only show up while there's a neighbor to squeeze.
+  On top of those, one bigger daily quest (pinned in gold) pays 60 scraps,
+  120 XP and a Boil Seed.
 - **Squeezing.** Tap a neighbor's growing crop: it ripens 25% sooner and
   you get 3 scraps. Up to 3 different people per crop. Squeezable crops
   glow green. This is the main reason to care that other people exist.

@@ -3,9 +3,11 @@ import {
   CHARACTER_BY_ID,
   CHAT_COOLDOWN_MS,
   CHAT_MAX,
+  DAILY_QUEST,
   EMOTE_BY_ID,
   EMOTE_COOLDOWN_MS,
   PLOT_SIZE,
+  QUEST_KINDS,
   RARITIES,
   RARITY_ORDER,
   REACH,
@@ -28,10 +30,10 @@ import {
   starsFor,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
-import { checkIn } from '../game/daily.js';
+import { checkIn, dayOf } from '../game/daily.js';
 import { createRain } from '../game/rain.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
-import { advance, dropImpossible, restoreQuests, topUp } from '../game/quests.js';
+import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
 
 const { Room } = colyseus;
@@ -100,6 +102,8 @@ export class WorldRoom extends Room {
     if (name) this.rename(player, name);
 
     const daily = checkIn(player.daily, Date.now());
+    const today = dayOf(Date.now());
+    if (player.dailyQuest?.day !== today) dealDaily(player, today);
     if (daily) {
       player.currency += daily.reward.scraps ?? 0;
       player.inventory.boil += daily.reward.boil ?? 0;
@@ -131,6 +135,7 @@ export class WorldRoom extends Room {
       inventory: { boil: 0 },
       quests: [],
       daily: { last: null, streak: 0 },
+      dailyQuest: null,
       notices: [],         // shown once the client is listening ('sync')
       saveDirty: true,
       lastSaveAt: 0,
@@ -150,6 +155,7 @@ export class WorldRoom extends Room {
         inventory: save.inventory,
         quests: restoreQuests(save.quests),
         daily: save.daily,
+        dailyQuest: restoreDaily(save.dailyQuest, dayOf(Date.now())),
       });
       if (Object.keys(save.collection).length) {
         player.collection = save.collection;
@@ -293,8 +299,8 @@ export class WorldRoom extends Room {
   }
 
   sendMe(player) {
-    const { currency, xp, level, collection, shinies, inventory, quests } = player;
-    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests });
+    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest } = player;
+    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests, dailyQuest });
     player.saveDirty = true;
   }
 
@@ -330,6 +336,14 @@ export class WorldRoom extends Room {
       this.grantXp(player, quest.xp);
     }
     if (done.length) topUp(player, this.othersPresent(player));
+    if (advanceDaily(player, kind, amount)) {
+      const { scraps, xp, boil } = DAILY_QUEST.reward;
+      const { kind: dailyKind, target } = player.dailyQuest;
+      player.currency += scraps;
+      player.inventory.boil += boil;
+      this.clientOf(player)?.send('questDone', { daily: true, text: QUEST_KINDS[dailyKind].text(target), scraps, xp, boil });
+      this.grantXp(player, xp);
+    }
   }
 
   slotCenter(plotKey, slot) {

@@ -1,4 +1,4 @@
-import { QUEST_KINDS } from '@hptm/shared';
+import { DAILY_QUEST, QUEST_KINDS } from '@hptm/shared';
 import { pick } from './roll.js';
 
 export const QUESTS_ACTIVE = 3;
@@ -59,4 +59,27 @@ export function dropImpossible(player, othersPresent) {
   const before = player.quests.length;
   player.quests = player.quests.filter((q) => !QUEST_KINDS[q.kind].needsOthers);
   return player.quests.length !== before;
+}
+
+// The day's bigger quest, dealt on the first visit of each day.
+export function dealDaily(player, day) {
+  const [kind, counts] = pick(Object.entries(DAILY_QUEST.counts));
+  player.dailyQuest = { day, kind, target: pick(counts), progress: 0, done: false };
+}
+
+// Advance the daily quest; true if this just finished it.
+export function advanceDaily(player, kind, amount = 1) {
+  const quest = player.dailyQuest;
+  if (!quest || quest.done || quest.kind !== kind) return false;
+  quest.progress = Math.min(quest.target, quest.progress + amount);
+  quest.done = quest.progress >= quest.target;
+  return quest.done;
+}
+
+// A saved daily quest, if it's still today's and still makes sense.
+export function restoreDaily(saved, day) {
+  if (saved?.day !== day || !Object.hasOwn(DAILY_QUEST.counts, saved.kind)) return null;
+  if (!DAILY_QUEST.counts[saved.kind].includes(saved.target)) return null;
+  const progress = Number.isInteger(saved.progress) ? Math.min(Math.max(saved.progress, 0), saved.target) : 0;
+  return { day, kind: saved.kind, target: saved.target, progress, done: progress >= saved.target };
 }

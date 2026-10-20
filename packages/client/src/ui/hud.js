@@ -1,4 +1,4 @@
-import { CHARACTERS, RARITIES, SEEDS, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { CHARACTERS, QUEST_KINDS, RARITIES, SEEDS, levelProgress, MAX_LEVEL } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -161,18 +161,28 @@ export function createHud(actions) {
     seedName.textContent = seed.dropOnly ? `${seed.name} · free` : `${seed.name} · ${seed.cost} scraps`;
   }
 
+  function questRow(text, progress, target, className = 'quest') {
+    const row = el('li', className);
+    const fill = el('div', 'quest-fill');
+    fill.style.width = `${(progress / target) * 100}%`;
+    const bar = el('div', 'quest-bar');
+    bar.append(fill);
+    row.append(el('span', 'quest-text', text), el('span', 'quest-count', `${progress}/${target}`), bar);
+    return row;
+  }
+
   function renderQuests() {
-    questList.replaceChildren(...me.quests.map((quest) => {
-      const row = el('li', 'quest');
-      const fill = el('div', 'quest-fill');
-      fill.style.width = `${(quest.progress / quest.target) * 100}%`;
-      const bar = el('div', 'quest-bar');
-      bar.append(fill);
-      const text = el('span', 'quest-text', quest.text);
-      const count = el('span', 'quest-count', `${quest.progress}/${quest.target}`);
-      row.append(text, count, bar);
-      return row;
-    }));
+    const rows = me.quests.map((q) => questRow(q.text, q.progress, q.target));
+    // The day's big quest sits on top, in gold.
+    const daily = me.dailyQuest;
+    if (daily && !daily.done) {
+      rows.unshift(questRow(`Daily: ${QUEST_KINDS[daily.kind].text(daily.target)}`, daily.progress, daily.target, 'quest daily'));
+    } else if (daily?.done) {
+      const row = el('li', 'quest daily done');
+      row.append(el('span', 'quest-text', 'Daily quest done. New one tomorrow.'));
+      rows.unshift(row);
+    }
+    questList.replaceChildren(...rows);
   }
 
   function renderCard() {
@@ -275,10 +285,12 @@ export function createHud(actions) {
       }, BANNER_MS);
     },
 
-    questDone({ text, scraps: s, xp }) {
-      sfx.quest();
-      const node = el('div', 'banner banner-quest');
-      node.append(el('strong', null, 'Quest done! '), document.createTextNode(`${text} · +${s} scraps · +${xp} xp`));
+    questDone({ text, scraps: s, xp, daily, boil }) {
+      if (daily) sfx.fanfare();
+      else sfx.quest();
+      const node = el('div', `banner ${daily ? 'banner-legendary' : 'banner-quest'}`);
+      const extra = boil ? ` · +${boil} Boil Seed` : '';
+      node.append(el('strong', null, daily ? 'Daily quest done! ' : 'Quest done! '), document.createTextNode(`${text} · +${s} scraps · +${xp} xp${extra}`));
       banners.append(node);
       while (banners.children.length > MAX_BANNERS) banners.firstElementChild.remove();
       setTimeout(() => {

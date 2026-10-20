@@ -38,6 +38,7 @@ export function saveToken(player, plot, plotKey) {
     inventory: player.inventory,
     quests: player.quests.map(({ kind, target, progress }) => ({ kind, target, progress })),
     daily: player.daily,
+    dailyQuest: player.dailyQuest,
     plot: plot && {
       key: plotKey,
       slots: plot.slots.map((s) => s && { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny }),
@@ -94,6 +95,7 @@ export function readToken(token) {
     inventory: { boil: count(p.inventory?.boil) },
     quests: Array.isArray(p.quests) ? p.quests : [],
     daily: { last: typeof p.daily?.last === 'string' ? p.daily.last.slice(0, 10) : null, streak: count(p.daily?.streak) },
+    dailyQuest: p.dailyQuest ?? null,  // checked against today by restoreDaily
     plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots } : null,
     savedAt: time(p.savedAt),
   };
