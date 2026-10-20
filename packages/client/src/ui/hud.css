@@ -1233,3 +1233,14 @@
   color: #ffe6a8;
   text-shadow: 0 0 24px rgba(255, 207, 90, 0.8);
 }
+
+.event-pill.rain {
+  background: rgba(70, 60, 10, 0.9);
+  border: 1px solid #d8c84a;
+  pointer-events: none;
+}
+
+.banner-rain {
+  border-color: #d8c84a;
+  background: rgba(50, 42, 8, 0.95);
+}

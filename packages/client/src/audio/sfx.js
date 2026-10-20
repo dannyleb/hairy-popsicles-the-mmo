@@ -140,6 +140,12 @@ const SOUNDS = {
     osc.start(t);
     osc.stop(t + 1.5);
   },
+  // Slurping up a glob of pus; gold ones sound richer.
+  bloop(gold = false) {
+    const f = gold ? 620 : 380;
+    tone('sine', f, f * 1.7, 0.08, 0.3);
+    if (gold) [988, 1319].forEach((g, i) => tone('triangle', g, g, 0.12, 0.12, 0.06 + i * 0.06));
+  },
   chat() {
     tone('triangle', 900 + Math.random() * 200, 1300, 0.05, 0.14);
   },

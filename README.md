@@ -54,6 +54,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   Everyone who hit it gets scraps and XP; anyone with 3+ hits gets a Boil
   Seed (the top squeezer gets 2), which only grows Rare or Legendary.
   It sinks back after 2.5 minutes if nobody pops it.
+- **Pus Rain (event).** Every 5 minutes, for 45 seconds, globs of pus rain
+  down around everyone online; tap one to run over and grab it (2 scraps, or
+  10 for a rare gold one). Walking takes time (the same on every screen and
+  on the server) and grabbing only counts once you're there, so whoever is
+  nearest wins the race. The same rule applies to squeezing and to The Boil.
 - **Blood Moon (event).** Every 9 minutes, for 90 seconds, the world goes
   red and every seed's Rare odds are x2.5 and Legendary x3.
 - **Social.** Chat (log over the dock, bubbles over heads), six emotes, a
@@ -191,7 +196,7 @@ npm run dev:client   # starts Vite on http://localhost:5173
 Open the client URL on your phone (same network) or in a desktop browser
 with devtools in mobile emulation. To test without waiting, speed things up:
 `GROW_SCALE=0.05` makes every grow timer 20x faster, `EVENT_SCALE=0.2` makes
-The Boil and the Blood Moon come (and go) 5x sooner, e.g.
+The Boil, the Blood Moon and the Pus Rain come (and go) 5x sooner, e.g.
 `GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`. `SHINY_BOOST=40`
 makes every crop shiny.
 

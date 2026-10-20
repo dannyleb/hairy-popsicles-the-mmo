@@ -14,3 +14,9 @@ export const REACH = 190;
 export const TEND_SHARE = 0.25;
 export const TEND_MAX = 3;
 export const TEND_SCRAPS = 3;
+
+// Walking isn't simulated step by step: you arrive after this long, the same on
+// every screen and on the server. Grabbing, squeezing and hitting only count once
+// you've arrived, so whoever is nearest gets there first.
+export const travelMs = (distance) => Math.min(1400, Math.max(150, distance * 2.5));
+export const ARRIVAL_SLACK_MS = 150;  // allowance for network jitter

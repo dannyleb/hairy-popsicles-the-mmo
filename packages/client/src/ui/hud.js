@@ -68,9 +68,13 @@ export function createHud(actions) {
   const moonPill = el('div', 'event-pill moon');
   const moonTime = el('span', 'event-time');
   moonPill.append(el('span', 'event-label', 'Blood Moon'), moonTime);
+  const rainPill = el('div', 'event-pill rain');
+  const rainTime = el('span', 'event-time');
+  rainPill.append(el('span', 'event-label', 'Pus Rain'), rainTime);
   bossPill.hidden = true;
   moonPill.hidden = true;
-  events.append(bossPill, moonPill);
+  rainPill.hidden = true;
+  events.append(bossPill, moonPill, rainPill);
 
   // Points at the boss while it's off screen.
   const bossArrow = el('div', 'boss-arrow');
@@ -236,8 +240,8 @@ export function createHud(actions) {
       albumBadge.hidden = false;
     },
 
-    // Live events: the boss and the blood moon, with countdowns.
-    setEvents(boss, moon, now) {
+    // Live events: the boss, the blood moon and the pus rain, with countdowns.
+    setEvents({ boss, bloodMoon: moon, rain }, now) {
       bossPill.hidden = !boss;
       if (boss) {
         bossTime.textContent = formatClock(boss.expiresAt - now);
@@ -246,6 +250,8 @@ export function createHud(actions) {
       moonPill.hidden = !moon;
       bloodMoon.hidden = !moon;
       if (moon) moonTime.textContent = formatClock(moon.endsAt - now);
+      rainPill.hidden = !rain;
+      if (rain) rainTime.textContent = formatClock(rain.endsAt - now);
     },
 
     // Screen position (CSS px) of an off-screen boss, or null to hide the arrow.

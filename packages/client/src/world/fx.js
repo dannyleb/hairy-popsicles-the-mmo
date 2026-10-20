@@ -99,5 +99,24 @@ export function createFx(scene) {
     });
   }
 
-  return { droplets, float, ring, puddle, squish, sparkle };
+  // One drop of a Pus Rain, falling somewhere on screen.
+  function rainDrop(view) {
+    const x = view.x + Math.random() * view.width;
+    const y = view.y + view.height * (0.1 + Math.random() * 0.9);
+    const drop = scene.add.image(x, y - 300, 'world:drop-pus').setDepth(DEPTH.flies - 1).setAlpha(0.75);
+    const size = Phaser.Math.FloatBetween(4, 8) / drop.width;
+    drop.setScale(size, size * 2.2);
+    scene.tweens.add({
+      targets: drop,
+      y,
+      duration: 360,
+      ease: 'Quad.in',
+      onComplete: () => {
+        drop.destroy();
+        droplets(x, y, { count: 2, speed: [30, 70], size: [2, 4], depth: DEPTH.decor + 2 });
+      },
+    });
+  }
+
+  return { droplets, float, ring, puddle, squish, sparkle, rainDrop };
 }

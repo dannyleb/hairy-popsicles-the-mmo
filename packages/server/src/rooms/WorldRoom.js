@@ -17,6 +17,8 @@ import {
   TEND_SCRAPS,
   TEND_SHARE,
   TILE_SIZE,
+  ARRIVAL_SLACK_MS,
+  travelMs,
   WORLD_HEIGHT_PLOTS,
   WORLD_PX,
   WORLD_WIDTH_PLOTS,
@@ -27,6 +29,7 @@ import {
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
 import { checkIn } from '../game/daily.js';
+import { createRain } from '../game/rain.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
 import { advance, dropImpossible, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
@@ -63,6 +66,7 @@ export class WorldRoom extends Room {
     this.chatLog = [];
     this.dirty = false;
     this.boss = createBoss(this, EVENT_SCALE);
+    this.rain = createRain(this, EVENT_SCALE);
     this.bloodMoon = null;
     this.nextBloodMoon = Date.now() + BLOOD_MOON.firstMs * EVENT_SCALE;
 
@@ -79,6 +83,7 @@ export class WorldRoom extends Room {
     on('chat', (p, m) => this.handleChat(p, m));
     on('emote', (p, m) => this.handleEmote(p, m));
     on('hitBoss', (p) => this.handleHitBoss(p));
+    on('grab', (p, m) => this.handleGrab(p, m));
     on('sync', (p, m, client) => this.sendWorld(p, client, true));
 
     this.clock.setInterval(() => this.flush(), BROADCAST_MS);
@@ -133,6 +138,7 @@ export class WorldRoom extends Room {
       lastChatAt: 0,
       lastEmoteAt: 0,
       lastHitAt: 0,
+      arrivesAt: 0,
       away: false,
     };
     if (save) {
@@ -345,9 +351,17 @@ export class WorldRoom extends Room {
 
   handleMove(player, { x, y }) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    player.x = Math.min(WORLD_PX, Math.max(0, x));
-    player.y = Math.min(WORLD_PX, Math.max(0, y));
+    const toX = Math.min(WORLD_PX, Math.max(0, x));
+    const toY = Math.min(WORLD_PX, Math.max(0, y));
+    player.arrivesAt = Date.now() + travelMs(Math.hypot(toX - player.x, toY - player.y));
+    player.x = toX;
+    player.y = toY;
     this.markDirty();
+  }
+
+  // Still walking over? Then you can't grab, squeeze or hit anything there yet.
+  arrived(player) {
+    return Date.now() >= player.arrivesAt - ARRIVAL_SLACK_MS;
   }
 
   handleClaimPlot(player, { plotX, plotY }) {
@@ -444,7 +458,7 @@ export class WorldRoom extends Room {
     if (!crop || now >= crop.readyAt) return;
     if (crop.tendedBy.includes(player.id) || crop.tendedBy.length >= TEND_MAX) return;
     const at = this.slotCenter(plotKey, slot);
-    if (Math.hypot(player.x - at.x, player.y - at.y) > REACH) return;
+    if (Math.hypot(player.x - at.x, player.y - at.y) > REACH || !this.arrived(player)) return;
 
     crop.readyAt -= (crop.readyAt - now) * TEND_SHARE;
     crop.tendedBy.push(player.id);
@@ -496,10 +510,22 @@ export class WorldRoom extends Room {
   }
 
   handleHitBoss(player) {
+    if (!this.arrived(player)) return;
     const damage = this.boss.hit(player, Date.now());
     if (!damage) return;
     this.grantXp(player, XP.bossHit * damage);
     this.progress(player, 'boss');
+    this.sendMe(player);
+  }
+
+  handleGrab(player, { id }) {
+    if (!Number.isInteger(id) || !this.arrived(player)) return;
+    const scraps = this.rain.grab(player, id);
+    if (!scraps) return;
+    player.currency += scraps;
+    this.clientOf(player)?.send('gotGlob', { scraps, gold: scraps > 2 });
+    this.grantXp(player, XP.grab);
+    this.progress(player, 'grab');
     this.sendMe(player);
   }
 
@@ -516,6 +542,7 @@ export class WorldRoom extends Room {
   tick() {
     const now = Date.now();
     this.boss.tick(now);
+    this.rain.tick(now);
     if (!this.bloodMoon && now >= this.nextBloodMoon) {
       this.bloodMoon = { endsAt: now + BLOOD_MOON.lastsMs * EVENT_SCALE };
       this.announce('Blood Moon! Rare characters are sprouting everywhere.', 'bloodMoon');
@@ -562,6 +589,14 @@ export class WorldRoom extends Room {
       };
     }
     // serverNow lets clients correct for their own clock being off when showing grow progress.
-    return { players, plots: this.plots, boss: this.boss.view(), bloodMoon: this.bloodMoon, serverNow: Date.now() };
+    return {
+      players,
+      plots: this.plots,
+      boss: this.boss.view(),
+      bloodMoon: this.bloodMoon,
+      rain: this.rain.view(),
+      drops: this.rain.drops(),
+      serverNow: Date.now(),
+    };
   }
 }

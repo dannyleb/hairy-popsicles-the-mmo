@@ -10,5 +10,6 @@ export const QUEST_KINDS = {
   chat: { counts: [1], text: () => 'Say something in chat', scraps: 5, xp: 10 },
   emote: { counts: [2, 3], text: (n) => `Emote ${n} times`, scraps: 2, xp: 5 },
   boss: { counts: [5, 12], text: (n) => `Hit The Boil ${n} times`, scraps: 2, xp: 4 },
+  grab: { counts: [5, 10], text: (n) => `Grab ${n} globs in a Pus Rain`, scraps: 2, xp: 3 },
   wear: { counts: [1], text: () => 'Play as a different character', scraps: 5, xp: 10 },
 };

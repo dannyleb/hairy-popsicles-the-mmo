@@ -27,6 +27,7 @@ export const XP = {
   plant: 2,
   tend: 6,
   bossHit: 1,
+  grab: 1,
 };
 
 // What you can plant. Better seeds unlock with level and shift the odds toward rarer characters.

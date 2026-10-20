@@ -38,6 +38,9 @@ export function createMinimap({ onTravel }) {
       g.lineWidth = 1;
       g.strokeRect(view.x * k, view.y * k, view.width * k, view.height * k);
 
+      g.fillStyle = '#e8e070';
+      for (const d of state.drops ?? []) g.fillRect(d.x * k - 0.75, d.y * k - 0.75, 1.5, 1.5);
+
       if (state.boss) {
         const pulse = 3 + Math.sin(time / 180) * 1.2;
         g.fillStyle = '#ff5a4a';

@@ -14,6 +14,7 @@ import {
   holesFor,
   levelForHole,
   linesOf,
+  travelMs,
 } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { DPR } from '../display.js';
@@ -25,6 +26,7 @@ import { createHud } from '../ui/hud.js';
 import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
+import { createDropsView } from '../world/drops.js';
 import { createFx } from '../world/fx.js';
 import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W } from '../world/layout.js';
 
@@ -52,6 +54,7 @@ const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
 const REPLACED = 4001;            // close code: this save was opened somewhere else
 const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint
+const RAIN_DROP_MS = 60;          // how often a drop falls on screen during a Pus Rain
 const SHEEN = 0xffcf5a;
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
@@ -86,6 +89,11 @@ export class WorldScene extends Phaser.Scene {
     this.backdrop = createBackdrop(this);
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
+    this.drops = createDropsView(this, this.fx);
+    this.lastTarget = null;   // where I last walked to, which is where the server has me
+    this.arrivesAt = 0;
+    this.walkId = 0;
+    this.nextRainDrop = 0;
     this.avatars = new Map();
     this.crops = new Map();
     this.plots = new Map();
@@ -144,6 +152,15 @@ export class WorldScene extends Phaser.Scene {
       if (this.state) this.state.boss = null;
     });
     on('bossReward', this.onBossReward);
+    on('grabbed', ({ id, by }) => {
+      const avatar = this.avatars.get(by);
+      if (avatar) this.drops.grabbed(id, avatar.container);
+    });
+    on('gotGlob', ({ scraps, gold }) => {
+      const me = this.me();
+      sfx.bloop(gold);
+      if (me) this.fx.float(me.x, me.y - AVATAR_SIZE - 4, `+${scraps}`, { color: gold ? '#ffe08a' : '#f3d27a', size: gold ? 24 : 18 });
+    });
     on('save', ({ token }) => storeProfile(token));
     on('notice', this.onNotice);
     room.onLeave((code) => this.onDisconnect(code));
@@ -202,6 +219,11 @@ export class WorldScene extends Phaser.Scene {
     this.syncPlots();
     this.syncAvatars();
     this.bossView.sync(state.boss);
+    this.drops.sync(state.drops);
+    if (!this.lastTarget && state.players[this.myId()]) {
+      const me = state.players[this.myId()];
+      this.lastTarget = { x: me.x, y: me.y };
+    }
     if (Boolean(state.bloodMoon) !== this.bloodMoon) {
       this.bloodMoon = Boolean(state.bloodMoon);
       this.backdrop.setBloodMoon(this.bloodMoon);
@@ -248,6 +270,8 @@ export class WorldScene extends Phaser.Scene {
     const y = pointer.worldY;
 
     if (this.bossView.contains(x, y)) return this.hitBoss();
+    const glob = this.drops.at(x, y);
+    if (glob) return this.grab(glob);
 
     // A crop's head pokes up into the tile above its hole, so hit-test crops before tiles.
     // Your own plot comes before other players, who may well be standing on it.
@@ -303,8 +327,37 @@ export class WorldScene extends Phaser.Scene {
     return best?.id ?? null;
   }
 
+  // Walk somewhere. You get there after travelMs, here and on the server alike.
   walk(x, y) {
-    this.room.send('move', { x: Phaser.Math.Clamp(x, 0, WORLD_W), y: Phaser.Math.Clamp(y, 0, WORLD_H) });
+    const to = { x: Phaser.Math.Clamp(x, 0, WORLD_W), y: Phaser.Math.Clamp(y, 0, WORLD_H) };
+    const from = this.lastTarget ?? this.me() ?? to;
+    this.lastTarget = to;
+    this.walkId++;
+    this.arrivesAt = Date.now() + travelMs(Math.hypot(to.x - from.x, to.y - from.y));
+    this.room.send('move', to);
+  }
+
+  // Do something once you've arrived where you were walking (straight away if
+  // you're there); dropped if you head somewhere else first.
+  whenThere(action) {
+    const wait = this.arrivesAt - Date.now();
+    if (wait <= 0) return action();
+    const walkId = this.walkId;
+    this.time.delayedCall(wait + 40, () => {
+      if (this.walkId === walkId) action();
+    });
+  }
+
+  // Where I am, or where I'm about to be.
+  myTarget() {
+    return this.lastTarget ?? this.me();
+  }
+
+  grab(glob) {
+    const at = this.myTarget();
+    if (Math.hypot(at.x - glob.x, at.y - glob.y) > REACH - 20) this.walk(glob.x, glob.y + 8);
+    this.fx.ring(glob.x, glob.y - 6, { color: 0xd8ff70, size: 70, duration: 300 });
+    this.whenThere(() => this.room.send('grab', { id: glob.id }));
   }
 
   walkToPlayer(id) {
@@ -314,7 +367,7 @@ export class WorldScene extends Phaser.Scene {
 
   walkToBoss() {
     const boss = this.state?.boss;
-    const me = this.me();
+    const me = this.myTarget();
     if (!boss || !me) return;
     const angle = Math.atan2(me.y - boss.y, me.x - boss.x);
     this.walk(boss.x + Math.cos(angle) * BOSS_STANDOFF, boss.y + Math.sin(angle) * BOSS_STANDOFF * 0.6 + 20);
@@ -322,10 +375,10 @@ export class WorldScene extends Phaser.Scene {
 
   hitBoss() {
     const boss = this.state.boss;
-    const me = this.me();
-    // Out of reach: walk up first. The server takes the move before the hit, so the hit still lands.
-    if (Math.hypot(me.x - boss.x, me.y - boss.y) > REACH - 15) this.walkToBoss();
-    this.room.send('hitBoss');
+    const at = this.myTarget();
+    // Out of reach: walk up first; hits land once you're there.
+    if (Math.hypot(at.x - boss.x, at.y - boss.y) > REACH - 15) this.walkToBoss();
+    this.whenThere(() => this.room.send('hitBoss'));
     this.bossView.hit();
     sfx.hit(Math.random() < 0.1);
   }
@@ -381,9 +434,9 @@ export class WorldScene extends Phaser.Scene {
         this.hud.toast("It's been squeezed dry. Let it grow.");
       } else {
         const at = holeCenter(plotKey, slot);
-        const me = this.me();
+        const me = this.myTarget();
         if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 10) this.walk(at.x + 18, at.y + 34);
-        this.room.send('tend', { plotKey, slot });
+        this.whenThere(() => this.room.send('tend', { plotKey, slot }));
         return;
       }
     } else if (crop) {
@@ -602,7 +655,7 @@ export class WorldScene extends Phaser.Scene {
           targets: container,
           x: p.x,
           y: p.y,
-          duration: Phaser.Math.Clamp(distance * 2.5, 150, 1400),
+          duration: travelMs(distance),
           ease: 'Sine.inOut',
           onComplete: () => { avatar.moving = false; },
         });
@@ -868,6 +921,11 @@ export class WorldScene extends Phaser.Scene {
 
     this.updateCrops(time);
     this.bossView.update(time);
+    this.drops.update(time);
+    if (this.state.rain && time > this.nextRainDrop) {
+      this.nextRainDrop = time + RAIN_DROP_MS;
+      this.fx.rainDrop(camera.worldView);
+    }
     this.pointAtBoss();
 
     const mine = this.avatars.get(this.myId());
@@ -896,7 +954,7 @@ export class WorldScene extends Phaser.Scene {
     if (time > this.nextSlowTick) {
       this.nextSlowTick = time + SLOW_TICK_MS;
       this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time);
-      this.hud.setEvents(this.state.boss, this.state.bloodMoon, this.now());
+      this.hud.setEvents(this.state, this.now());
       this.updateCoach();
     }
   }
