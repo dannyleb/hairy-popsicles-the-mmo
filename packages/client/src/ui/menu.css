@@ -1,0 +1,193 @@
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: max(28px, env(safe-area-inset-top)) 20px max(18px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  text-align: center;
+  font-family: "Patrick Hand", system-ui, sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(14, 6, 8, 0.8), rgba(14, 6, 8, 0.1) 30%, rgba(14, 6, 8, 0.1) 55%, rgba(14, 6, 8, 0.9));
+}
+
+/* The character takes whatever height is left between the title and the form, up to a limit. */
+.menu-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.menu-hero-box {
+  display: flex;
+  justify-content: center;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 300px;
+  width: 100%;
+}
+
+.menu-hero {
+  height: 100%;
+  max-width: 80vw;
+  object-fit: contain;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.75));
+  animation: breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    transform: scale(1.012, 1.03);
+  }
+}
+
+.menu-hero-name {
+  margin: 4px 0 0;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--flesh-dim);
+}
+
+.menu-bubble {
+  position: relative;
+  flex: none;
+  max-width: 260px;
+  margin: 0 0 14px;
+  padding: 6px 14px;
+  font-size: 18px;
+  line-height: 1.2;
+  color: #2a1a1a;
+  background: #f3e3d3;
+  border-radius: 16px;
+}
+
+.menu-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  border: 8px solid transparent;
+  border-top-color: #f3e3d3;
+  border-bottom: 0;
+  transform: translateX(-50%);
+}
+
+.menu-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(300px, 86vw);
+}
+
+.menu-name {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 20px;
+  text-align: center;
+  color: var(--text);
+  background: rgba(30, 14, 18, 0.85);
+  border: 1px solid #5b2a3a;
+  border-radius: 999px;
+  outline: none;
+}
+
+.menu-name:focus {
+  border-color: var(--flesh-dim);
+}
+
+.menu-play {
+  width: 100%;
+  padding: 8px 0 12px;
+  font-family: "Rubik Wet Paint", "Patrick Hand", cursive;
+  font-size: 34px;
+  color: #fbe3d3;
+  background: linear-gradient(180deg, #c4534f, #8e2b2f 60%, #5e1a1f);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 2px 0 rgba(255, 200, 180, 0.35);
+}
+
+.menu-play:active {
+  transform: translateY(1px);
+}
+
+.menu-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.menu-link {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 17px;
+  color: var(--text);
+  background: rgba(30, 14, 18, 0.7);
+  border: 1px solid #4a2230;
+  border-radius: 999px;
+}
+
+.menu-fine {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.5;
+}
+
+.menu-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 31;
+  box-sizing: border-box;
+  width: min(340px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 18px 20px;
+  text-align: left;
+  background: #1c0d11;
+  border: 1px solid #5b2a3a;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, -50%);
+}
+
+.menu-panel h2 {
+  margin: 0 0 8px;
+  font-family: "Rubik Wet Paint", "Patrick Hand", cursive;
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--flesh);
+}
+
+.menu-panel ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.menu-panel-close {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 22px;
+  font: inherit;
+  font-size: 18px;
+  color: var(--text);
+  background: var(--blood);
+  border: 0;
+  border-radius: 999px;
+}

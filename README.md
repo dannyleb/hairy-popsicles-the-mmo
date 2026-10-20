@@ -28,6 +28,19 @@ characters take longer. Everyone sees each other's avatars and plots.
 Timers are short on purpose while nothing persists. Tune them, and which
 character is which rarity, in `packages/shared/src/characters.js`.
 
+**The world:** like the first game, the world is skin — here a dark, wet,
+candlelit expanse of it seen from above, lit like the character renders.
+Plots are raw sores with a 3x3 grid of follicle holes the characters grow out
+of. Candles flicker at plot corners, pus-flies drift in loops, spores float
+past, hairs, pimples, moles and slime puddles are scattered about, and the
+camera follows you. Characters on screen mutter their lines from the first
+game's `src/roster.js` (characters without lines fall back to its grunts).
+
+**Flow:** an HTML loading screen (shows before the JavaScript arrives) → a
+title menu over the drifting world (name, Play, placeholder How to play /
+Settings / Credits) → connecting (with a "waking the server" message after a
+few seconds, and a retry) → the world.
+
 ## Decisions locked in so far
 
 - **Platform:** mobile web / PWA only for v1. No App Store / Play Store
@@ -68,6 +81,22 @@ background; stray hairs keep a slight dark fringe that would show on a pale
 background. If it keeps a piece of scenery, add an erase box for that slug to
 `ERASE` in `tools/cutout.py`.
 
+## World art
+
+Placeholder, generated procedurally by `tools/world.py` into
+`packages/client/public/world/` (~410KB): a seamless 1024px wet-skin ground
+tile, three plot-sore variants, pimples, a pustule, moles, hairs, slime and
+pus puddles, a candle, its flame, and soft glow/spore sprites. Each is a
+height map + color + gloss shaded with one warm key light from the upper
+left, so it sits with the renders. Deterministic; rerun with
+`python tools/world.py` after changing it (`python tools/world.py ground`
+for just the ground). The plot art's hole positions must match
+`HOLE_OFFSET` in `packages/client/src/world/layout.js`. Swap any file for real
+art with the same name and size and nothing else changes.
+
+Fonts (Rubik Wet Paint, Patrick Hand — same as the first game) are
+self-hosted in `packages/client/public/fonts/` under the SIL Open Font License.
+
 ## Repo layout
 
 Npm workspaces monorepo:
@@ -77,6 +106,9 @@ packages/
   shared/   constants + character catalog/rarities, imported by both client and server
   server/   Colyseus room — authoritative state, lives on a Node host
   client/   Phaser 3 + Vite — the actual game, runs in the browser
+    src/scenes/   Boot (loads assets) → Menu → World
+    src/world/    the backdrop shared by menu and world, world layout constants
+    src/ui/       HTML overlays: loading screen, menu, HUD, album, toasts
 ```
 
 ## Running it locally
@@ -108,8 +140,9 @@ harvest. To test without waiting, speed up every grow timer:
 - **State sync is a blunt instrument.** The server broadcasts the *entire*
   world state on every change. Fine at small scale; swap in
   `@colyseus/schema` delta encoding before this matters.
-- **No camera movement.** You can only see and tap the part of the world
-  that fits on screen; the rest of the 20x20 plot grid is unreachable.
+- **World art is procedural placeholder** (see "World art"), and the menu's
+  Settings and Credits are placeholders.
+- **No sound.**
 - **No icons.** The PWA manifest has no icons yet, so "Add to Home Screen"
   shows a blank tile.
 
@@ -129,6 +162,5 @@ harvest. To test without waiting, speed up every grow timer:
 1. Persistence plus device-local identity, so plots and albums survive a
    server restart and closing the tab. Until then the album resets every
    visit, which undercuts the collecting hook.
-2. Camera that follows the player / can be dragged, so the whole world is
-   reachable.
-3. App icons.
+2. Sound and music.
+3. Real art for the world (ground, plots, props) and app icons.

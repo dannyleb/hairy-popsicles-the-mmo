@@ -1,4 +1,5 @@
-import { CHARACTERS, CHARACTER_BY_ID, RARITIES } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, RARITIES, SEED_COST } from '@hptm/shared';
+import { el } from './dom.js';
 import './hud.css';
 
 const TOAST_MS = 2600;
@@ -6,14 +7,9 @@ const MAX_TOASTS = 3;
 
 const spriteUrl = (id) => `${import.meta.env.BASE_URL}characters/small/${id}.webp`;
 
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
-
 export function createHud({ onWear }) {
+  const status = el('div', 'hud-status');
+  const help = el('p', 'hud-help', `Tap to walk. Tap empty ground to claim a plot, then tap its holes to plant seeds (${SEED_COST} scraps).`);
   const albumButton = el('button', 'hud-album-button');
   const album = el('div', 'album');
   album.hidden = true;
@@ -25,7 +21,7 @@ export function createHud({ onWear }) {
   const grid = el('div', 'album-grid');
   album.append(header, el('p', 'album-hint', 'Tap a character you have grown to play as it.'), grid);
   const toasts = el('div', 'toasts');
-  document.body.append(albumButton, album, toasts);
+  document.body.append(status, help, albumButton, album, toasts);
 
   albumButton.addEventListener('click', () => { album.hidden = false; });
   close.addEventListener('click', () => { album.hidden = true; });
@@ -51,7 +47,9 @@ export function createHud({ onWear }) {
   }
 
   return {
-    update(player) {
+    update(player, ownsPlot) {
+      status.textContent = `${player.name} · ${player.currency} scraps`;
+      help.hidden = ownsPlot;
       const label = `Album ${Object.keys(player.collection).length}/${CHARACTERS.length}`;
       albumButton.textContent = label;
       title.textContent = label;

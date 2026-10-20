@@ -6,3 +6,4 @@ export const WORLD_HEIGHT_PLOTS = 20;
 export const STARTING_CURRENCY = 20;
 export const CURRENCY_NAME = 'scraps';
 export const SEED_COST = 5;
+export const NAME_MAX = 20;

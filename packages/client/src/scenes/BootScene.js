@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { CHARACTERS } from '@hptm/shared';
-import { DPR } from '../display.js';
-import { connect } from '../net/connection.js';
+import { loading } from '../ui/loading.js';
+import { WORLD_TEXTURES } from '../world/backdrop.js';
+
+const FONT_WAIT_MS = 2500;
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -9,17 +11,19 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    this.cameras.main.setZoom(DPR).setOrigin(0, 0);
-    this.status = this.add.text(20, 20, 'Loading...', { fontSize: '16px', color: '#ffe8d6', resolution: DPR });
-    for (const { id } of CHARACTERS) {
-      this.load.image(`char:${id}`, `${import.meta.env.BASE_URL}characters/small/${id}.webp`);
-    }
+    this.load.on('progress', (share) => loading.progress(share));
+    const base = import.meta.env.BASE_URL;
+    for (const { id } of CHARACTERS) this.load.image(`char:${id}`, `${base}characters/small/${id}.webp`);
+    for (const name of WORLD_TEXTURES) this.load.image(`world:${name}`, `${base}world/${name}.webp`);
   }
 
   async create() {
-    this.status.setText('Connecting...');
-    const name = `Guest${Math.floor(Math.random() * 10000)}`;
-    const room = await connect(name);
-    this.scene.start('world', { room });
+    // Text drawn into the canvas before the web font arrives stays in the fallback font, so wait for it (briefly).
+    loading.status('Almost...');
+    await Promise.race([
+      document.fonts.load('16px "Patrick Hand"'),
+      new Promise((resolve) => setTimeout(resolve, FONT_WAIT_MS)),
+    ]).catch(() => {});
+    this.scene.start('menu');
   }
 }

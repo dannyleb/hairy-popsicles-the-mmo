@@ -2,10 +2,12 @@ import colyseus from 'colyseus';
 import {
   CHARACTERS,
   CHARACTER_BY_ID,
+  NAME_MAX,
   PLOT_SIZE,
   RARITIES,
   SEED_COST,
   STARTING_CURRENCY,
+  TILE_SIZE,
   WORLD_HEIGHT_PLOTS,
   WORLD_WIDTH_PLOTS,
 } from '@hptm/shared';
@@ -14,7 +16,7 @@ const { Room } = colyseus;
 
 // Speeds up every grow timer for local testing, e.g. GROW_SCALE=0.01.
 const GROW_SCALE = Number(process.env.GROW_SCALE) || 1;
-const NAME_MAX = 20;
+const SPAWN_SPREAD = 400;
 
 const BY_RARITY = Object.fromEntries(
   Object.keys(RARITIES).map((r) => [r, CHARACTERS.filter((c) => c.rarity === r)]),
@@ -64,9 +66,9 @@ export class WorldRoom extends Room {
     this.players[client.sessionId] = {
       id: client.sessionId,
       name: String(options?.name ?? '').slice(0, NAME_MAX) || `Guest${Math.floor(Math.random() * 10000)}`,
-      // Somewhere on screen on any phone, below the help text.
-      x: 60 + Math.random() * 240,
-      y: 180 + Math.random() * 200,
+      // Near the middle of the world, so new players land near each other.
+      x: (WORLD_WIDTH_PLOTS * PLOT_SIZE * TILE_SIZE) / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
+      y: (WORLD_HEIGHT_PLOTS * PLOT_SIZE * TILE_SIZE) / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
       currency: STARTING_CURRENCY,
       avatar: starter.id,
       collection: { [starter.id]: 1 },
