@@ -1,9 +1,9 @@
 # Hairy Popsicles: The MMO
 
 A spin-off of [Hairy Popsicles](https://github.com/dannyleb/hairy-popsicles-the-game),
-same hand-drawn, flesh-toned, popsicle-head universe — but lightweight,
-mobile-web, and shared: everyone tends their own patch in one persistent
-world and can see everyone else's.
+same gross, flesh-toned universe — but lightweight, mobile-web, and shared:
+everyone tends their own patch in one persistent world and can see everyone
+else's.
 
 ## What it is (v1 target)
 
@@ -22,9 +22,29 @@ other players walking around and tending their own plots nearby.
 - **Platform:** mobile web / PWA only for v1. No App Store / Play Store
   wrapper, no review process, no install friction — open a link and play.
 - **Monetization:** none yet. Get the loop hooky first.
-- **Art:** reuses the Hairy Popsicles visual language (traced ink
-  illustration, flesh-toned palette, popsicle-stick heads) — not yet wired
-  in; see "What's stubbed" below.
+- **Art:** photoreal 3D-rendered characters (heads and creatures), cut out
+  of their backgrounds and used as-is — not flattened into the first game's
+  ink style.
+- **Characters are the crop:** seeds ripen into characters on your plot,
+  rarer ones take longer; you collect them, and can play as any one you've
+  grown. Not wired in yet.
+
+## Character art
+
+Full-size renders stay on Danny's machine; only game sprites are committed,
+to `packages/client/public/characters/<slug>.webp` (768px long edge,
+transparent, ~40-110KB). To add a batch:
+
+```
+pip install -r tools/requirements.txt          # once; model (~180MB) downloads on first run
+python tools/cutout.py render.png slug [render2.png slug2 ...]
+```
+
+Background removal is an ML matting model (rembg `isnet-general-use`). It
+handles hair, wings and see-through drips well on the game's dark
+background; stray hairs keep a slight dark fringe that would show on a pale
+background. If it keeps a piece of scenery, add an erase box for that slug to
+`ERASE` in `tools/cutout.py`.
 
 ## Repo layout
 
@@ -52,10 +72,8 @@ harvest.
 
 ## What's stubbed / not real yet
 
-- **No art.** Players are colored circles, plots are colored squares. The
-  Hairy Popsicles trace/animate pipeline (`tools/trace.mjs`,
-  `tools/animate.mjs` in the sibling repo) is the plan for turning real
-  illustrations into game sprites here too — not started.
+- **Art not in the game yet.** Character sprites exist (see "Character
+  art") but players are still colored circles and crops colored squares.
 - **No persistence.** Server state is in-memory; a restart wipes everyone's
   plots. Needs a real datastore (Redis/Postgres) before this is live for
   real players.
@@ -92,6 +110,5 @@ harvest.
 2. Basic persistence so a plot survives a server restart.
 3. A real planting UI (pick from `ITEM_DEFS` instead of always planting the
    cheapest thing).
-4. First real art pass — bring in traced illustration for at least the
-   player avatar and one plant, plus app icons.
+4. Wire characters in as the crop and as avatars, plus app icons.
 5. Device-local identity so progress survives closing the tab.
