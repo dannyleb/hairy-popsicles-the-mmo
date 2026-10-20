@@ -10,11 +10,14 @@ export default defineConfig({
         name: 'Hairy Popsicles: The MMO',
         short_name: 'HP MMO',
         description: 'Tend a patch in a shared, hairy, pus-soaked little world.',
-        theme_color: '#5b2a3a',
-        background_color: '#1a0f14',
+        theme_color: '#0e0608',
+        background_color: '#0e0608',
         display: 'standalone',
-        // TODO: add real icons (192x192, 512x512) before this is worth installing.
-        icons: [],
+        // From tools/icons.py.
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        ],
       },
     }),
   ],

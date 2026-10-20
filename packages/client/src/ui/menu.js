@@ -1,21 +1,14 @@
-import { CHARACTERS, NAME_MAX, SEED_COST, linesOf } from '@hptm/shared';
+import { CHARACTERS, NAME_MAX, linesOf } from '@hptm/shared';
+import { settings } from '../settings.js';
+import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
 
 const PANELS = {
-  'How to play': [
-    'Tap anywhere to walk around.',
-    'Tap empty ground to claim a plot. One each.',
-    `Tap a hole in your plot to plant a seed (${SEED_COST} scraps).`,
-    'Watch its shadow rise out of the hole. Rarer characters take longer.',
-    'When it ripens, tap it to harvest it into your album.',
-    "Open the album to play as anyone you've grown.",
-    'Nothing saves yet: your album resets when you leave.',
-  ],
-  Settings: ['Sound: coming soon.', 'Music: coming soon.', 'Notifications: coming soon.'],
-  Credits: ['Characters and art: dannyleb.', 'From the world of Hairy Popsicles.', 'Built with Phaser and Colyseus.'],
+  'How to play': HOW_TO_PLAY,
+  Credits: ['Characters and art: dannyleb.', 'From the world of Hairy Popsicles.', 'Music from the first game.', 'Built with Phaser and Colyseus.'],
 };
 
 function savedName() {
@@ -70,21 +63,41 @@ export function createMenu({ onPlay }) {
   const panel = el('div', 'menu-panel');
   panel.hidden = true;
   const row = el('div', 'menu-row');
-  for (const [label, body] of Object.entries(PANELS)) {
+  const showPanel = (label, ...content) => {
+    const close = el('button', 'menu-panel-close', 'Close');
+    close.type = 'button';
+    close.addEventListener('click', () => { panel.hidden = true; });
+    panel.replaceChildren(el('h2', null, label), ...content, close);
+    panel.hidden = false;
+  };
+  const link = (label, onClick) => {
     const button = el('button', 'menu-link', label);
     button.type = 'button';
-    button.addEventListener('click', () => {
-      const close = el('button', 'menu-panel-close', 'Close');
-      close.addEventListener('click', () => { panel.hidden = true; });
-      const list = el('ul');
-      list.append(...body.map((line) => el('li', null, line)));
-      panel.replaceChildren(el('h2', null, label), list, close);
-      panel.hidden = false;
-    });
+    button.addEventListener('click', onClick);
     row.append(button);
-  }
+  };
+  const list = (lines) => {
+    const ul = el('ul');
+    ul.append(...lines.map((line) => el('li', null, line)));
+    return ul;
+  };
+  link('How to play', () => showPanel('How to play', list(PANELS['How to play'])));
+  link('Settings', () => {
+    const toggles = el('div', 'menu-settings');
+    for (const [name, label] of [['sound', 'Sound effects'], ['music', 'Music'], ['bubbles', 'Speech bubbles']]) {
+      const row = el('label', 'menu-setting');
+      const box = el('input');
+      box.type = 'checkbox';
+      box.checked = settings.get(name);
+      box.addEventListener('change', () => settings.set(name, box.checked));
+      row.append(el('span', null, label), box);
+      toggles.append(row);
+    }
+    showPanel('Settings', toggles);
+  });
+  link('Credits', () => showPanel('Credits', list(PANELS.Credits)));
 
-  root.append(title, stage, form, row, el('p', 'menu-fine', 'v0.2 · placeholder menu'), panel);
+  root.append(title, stage, form, row, el('p', 'menu-fine', 'v0.3 · nothing saves yet'), panel);
   document.body.append(root);
 
   return {

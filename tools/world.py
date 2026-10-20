@@ -435,9 +435,95 @@ def glow(name, n=256, falloff=2.2):
     return save(np.ones((n, n, 3)), name, a)
 
 
+# ---------- event and UI art ----------
+
+def boil(name, seed, n=384):
+    """The world boss: a huge, tight, shiny boil with a yellow head, veins creeping up its sides."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.08) ** 2) / 0.72
+    wobble = 1 + 0.04 * spectral(n, rng, 3.0, fmax=5 / n)
+    dome = np.clip(1 - (r * wobble) ** 2, 0, 1) ** 0.8
+    hx, hy = -0.08, -0.12                                               # head sits a little toward the light
+    hr = np.sqrt((x - hx) ** 2 + (y - hy) ** 2) / 0.36
+    head = np.exp(-(hr ** 2) * 2.2)
+    h = 150 * dome + 22 * head + 2.0 * spectral(n, rng, 3.0, fmax=14 / n) * dome
+    # Veins creep up from the base toward the head, wandering a little.
+    ang = np.arctan2(y, x)
+    phase = ang * 9 + 2.2 * spectral(n, rng, 3.2, fmax=6 / n) + 3 * r
+    veins = np.exp(-((np.sin(phase / 2) / 0.05) ** 2))
+    veins *= np.clip((r - 0.45) * 3, 0, 1) * np.clip((1.0 - r) * 8, 0, 1)
+    h += 3.0 * veins
+    albedo = mix(np.broadcast_to(np.array([0.52, 0.08, 0.10]), (n, n, 3)), np.array([0.86, 0.30, 0.28]), np.clip(dome * 1.3, 0, 1))
+    albedo = mix(albedo, np.array([0.42, 0.18, 0.40]), veins * 0.8)
+    albedo = mix(albedo, np.array([0.96, 0.86, 0.50]), np.clip(head * 1.6, 0, 1))
+    albedo = mix(albedo, np.array([1.0, 0.97, 0.86]), np.clip((head - 0.75) * 4, 0, 1))
+    halo = np.clip(1.5 - r, 0, 1) * (1 - np.clip(dome * 3, 0, 1))
+    skin = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.80, 0.22, 0.22]), np.clip(halo * 1.4, 0, 1))
+    albedo = np.where((dome > 0)[..., None], albedo, skin)
+    gloss = 0.4 + 1.6 * dome + 0.8 * head
+    color = shade(h, albedo, gloss, bump=0.9, shine=140, ao=0.05)
+    alpha = np.clip((1.45 - r) * 3, 0, 1)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 10, 14, 10, 0.5) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def scab(name, seed, n=64):
+    """A dry crust over a follicle hole that isn't open yet."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.25) ** 2) / 0.8
+    edge = 1 + 0.12 * spectral(n, rng, 3.0, fmax=6 / n)
+    body = np.clip((1 - r * edge) * 6, 0, 1)
+    f1, f2, _, _ = cells(n, rng, 14, periodic=False)
+    cracks = np.exp(-(((f2 - f1) / 1.4) ** 2)) * np.clip((0.75 - r) * 4, 0, 1)
+    h = 6 * body + 1.2 * spectral(n, rng, 2.6, fmax=16 / n) * body - 2.0 * cracks * body
+    albedo = mix(np.broadcast_to(np.array([0.36, 0.12, 0.08]), (n, n, 3)), np.array([0.55, 0.26, 0.14]), np.clip(0.5 + 0.4 * spectral(n, rng, 2.6, fmax=12 / n), 0, 1))
+    albedo = mix(albedo, np.array([0.12, 0.03, 0.03]), cracks * 0.8)
+    color = shade(h, albedo, 0.15 + 0.1 * body, bump=1.0, shine=30, ao=0.3)
+    shadow = shadow_of(body, n, 2, 3, 2, 0.4) * (1 - body)
+    rgb, a = composite(tone(color), body, shadow)
+    return save(rgb, name, a)
+
+
+def droplet(name, tint, n=48):
+    """A glossy blob of goo for bursts and splashes."""
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y) / 0.8
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.5
+    color = shade(10 * dome, np.broadcast_to(np.array(tint), (n, n, 3)), 1.6, shine=60, ao=0.0, sss=0.3)
+    return save(tone(color), name, np.clip((1 - r) * 6, 0, 1))
+
+
+def seed_icon(name, seed, albedo, head=None, rough=0.0, n=128):
+    """Dock icons: a seed sitting on a scrap of skin."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt((x * 1.05) ** 2 + ((y + 0.05) * 1.2) ** 2) / 0.62
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.7
+    h = 30 * dome + rough * 3 * spectral(n, rng, 1.6) * dome
+    alb = np.broadcast_to(np.array(albedo), (n, n, 3)).copy()
+    alb = mix(alb, np.array(albedo) * 0.55, np.clip(1 - dome * 1.6, 0, 1))
+    gloss = (1.0 - rough) * (0.6 + dome)
+    if head is not None:
+        hr = np.sqrt((x + 0.08) ** 2 + (y + 0.14) ** 2) / 0.26
+        cap = np.exp(-(hr ** 2) * 2.5)
+        h += 8 * cap
+        alb = mix(alb, head, np.clip(cap * 1.6, 0, 1))
+        gloss = gloss + 0.6 * cap
+    color = shade(h, alb, gloss, bump=1.0, shine=90, ao=0.1)
+    alpha = np.clip((1 - r) * 8, 0, 1)
+    shadow = shadow_of(alpha, n, 4, 6, 4, 0.55) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
 def main():
     if sys.argv[1:] == ["ground"]:
         return ground()
+    if sys.argv[1:] == ["events"]:
+        return events()
     ground()
     macro()
     for i, seed in enumerate([101, 102, 103]):
@@ -457,6 +543,18 @@ def main():
     flame("flame")
     glow("glow")
     glow("spore", n=32, falloff=1.6)
+    events()
+
+
+def events():
+    boil("boil", 51)
+    scab("scab", 52)
+    droplet("drop-pus", [0.92, 0.80, 0.34])
+    droplet("drop-blood", [0.62, 0.06, 0.08])
+    seed_icon("seed-pimple", 61, [0.80, 0.30, 0.28])
+    seed_icon("seed-pus", 62, [0.82, 0.58, 0.30], head=np.array([0.96, 0.88, 0.50]))
+    seed_icon("seed-bone", 63, [0.86, 0.80, 0.66], rough=0.6)
+    seed_icon("seed-boil", 64, [0.70, 0.12, 0.14], head=np.array([0.98, 0.90, 0.60]))
 
 
 if __name__ == "__main__":

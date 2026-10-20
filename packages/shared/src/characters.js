@@ -1,11 +1,13 @@
 // Grow times are short while nothing persists: a plot is lost when you close
 // the tab or the server sleeps, so a long timer just means losing the plant.
+// The odds of each rarity depend on the seed (see SEEDS in progression.js).
 export const RARITIES = {
-  common: { label: 'Common', weight: 55, growMs: 30_000, scraps: 7, color: '#d9c7b8' },
-  uncommon: { label: 'Uncommon', weight: 28, growMs: 90_000, scraps: 12, color: '#a8c66c' },
-  rare: { label: 'Rare', weight: 13, growMs: 4 * 60_000, scraps: 25, color: '#7fb2e5' },
-  legendary: { label: 'Legendary', weight: 4, growMs: 8 * 60_000, scraps: 60, color: '#e8b04a' },
+  common: { label: 'Common', growMs: 30_000, scraps: 7, color: '#d9c7b8' },
+  uncommon: { label: 'Uncommon', growMs: 90_000, scraps: 14, color: '#a8c66c' },
+  rare: { label: 'Rare', growMs: 4 * 60_000, scraps: 35, color: '#7fb2e5' },
+  legendary: { label: 'Legendary', growMs: 8 * 60_000, scraps: 90, color: '#e8b04a' },
 };
+export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary'];
 
 // What anyone without lines of their own says (the first game's GRUNTS).
 export const GRUNTS = ['hhhnnngh.', '*drip*', '...', 'go away.', 'hrrk.', 'mm.', "don't.", '*wet noise*'];

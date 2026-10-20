@@ -12,21 +12,62 @@ the **.io-game pattern** (Agar.io / MooMoo.io): one shared real-time room,
 dozens of concurrent players, instant play, no install, no login wall. Feels
 like an MMO, ships like a small game.
 
-**Core loop:** walk around a shared world → claim an empty plot → plant a
-seed (5 scraps) → it grows into a random character, a dark silhouette rising
-out of the soil until it ripens in full color → harvest it into your album
-(plus scraps for more seeds) → play as any character you've grown. Rarer
-characters take longer. Everyone sees each other's avatars and plots.
+**Core loop:** walk around a shared world → claim an empty plot → pick a
+seed and plant it in one of your plot's holes → it grows into a random
+character, a dark silhouette rising out of the hole until it ripens in full
+color → pull it out into your album (plus scraps and XP) → play as any
+character you've grown. Rarer characters take longer and pay more.
 
-| Rarity | Odds | Grow time | Scraps |
+| Rarity | Characters | Grow time | Scraps | XP |
+|---|---|---|---|---|
+| Common | 8 | 30s | 7 | 10 |
+| Uncommon | 7 | 1.5 min | 14 | 22 |
+| Rare | 7 | 4 min | 35 | 50 |
+| Legendary | 3 | 8 min | 90 | 120 |
+
+| Seed | Cost | Unlocks | Common / Uncommon / Rare / Legendary |
 |---|---|---|---|
-| Common (8) | 55% | 30s | 7 |
-| Uncommon (7) | 28% | 1.5 min | 12 |
-| Rare (7) | 13% | 4 min | 25 |
-| Legendary (3) | 4% | 8 min | 60 |
+| Pimple | 5 | level 1 | 55 / 28 / 13 / 4 % |
+| Pus | 15 | level 3 | 20 / 50 / 24 / 6 % |
+| Bone | 40 | level 6 | 0 / 35 / 50 / 15 % |
+| Boil | drop only | from The Boil | 0 / 0 / 70 / 30 % |
 
-Timers are short on purpose while nothing persists. Tune them, and which
-character is which rarity, in `packages/shared/src/characters.js`.
+Timers are short on purpose while nothing persists. Rarities live in
+`packages/shared/src/characters.js`; seeds, levels and XP in
+`packages/shared/src/progression.js`; quests in `quests.js`.
+
+**The MMO layer:**
+
+- **Levels (1-15).** XP from planting, harvesting, squeezing, quests and the
+  boss. Your plot starts with 3 open holes; each level opens another
+  (scabs cover the locked ones and pop off when they open), and better seeds
+  unlock at levels 3 and 6. Every 5th level is announced to the world.
+- **Quests.** Three at a time, dealt from ten kinds (harvest, rarity,
+  plant, discover something new, squeeze a neighbor, chat, emote, hit the
+  boss, change character). Finishing one pays scraps and XP and deals the
+  next. Squeeze quests only show up while there's a neighbor to squeeze.
+- **Squeezing.** Tap a neighbor's growing crop: it ripens 25% sooner and
+  you get 3 scraps. Up to 3 different people per crop. Squeezable crops
+  glow green. This is the main reason to care that other people exist.
+- **The Boil (world boss).** Every 4 minutes a giant boil swells up near
+  someone. Everyone taps it; it gets redder and fatter until it bursts.
+  Everyone who hit it gets scraps and XP; anyone with 3+ hits gets a Boil
+  Seed (the top squeezer gets 2), which only grows Rare or Legendary.
+  It sinks back after 2.5 minutes if nobody pops it.
+- **Blood Moon (event).** Every 9 minutes, for 90 seconds, the world goes
+  red and every seed's Rare odds are x2.5 and Legendary x3.
+- **Social.** Chat (log over the dock, bubbles over heads), six emotes, a
+  "who's here" leaderboard ranked by album size, tap anyone to see their
+  card (level, album, best character) and walk over, wave, or mute them.
+  Rare and Legendary pulls, boss pops and milestones are announced to all.
+- **Hooks.** Full-screen reveal for every new character and every Rare+
+  pull, a level-up splash listing what just unlocked, floating rewards,
+  a first-session coach (claim → plant → wait → harvest → album), an album
+  with silhouettes of everyone you haven't found, a minimap you can tap to
+  travel, and an arrow to the boss when it's off screen.
+- **Phones.** If the app goes to the background and the socket drops, the
+  server holds your player and plot for 90 seconds and the client
+  reconnects into the same seat.
 
 **The world:** like the first game, the world is skin — here a dark, wet,
 candlelit expanse of it seen from above, lit like the character renders.
@@ -37,9 +78,14 @@ camera follows you. Characters on screen mutter their lines from the first
 game's `src/roster.js` (characters without lines fall back to its grunts).
 
 **Flow:** an HTML loading screen (shows before the JavaScript arrives) → a
-title menu over the drifting world (name, Play, placeholder How to play /
-Settings / Credits) → connecting (with a "waking the server" message after a
-few seconds, and a retry) → the world.
+title menu over the drifting world (name, Play, How to play, Settings,
+Credits) → connecting (with a "waking the server" message after a few
+seconds, and a retry) → the world.
+
+**Sound:** the first game's two music tracks, alternating, plus procedural
+Web Audio effects (no files) for steps, planting, harvests by rarity,
+squeezing, boss hits and bursts, quests, level-ups and chat. Sound, music
+and speech bubbles can each be turned off in Settings (remembered per device).
 
 ## Decisions locked in so far
 
@@ -84,15 +130,20 @@ background. If it keeps a piece of scenery, add an erase box for that slug to
 ## World art
 
 Placeholder, generated procedurally by `tools/world.py` into
-`packages/client/public/world/` (~410KB): a seamless 1024px wet-skin ground
-tile, three plot-sore variants, pimples, a pustule, moles, hairs, slime and
-pus puddles, a candle, its flame, and soft glow/spore sprites. Each is a
-height map + color + gloss shaded with one warm key light from the upper
-left, so it sits with the renders. Deterministic; rerun with
-`python tools/world.py` after changing it (`python tools/world.py ground`
-for just the ground). The plot art's hole positions must match
-`HOLE_OFFSET` in `packages/client/src/world/layout.js`. Swap any file for real
-art with the same name and size and nothing else changes.
+`packages/client/public/world/`: a seamless 1024px wet-skin ground tile,
+three plot-sore variants, pimples, a pustule, moles, hairs, slime and pus
+puddles, a candle, its flame, soft glow/spore sprites, and for the MMO layer
+The Boil, the scab over locked holes, goo droplets and the four seed icons.
+Each is a height map + color + gloss shaded with one warm key light from the
+upper left, so it sits with the renders. Deterministic; rerun with
+`python tools/world.py` after changing it (`python tools/world.py ground` for
+just the ground, `events` for the MMO-layer art). The plot art's hole
+positions must match `HOLE_OFFSET` in `packages/client/src/world/layout.js`.
+Swap any file for real art with the same name and size and nothing else
+changes.
+
+App icons (favicon, home screen, PWA) come from a character render:
+`python tools/icons.py [slug]` (default `snoot`).
 
 Fonts (Rubik Wet Paint, Patrick Hand — same as the first game) are
 self-hosted in `packages/client/public/fonts/` under the SIL Open Font License.
@@ -103,12 +154,15 @@ Npm workspaces monorepo:
 
 ```
 packages/
-  shared/   constants + character catalog/rarities, imported by both client and server
-  server/   Colyseus room — authoritative state, lives on a Node host
-  client/   Phaser 3 + Vite — the actual game, runs in the browser
+  shared/   characters, rarities, seeds, levels, quests, chat/emote rules: imported by client and server
+  server/   Colyseus room: authoritative state, lives on a Node host
+    src/rooms/WorldRoom.js   players, plots, planting, harvesting, squeezing, chat, events
+    src/game/                rolling characters, dealing quests, The Boil
+  client/   Phaser 3 + Vite: the actual game, runs in the browser
     src/scenes/   Boot (loads assets) → Menu → World
-    src/world/    the backdrop shared by menu and world, world layout constants
-    src/ui/       HTML overlays: loading screen, menu, HUD, album, toasts
+    src/world/    backdrop, The Boil, effects, layout constants
+    src/ui/       HTML overlays: loading, menu, HUD, chat, album, sheets, reveals, minimap, coach
+    src/audio/    procedural sound effects, music
 ```
 
 ## Running it locally
@@ -120,31 +174,28 @@ npm run dev:client   # starts Vite on http://localhost:5173
 ```
 
 Open the client URL on your phone (same network) or in a desktop browser
-with devtools in mobile emulation. Tap to walk; tap empty ground to claim a
-plot; tap an empty tile in your own plot to plant; tap a ripe one to
-harvest. To test without waiting, speed up every grow timer:
-`GROW_SCALE=0.01 npm run dev:server` (100x faster).
+with devtools in mobile emulation. To test without waiting, speed things up:
+`GROW_SCALE=0.05` makes every grow timer 20x faster, `EVENT_SCALE=0.2` makes
+The Boil and the Blood Moon come (and go) 5x sooner, e.g.
+`GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`.
 
 ## What's stubbed / not real yet
 
-- **No persistence.** Server state is in-memory; a restart wipes everyone's
-  plots. Needs a real datastore (Redis/Postgres) before this is live for
-  real players.
-- **No auth / identity.** Every session is an anonymous "GuestNNNN" — no
-  accounts, so progress doesn't survive a lost session. Needs *some*
-  identity (even just a device-local persistent token) before "persistent
-  world" is actually true for a player.
-- **One room, no sharding.** Everyone who connects joins the same `world`
-  room. Fine until there are enough concurrent players that one room gets
-  crowded — then it needs zone/shard logic.
-- **State sync is a blunt instrument.** The server broadcasts the *entire*
-  world state on every change. Fine at small scale; swap in
-  `@colyseus/schema` delta encoding before this matters.
-- **World art is procedural placeholder** (see "World art"), and the menu's
-  Settings and Credits are placeholders.
-- **No sound.**
-- **No icons.** The PWA manifest has no icons yet, so "Add to Home Screen"
-  shows a blank tile.
+- **No persistence.** Server state is in-memory: leaving (or 90 seconds
+  disconnected) loses your album, level and plot, and a server restart (or
+  the free Render instance going to sleep) wipes everyone. Needs a real
+  datastore before this is live for real players.
+- **No auth / identity.** Every session is anonymous, so progress can't
+  follow a player between visits. Needs *some* identity (even a
+  device-local token) before "persistent world" is true for a player.
+- **One room, no sharding.** Everyone joins the same `world` room (200
+  max). Fine until it gets crowded; then it needs zones or shards.
+- **State sync is a blunt instrument.** The server broadcasts the whole
+  public world state at most 10 times a second when something changes.
+  Fine at small scale; swap in `@colyseus/schema` delta encoding before it
+  matters.
+- **No moderation** beyond a per-player mute and chat rate limits.
+- **World art is procedural placeholder** (see "World art").
 
 ## Deploy
 
@@ -159,8 +210,10 @@ harvest. To test without waiting, speed up every grow timer:
 
 ## Next steps (roughly in order)
 
-1. Persistence plus device-local identity, so plots and albums survive a
-   server restart and closing the tab. Until then the album resets every
-   visit, which undercuts the collecting hook.
-2. Sound and music.
-3. Real art for the world (ground, plots, props) and app icons.
+1. Persistence plus device-local identity, so plots, levels and albums
+   survive closing the tab and server restarts. Until then the album resets
+   every visit, which undercuts the collecting hook.
+2. Real names for `spoon-nana`, `bat-rat` and `head-bloom`, and more
+   characters (each new one deepens the album).
+3. Real art for the world (ground, plots, props, The Boil).
+4. A reason to come back: daily quests and a login streak (needs 1).

@@ -13,10 +13,16 @@ const PROPS = [
 
 export const WORLD_TEXTURES = [
   'ground', 'ground-macro', 'plot-0', 'plot-1', 'plot-2', 'candle', 'flame', 'glow', 'spore',
+  'boil', 'scab', 'drop-pus', 'drop-blood',
   ...PROPS.flatMap((p) => p.keys),
 ];
 
 const NIGHT_TINT = 0x9a8c90;  // darkens the ground so candlelight and the characters stand out
+const BLOOD_TINT = 0xa07476;  // the same, under a Blood Moon
+const CANDLE_LIGHT = 0xffa65c;
+const BLOOD_LIGHT = 0xff3a2a;
+const FLY_GLOW = 0xc8ff60;
+const BLOOD_FLY_GLOW = 0xff6a50;
 const CANDLE_CHANCE = 0.2;    // share of plot-grid corners with a candle
 const CANDLE_WIDTH = 22;
 const GLOW_SIZE = 340;
@@ -27,7 +33,7 @@ export function createBackdrop(scene) {
   const rand = seededRandom(1337);
   const between = (a, b) => a + (b - a) * rand();
 
-  scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground')
+  const ground = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground')
     .setOrigin(0).setTileScale(0.5).setTint(NIGHT_TINT).setDepth(DEPTH.ground);
   // A big soft color drift stretched over the world, so the ground tile's repeat doesn't show.
   scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground-macro')
@@ -52,7 +58,7 @@ export function createBackdrop(scene) {
       const x = i * PLOT_PIXELS + between(-6, 6);
       const y = j * PLOT_PIXELS + between(-6, 6);
       const glow = scene.add.image(x, y - 18, 'world:glow')
-        .setTint(0xffa65c).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.light);
+        .setTint(CANDLE_LIGHT).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.light);
       scene.add.image(x, y, 'world:candle').setOrigin(0.5, 0.86).setScale(candleScale).setDepth(y);
       const flame = scene.add.image(x, y - 25, 'world:flame')
         .setOrigin(0.5, 0.85).setBlendMode(Phaser.BlendModes.ADD).setDepth(y + 0.5);
@@ -63,7 +69,7 @@ export function createBackdrop(scene) {
   // Pus-flies: little glowing bugs drifting in loops.
   const flies = [];
   for (let i = 0; i < FLIES; i++) {
-    const halo = scene.add.image(0, 0, 'world:glow').setTint(0xc8ff60).setBlendMode(Phaser.BlendModes.ADD)
+    const halo = scene.add.image(0, 0, 'world:glow').setTint(FLY_GLOW).setBlendMode(Phaser.BlendModes.ADD)
       .setScale(28 / 256).setDepth(DEPTH.flies);
     const core = scene.add.image(0, 0, 'world:spore').setTint(0xf4ffc0).setBlendMode(Phaser.BlendModes.ADD)
       .setScale(6 / 32).setDepth(DEPTH.flies + 1);
@@ -82,6 +88,16 @@ export function createBackdrop(scene) {
   }
 
   return {
+    // Everything goes red while a Blood Moon is up.
+    setBloodMoon(on) {
+      ground.setTint(on ? BLOOD_TINT : NIGHT_TINT);
+      for (const c of candles) {
+        c.glow.setTint(on ? BLOOD_LIGHT : CANDLE_LIGHT);
+        c.flame.setTint(on ? 0xff7060 : 0xffffff);
+      }
+      for (const f of flies) f.halo.setTint(on ? BLOOD_FLY_GLOW : FLY_GLOW);
+    },
+
     update(time, delta, camera) {
       const view = camera.worldView;
       for (const c of candles) {

@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { music } from '../audio/music.js';
+import { unlock } from '../audio/sfx.js';
 import { DPR } from '../display.js';
 import { connect } from '../net/connection.js';
 import { loading } from '../ui/loading.js';
@@ -24,6 +26,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   async play(name) {
+    // Inside the Play tap: the one moment browsers let a page start making sound.
+    unlock();
+    music.start();
     this.menu.hide();
     loading.show('Connecting...');
     const slow = setTimeout(() => loading.status('Waking up the server. Free servers nap; this can take up to a minute.'), SLOW_CONNECT_MS);

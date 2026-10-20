@@ -191,3 +191,24 @@
   border: 0;
   border-radius: 999px;
 }
+
+.menu-settings {
+  display: flex;
+  flex-direction: column;
+  margin: 6px 0 4px;
+}
+
+.menu-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 2px;
+  font-size: 19px;
+  border-bottom: 1px solid rgba(138, 74, 92, 0.3);
+}
+
+.menu-setting input {
+  width: 22px;
+  height: 22px;
+  accent-color: #8e2b2f;
+}
