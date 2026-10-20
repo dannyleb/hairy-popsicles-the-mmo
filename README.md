@@ -110,6 +110,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   250 + 2, Legendary 600 + 3 (plus XP), with its own reveal and a world
   announcement. Album headings show each row's reward. Saves from before
   this get paid for rows they already finished.
+- **Featured character.** Each UTC day one character (picked from the date)
+  sprouts 4x as often as the others of its rarity. The daily gift card and
+  the album say who, or "a mystery Rare" if you've never grown it, and its
+  album card gets a "Sprouting today" badge. A reason to look every day.
 - **Wear bonuses.** Who you play as matters: an Uncommon gives +10% scraps
   from harvests, a Rare also makes your crops grow 10% faster, a Legendary
   gives +20% scraps, 15% faster growth and double shiny luck, and every
@@ -254,15 +258,15 @@ npm test -- saves gifts  # just those
 ```
 
 `tests/run.mjs` starts fresh game servers for each suite (timers sped up
-with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them
-with real Colyseus clients. Suites: `game` (planting, levels, quests,
-chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
-`shop`, `integrity` (old saves, squeezes and boss damage across reloads),
-`reconnect`, `saves` (signing,
+with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them with
+real Colyseus clients. Suites: `featured` (no server: the day's pick and its
+odds), `game` (planting, levels, quests, chat, squeezing, The Boil, Blood
+Moon), `levels` (high-level growth), `shop`, `integrity` (old saves,
+squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
-bonuses), `rain`, `itch`, `rows` (album row rewards), `titles`, `gifts`, `hardening` (filter, rate limits) and
-`filter`. GitHub Actions runs them on every push and pull request
-(`.github/workflows/test.yml`).
+bonuses), `rain`, `itch`, `rows` (album row rewards), `titles`, `gifts`,
+`hardening` (filter, rate limits) and `filter`. GitHub Actions runs them on
+every push and pull request (`.github/workflows/test.yml`).
 
 ## What's stubbed / not real yet
 

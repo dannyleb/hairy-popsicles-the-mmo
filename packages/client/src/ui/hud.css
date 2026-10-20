@@ -1636,3 +1636,59 @@
   object-fit: contain;
   filter: drop-shadow(0 0 6px var(--rarity));
 }
+
+/* ---------- featured character ---------- */
+
+.album-card {
+  position: relative;
+}
+
+.album-today {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  z-index: 1;
+  padding: 1px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: #1a0a0d;
+  background: #f3d27a;
+  border-radius: 8px;
+  transform: translateX(-50%);
+}
+
+.album-today[hidden] {
+  display: none;
+}
+
+.album-today-line {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: #f3d27a;
+}
+
+.daily-featured {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px auto 12px;
+  padding: 6px 12px 6px 6px;
+  max-width: 320px;
+  text-align: left;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--rarity);
+  border-radius: 12px;
+}
+
+.daily-featured img {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.daily-featured.mystery img {
+  filter: brightness(0);
+  opacity: 0.6;
+}

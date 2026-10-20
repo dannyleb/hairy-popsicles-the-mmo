@@ -159,7 +159,7 @@ export function createReveal({ onWear }) {
     },
 
     // The 7-day track, today's reward highlighted.
-    daily({ streak }) {
+    daily({ streak, featured, featuredOwned }) {
       enqueue(() => {
         root.classList.add('daily');
         const reward = dailyReward(streak);
@@ -180,8 +180,17 @@ export function createReveal({ onWear }) {
           el('h2', 'reveal-name', streak > 1 ? `Day ${streak}` : 'Welcome in'),
           track,
           el('p', 'reveal-line', `${rewardParts(reward).join(' · ')}. Come back tomorrow for day ${streak + 1}.`),
-          button('reveal-button primary', 'Collect', () => next()),
         );
+        // Today's featured character: a silhouette until you've grown it.
+        const pick = CHARACTER_BY_ID[featured];
+        if (pick) {
+          const spot = el('div', `daily-featured${featuredOwned ? '' : ' mystery'}`);
+          const label = featuredOwned ? pick.name : `a mystery ${RARITIES[pick.rarity].label}`;
+          spot.append(img(spriteUrl(pick.id)), el('span', null, `Sprouting more often today: ${label}`));
+          spot.style.setProperty('--rarity', RARITIES[pick.rarity].color);
+          card.append(spot);
+        }
+        card.append(button('reveal-button primary', 'Collect', () => next()));
         root.append(card);
       });
     },

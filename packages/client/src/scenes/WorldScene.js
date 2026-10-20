@@ -260,6 +260,10 @@ export class WorldScene extends Phaser.Scene {
       const me = state.players[this.myId()];
       this.lastTarget = { x: me.x, y: me.y };
     }
+    if (state.featured !== this.featured) {
+      this.featured = state.featured;
+      this.hud.setFeatured(state.featured);
+    }
     if (Boolean(state.bloodMoon) !== this.bloodMoon) {
       this.bloodMoon = Boolean(state.bloodMoon);
       this.backdrop.setBloodMoon(this.bloodMoon);

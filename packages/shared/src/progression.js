@@ -66,6 +66,17 @@ export const ALBUM_ROWS = {
   rare: { scraps: 250, xp: 350, boil: 2 },
   legendary: { scraps: 600, xp: 700, boil: 3 },
 };
+// Each (UTC) day one character is featured: it sprouts this many times as often
+// as the others of its rarity. Picked from the date, so it's the same everywhere.
+export const FEATURED_BOOST = 4;
+export function featuredFor(day) {
+  let hash = 0x811c9dc5;
+  for (const ch of day) hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
+  hash = Math.imul(hash ^ (hash >>> 15), 0x2c1b3c6d);
+  hash ^= hash >>> 12;
+  return CHARACTERS[(hash >>> 0) % CHARACTERS.length].id;
+}
+
 export const rowComplete = (rarity, collection) => CHARACTERS.every((c) => c.rarity !== rarity || collection[c.id]);
 export const starsFor = (copies) => STAR_COPIES.filter((n) => copies >= n).length;
 

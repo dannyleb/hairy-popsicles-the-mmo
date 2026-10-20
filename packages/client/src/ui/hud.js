@@ -140,6 +140,7 @@ export function createHud(actions) {
   let pub = null;     // my public player record
   let preferred = 'pimple';  // the seed last picked; pimple seeds stand in while it's unavailable
   let lastScraps = null;
+  let featured = null;  // today's featured character
 
   function chipState(seed) {
     if (!me) return { locked: true, reason: '' };
@@ -243,6 +244,7 @@ export function createHud(actions) {
       renderSeeds();
       album.update(me.collection, me.shinies ?? {}, pub?.avatar, me.rows);
       sheets.setMe(me);
+      if (featured) album.setFeatured(featured, Boolean(me.collection[featured]));
       if (firstTime) lastScraps = me.currency;
     },
 
@@ -250,6 +252,11 @@ export function createHud(actions) {
       pub = nextPub;
       renderCard();
       if (me) album.update(me.collection, me.shinies ?? {}, pub.avatar, me.rows);
+    },
+
+    setFeatured(id) {
+      featured = id;
+      album.setFeatured(id, Boolean(me?.collection[id]));
     },
 
     setPlayers(players, myId) {
@@ -333,7 +340,7 @@ export function createHud(actions) {
     levelUp: reveal.levelUp,
     albumRow: reveal.albumRow,
     welcome: reveal.welcome,
-    daily: reveal.daily,
+    daily: (notice) => reveal.daily({ ...notice, featuredOwned: Boolean(me?.collection[notice.featured]) }),
     shop: () => sheets.shop(),
     titleEarned: (id) => {
       sfx.fanfare();

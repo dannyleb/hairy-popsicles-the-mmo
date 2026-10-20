@@ -12,6 +12,7 @@ const SUITE_TIMEOUT_MS = 5 * 60_000;
 // Each suite and the servers it talks to: port plus the timers sped up for testing.
 const SUITES = {
   filter: [],
+  featured: [],
   game: [{ PORT: 2567, GROW_SCALE: 0.01, EVENT_SCALE: 0.1 }, { PORT: 2568 }],
   reconnect: [{ PORT: 2568 }],
   saves: [{ PORT: 2569, GROW_SCALE: 0.01 }],

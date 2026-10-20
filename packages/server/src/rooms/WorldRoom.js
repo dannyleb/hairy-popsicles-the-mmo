@@ -36,6 +36,7 @@ import {
   XP,
   greenThumb,
   holeOpen,
+  featuredFor,
   levelFor,
   rowComplete,
   starsFor,
@@ -153,7 +154,7 @@ export class WorldRoom extends Room {
     if (daily) {
       player.currency += daily.reward.scraps ?? 0;
       player.inventory.boil += daily.reward.boil ?? 0;
-      player.notices.push({ kind: 'daily', ...daily });
+      player.notices.push({ kind: 'daily', ...daily, featured: featuredFor(today) });
     }
     this.checkTitles(player);  // a streak can earn one just by showing up
     this.checkRows(player);    // and a save from before row rewards may have some due
@@ -547,7 +548,7 @@ export class WorldRoom extends Room {
 
     // Rolled at planting so the grow time can depend on rarity; clients see a
     // silhouette of it while it grows.
-    const character = rollCharacter(seedDef, Boolean(this.bloodMoon));
+    const character = rollCharacter(seedDef, Boolean(this.bloodMoon), featuredFor(dayOf(Date.now())));
     const bonus = wearBonus(player.avatar, player.collection[player.avatar]);
     // A dose of fertilizer, if there's one left, goes into this crop.
     const fertilized = player.inventory.fertilizer > 0 ? 1 - FERTILIZER_SPEEDUP : 1;
@@ -826,6 +827,7 @@ export class WorldRoom extends Room {
       bloodMoon: this.bloodMoon,
       rain: this.rain.view(),
       itch: this.itch.view(),
+      featured: featuredFor(dayOf(Date.now())),
       drops: this.rain.drops(),
       serverNow: Date.now(),
     };
