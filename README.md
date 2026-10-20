@@ -87,6 +87,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   Play as a character you have a shiny of and you wear the gold. Growing 3,
   10 and 25 copies of a character earns it stars, shown in the album and
   next to your level while you play as it.
+- **Wear bonuses.** Who you play as matters: an Uncommon gives +10% scraps
+  from harvests, a Rare also makes your crops grow 10% faster, a Legendary
+  gives +20% scraps, 15% faster growth and double shiny luck, and every
+  star adds another +5% scraps. Shown on album cards, on reveals, and when
+  you switch.
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
   track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
   streak starts over.

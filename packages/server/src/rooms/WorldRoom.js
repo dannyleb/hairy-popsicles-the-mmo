@@ -28,6 +28,7 @@ import {
   holeOpen,
   levelFor,
   starsFor,
+  wearBonus,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
 import { checkIn, dayOf } from '../game/daily.js';
@@ -424,13 +425,14 @@ export class WorldRoom extends Room {
     // Rolled at planting so the grow time can depend on rarity; clients see a
     // silhouette of it while it grows.
     const character = rollCharacter(seedDef, Boolean(this.bloodMoon));
+    const bonus = wearBonus(player.avatar, player.collection[player.avatar]);
     const now = Date.now();
     plot.slots[slot] = {
       characterId: character.id,
       seed,
       plantedAt: now,
-      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE,
-      shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * (this.bloodMoon ? 2 : 1),
+      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow),
+      shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1),
       tendedBy: [],
     };
     this.grantXp(player, XP.plant);
@@ -452,7 +454,9 @@ export class WorldRoom extends Room {
     const before = player.collection[characterId] ?? 0;
     player.collection[characterId] = before + 1;
     const stars = starsFor(before + 1);
-    const scraps = rarity.scraps * (shiny ? SHINY_SCRAPS : 1);
+    // Whoever you're playing as when you pick it decides the bonus.
+    const bonus = wearBonus(player.avatar, player.collection[player.avatar]);
+    const scraps = Math.round(rarity.scraps * (shiny ? SHINY_SCRAPS : 1) * (1 + bonus.scraps));
     if (shiny) player.shinies[characterId] = (player.shinies[characterId] ?? 0) + 1;
     player.currency += scraps;
     plot.slots[slot] = null;

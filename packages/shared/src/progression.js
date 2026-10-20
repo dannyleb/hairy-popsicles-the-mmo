@@ -1,3 +1,5 @@
+import { CHARACTER_BY_ID } from './characters.js';
+
 // Cumulative XP needed to reach each level (index 0 = level 1).
 export const LEVEL_XP = [0, 40, 110, 220, 380, 600, 880, 1250, 1700, 2250, 2900, 3700, 4600, 5700, 7000];
 export const MAX_LEVEL = LEVEL_XP.length;
@@ -52,3 +54,27 @@ export const SHINY_SCRAPS = 3;  // a shiny pays this many times the usual scraps
 // over your head while you play as it).
 export const STAR_COPIES = [3, 10, 25];
 export const starsFor = (copies) => STAR_COPIES.filter((n) => copies >= n).length;
+
+// Playing as a character pays off: rarer characters boost your farming, and
+// every star adds a little more. `grow` shortens grow times, `shiny` multiplies
+// the shiny odds of what you plant.
+export const WEAR_BONUS = {
+  common: { scraps: 0, grow: 0, shiny: 1 },
+  uncommon: { scraps: 0.1, grow: 0, shiny: 1 },
+  rare: { scraps: 0.1, grow: 0.1, shiny: 1 },
+  legendary: { scraps: 0.2, grow: 0.15, shiny: 2 },
+};
+export const STAR_SCRAPS = 0.05;
+
+export function wearBonus(characterId, copies) {
+  const base = WEAR_BONUS[CHARACTER_BY_ID[characterId]?.rarity] ?? WEAR_BONUS.common;
+  return { ...base, scraps: base.scraps + STAR_SCRAPS * starsFor(copies) };
+}
+
+export function describeBonus({ scraps, grow, shiny }) {
+  const parts = [];
+  if (scraps) parts.push(`+${Math.round(scraps * 100)}% scraps`);
+  if (grow) parts.push(`grows ${Math.round(grow * 100)}% faster`);
+  if (shiny > 1) parts.push(`${shiny}× shiny luck`);
+  return parts.join(' · ');
+}

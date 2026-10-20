@@ -60,7 +60,7 @@ export function createReveal({ onWear }) {
     root,
     isOpen: () => !root.hidden,
 
-    character(characterId, { isNew, shiny }) {
+    character(characterId, { isNew, shiny, bonus }) {
       enqueue(() => {
         const character = CHARACTER_BY_ID[characterId];
         const rarity = RARITIES[character.rarity];
@@ -85,6 +85,7 @@ export function createReveal({ onWear }) {
           el('p', 'reveal-rarity', shiny ? `Shiny ${rarity.label}${isNew ? ' · new' : ''}` : rarity.label),
           el('h2', 'reveal-name', character.name),
           el('p', 'reveal-line', `"${lines[Math.floor(Math.random() * lines.length)]}"`),
+          ...(bonus ? [el('p', 'reveal-bonus', `Play as them: ${bonus}`)] : []),
           actions,
         );
         root.append(card);

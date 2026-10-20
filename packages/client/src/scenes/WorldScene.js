@@ -13,8 +13,10 @@ import {
   holeOpen,
   holesFor,
   levelForHole,
+  describeBonus,
   linesOf,
   travelMs,
+  wearBonus,
 } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { cameraZoom, lookAhead, textResolution } from '../display.js';
@@ -670,6 +672,10 @@ export class WorldScene extends Phaser.Scene {
         if (changed) {
           this.fx.ring(p.x, p.y - 30, { color: 0xffe2c8, size: 140 });
           this.fx.droplets(p.x, p.y - 30, { count: 6 });
+          if (mine) {
+            const bonus = describeBonus(wearBonus(p.avatar, this.private?.collection[p.avatar] ?? 1));
+            this.hud.toast(`Playing as ${CHARACTER_BY_ID[p.avatar].name}${bonus ? `: ${bonus}` : ''}`, { characterId: p.avatar });
+          }
         }
       }
       const label = `${p.name}|${p.level}|${p.stars}`;
@@ -799,7 +805,8 @@ export class WorldScene extends Phaser.Scene {
     this.coached.harvested = true;
 
     if (isNew || shiny || RANK[rarity] >= 2) {
-      this.hud.reveal(characterId, { isNew, shiny });
+      const copies = (this.private?.collection[characterId] ?? 0) + 1;
+      this.hud.reveal(characterId, { isNew, shiny, bonus: describeBonus(wearBonus(characterId, copies)) });
       if (rarity === 'legendary' || shiny) sfx.fanfare();
       else if (isNew) sfx.discover();
       if (isNew || shiny) this.hud.markNew();
