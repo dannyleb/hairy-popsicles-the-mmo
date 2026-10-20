@@ -70,6 +70,10 @@ const CHAT_LOG = 30;
 const RECONNECT_SECONDS = 90;
 const SAVE_MS = 2000;            // a player's save goes out at most this often
 const WELCOME_AFTER_MS = 60_000; // away at least this long to get a "welcome back"
+// A departed player's plot (if anything's growing in it) stays in the world this
+// long, for others to see and squeeze, and is theirs again when they come back.
+const PLOT_HOLD_MS = Number(process.env.PLOT_HOLD_MS) || 24 * 3600_000;
+const MAX_HELD_PLOTS = 120;     // past this, the longest-held plots go first
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
@@ -86,8 +90,12 @@ export class WorldRoom extends Room {
   maxClients = 200;
 
   onCreate() {
+    // One world that carries on when it empties: held plots, the departed and
+    // the event clocks all live here, so it's never thrown away.
+    this.autoDispose = false;
     this.players = {};
     this.plots = {};
+    this.heldPlots = new Map();  // profile id → key of their plot, while they're gone (oldest first)
     this.chatLog = [];
     this.dirty = false;
     this.boss = createBoss(this, EVENT_SCALE);
@@ -233,27 +241,66 @@ export class WorldRoom extends Room {
       }
     }
     this.players[player.id] = player;
-    if (save?.plot) this.restorePlot(player, save);
+    if (save?.plot || this.heldPlots.has(player.profileId)) this.restorePlot(player, save);
     return player;
   }
 
   // Put a saved plot back, where it was if nobody has taken the spot. Crops
   // kept growing while the player was away.
   restorePlot(player, save) {
-    const key = this.freePlotNear(save.plot.key);
+    // Their plot may still be in the world, as others left it: newer than any save.
+    const held = this.reclaimPlot(player);
+    const key = held ?? (save.plot && this.freePlotNear(save.plot.key));
     if (!key) return;
-    this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots, candles: save.plot.candles };
+    if (!held) this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots, candles: save.plot.candles };
+    const plot = this.plots[key];
     const [px, py] = key.split(',').map(Number);
     const plotPx = PLOT_SIZE * TILE_SIZE;
     player.x = px * plotPx + plotPx / 2;
     player.y = (py + 1) * plotPx + 26;
 
     const now = Date.now();
-    const crops = save.plot.slots.filter(Boolean);
+    const crops = plot.slots.filter(Boolean);
+    const squeezed = plot.squeezedAway ?? 0;
+    delete plot.squeezedAway;
     if (save.savedAt && now - save.savedAt >= WELCOME_AFTER_MS * GROW_SCALE) {
       const ripe = crops.filter((c) => c.readyAt <= now).length;
-      player.notices.push({ kind: 'welcome', awayMs: now - save.savedAt, ripe, growing: crops.length - ripe });
+      player.notices.push({ kind: 'welcome', awayMs: now - save.savedAt, ripe, growing: crops.length - ripe, squeezed });
     }
+  }
+
+  // A departed player's plot stays put while anything grows in it.
+  holdPlot(player) {
+    const [key, plot] = this.plotOf(player);
+    if (!plot) return;
+    if (!plot.slots.some(Boolean)) {
+      delete this.plots[key];
+      return;
+    }
+    Object.assign(plot, { ownerId: null, away: true, leftAt: Date.now(), ownerLevel: player.level, squeezedAway: 0 });
+    this.heldPlots.delete(player.profileId);
+    this.heldPlots.set(player.profileId, key);
+    while (this.heldPlots.size > MAX_HELD_PLOTS) this.dropHeldPlot(this.heldPlots.keys().next().value);
+  }
+
+  // Their plot back, if it's still being held: returns its key.
+  reclaimPlot(player) {
+    const key = this.heldPlots.get(player.profileId);
+    this.heldPlots.delete(player.profileId);
+    const plot = key && this.plots[key];
+    if (!plot?.away) return null;
+    Object.assign(plot, { ownerId: player.id, ownerName: player.name });
+    delete plot.away;
+    delete plot.leftAt;
+    delete plot.ownerLevel;
+    return key;
+  }
+
+  dropHeldPlot(profileId) {
+    const key = this.heldPlots.get(profileId);
+    this.heldPlots.delete(profileId);
+    if (this.plots[key]?.away) delete this.plots[key];
+    this.markDirty();
   }
 
   freePlotNear(key) {
@@ -328,10 +375,8 @@ export class WorldRoom extends Room {
     delete this.players[client.sessionId];
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
-    // The plot is in their save and comes back with them.
-    for (const [key, plot] of Object.entries(this.plots)) {
-      if (plot.ownerId === client.sessionId) delete this.plots[key];
-    }
+    // The plot is in their save too, and comes back with them either way.
+    this.holdPlot(player);
     // Quests that need a neighbor are impossible if the last neighbor just left.
     for (const other of Object.values(this.players)) {
       if (dropImpossible(other, this.othersPresent(other))) {
@@ -641,6 +686,7 @@ export class WorldRoom extends Room {
 
     crop.readyAt -= (crop.readyAt - now) * TEND_SHARE;
     crop.tendedBy.push(player.profileId);
+    if (plot.away) plot.squeezedAway += 1;
     player.currency += TEND_SCRAPS;
     this.broadcast('tend', { plotKey, slot, by: player.id });
     const owner = this.players[plot.ownerId];
@@ -800,6 +846,10 @@ export class WorldRoom extends Room {
 
   tick() {
     const now = Date.now();
+    for (const [profileId, key] of this.heldPlots) {
+      const plot = this.plots[key];
+      if (!plot?.away || now - plot.leftAt > PLOT_HOLD_MS) this.dropHeldPlot(profileId);
+    }
     this.boss.tick(now);
     this.rain.tick(now);
     this.itch.tick(now);

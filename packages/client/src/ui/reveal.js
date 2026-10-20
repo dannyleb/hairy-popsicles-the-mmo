@@ -94,7 +94,7 @@ export function createReveal({ onWear }) {
       });
     },
 
-    welcome({ awayMs, ripe, growing, avatar }) {
+    welcome({ awayMs, ripe, growing, squeezed, avatar }) {
       enqueue(() => {
         root.classList.add('welcome');
         const card = el('div', 'reveal-card');
@@ -103,6 +103,7 @@ export function createReveal({ onWear }) {
         const lines = [`You were away ${formatAway(awayMs)}.`];
         if (ripe) lines.push(`${ripe === 1 ? 'A crop is' : `${ripe} crops are`} ripe and waiting.`);
         if (growing) lines.push(`${growing} still growing.`);
+        if (squeezed) lines.push(`Neighbors squeezed your crops ${squeezed === 1 ? 'once' : `${squeezed} times`} while you were gone.`);
         card.append(
           art,
           el('p', 'reveal-rarity', 'Your plot kept growing'),

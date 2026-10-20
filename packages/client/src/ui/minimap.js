@@ -30,7 +30,7 @@ export function createMinimap({ onTravel }) {
 
       for (const [key, plot] of Object.entries(state.plots)) {
         const [px, py] = key.split(',').map(Number);
-        g.fillStyle = plot.ownerId === myId ? '#e9b9a0' : '#8e4a52';
+        g.fillStyle = plot.ownerId === myId ? '#e9b9a0' : plot.away ? '#5a3238' : '#8e4a52';
         g.fillRect(px * PLOT_PX * k + 0.5, py * PLOT_PX * k + 0.5, PLOT_PX * k - 1, PLOT_PX * k - 1);
       }
 

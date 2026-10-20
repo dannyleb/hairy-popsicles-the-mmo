@@ -586,7 +586,9 @@ export class WorldScene extends Phaser.Scene {
     const seenCrops = new Set();
     for (const [key, plot] of Object.entries(this.state.plots)) {
       if (!this.plots.has(key)) this.openPlot(key, plot);
-      const ownerLevel = this.state.players[plot.ownerId]?.level ?? 1;
+      this.syncPlotOwner(key, plot);
+      // An away player's plot carries their level, so its locked holes stay right.
+      const ownerLevel = this.state.players[plot.ownerId]?.level ?? plot.ownerLevel ?? 1;
       this.syncCandles(key, plot.candles ?? 0);
       this.syncScabs(key, plot, ownerLevel);
 
@@ -654,7 +656,19 @@ export class WorldScene extends Phaser.Scene {
       .setShadow(0, 1, '#000', 4, false, true)
       .setAlpha(mine ? 0.9 : 0.7)
       .setDepth(DEPTH.plot + 1);
-    this.plots.set(key, { art, label, scabs: new Map(), mine, fresh: true });
+    this.plots.set(key, { art, label, scabs: new Map(), mine, fresh: true, owner: null });
+  }
+
+  // A plot whose owner has gone stays, dimmed and marked away, until they're back.
+  syncPlotOwner(key, plot) {
+    const entry = this.plots.get(key);
+    const owner = `${plot.ownerName}|${Boolean(plot.away)}`;
+    if (entry.owner === owner) return;
+    entry.owner = owner;
+    entry.label.setText(plot.away ? `${plot.ownerName} (away)` : plot.ownerName);
+    entry.label.setAlpha(plot.away ? 0.5 : entry.mine ? 0.9 : 0.7);
+    if (!this.tweens.isTweening(entry.art)) entry.art.setAlpha(plot.away ? 0.8 : 1);
+    else if (plot.away) this.tweens.add({ targets: entry.art, alpha: 0.8, delay: 700, duration: 300 });
   }
 
   closePlot(key) {

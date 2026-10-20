@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    "Players' plots stay in the world while they're away. Squeeze them, and they'll hear about it.",
     'Pinch to zoom the world out (or in). It remembers.',
     "The title screen shows what's waiting: your daily gift, ripe crops, today's featured character.",
     'Reduce motion in Settings: no screen shake or flashes. On already if your phone asks for less motion.',

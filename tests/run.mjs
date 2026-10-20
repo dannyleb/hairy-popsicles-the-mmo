@@ -26,6 +26,7 @@ const SUITES = {
   integrity: [{ PORT: 2577, EVENT_SCALE: 0.2 }],
   itch: [{ PORT: 2578, GROW_SCALE: 0.01, EVENT_SCALE: 0.02 }],
   rows: [{ PORT: 2579 }],
+  held: [{ PORT: 2582, GROW_SCALE: 0.05, PLOT_HOLD_MS: 8000 }],
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
 };
 

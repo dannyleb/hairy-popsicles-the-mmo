@@ -58,6 +58,12 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Squeezing.** Tap a neighbor's growing crop: it ripens 25% sooner and
   you get 3 scraps. Up to 3 different people per crop. Squeezable crops
   glow green. This is the main reason to care that other people exist.
+  When a player leaves, their plot stays in the world for 24 hours if
+  anything is growing in it (dimmed, marked "away"), so the world doesn't
+  empty out and others can still squeeze it. It's theirs again when they
+  come back, head start included: "Neighbors squeezed your crops 3 times
+  while you were gone." The world room is never disposed, so this holds
+  even when everyone has left.
 - **The Boil (world boss).** Every 4 minutes a giant boil swells up near
   someone. Everyone taps it; it gets redder and fatter until it bursts.
   Everyone who hit it gets scraps and XP; anyone with 3+ hits gets a Boil
@@ -290,22 +296,21 @@ Moon), `levels` (high-level growth), `shop`, `integrity` (old saves,
 squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
-of season), `titles`, `gifts`, `hardening` (filter, rate limits) and
-`filter`. GitHub Actions runs them on every push and pull request
-(`.github/workflows/test.yml`).
+of season), `held` (offline players' plots), `titles`, `gifts`, `hardening`
+(filter, rate limits) and `filter`. GitHub Actions runs them on every push
+and pull request (`.github/workflows/test.yml`).
 
 ## What's stubbed / not real yet
 
-- **Saves live on the device, not on the server.** That needed no database,
-  and progress survives the free server sleeping and restarting. The
-  catches: progress only moves to another phone or browser by copying the
-  save code across by hand, clearing site data loses it, and you only see other players' plots while they're
-  online. The server remembers each departed player's latest state for 3
-  days (in memory), so an older save sent back is replaced by the newer one,
-  but after a server restart a player could restore an older save of their
-  own. The fix for all four is server-side storage plus an
-  account; the save format (`packages/server/src/game/profile.js`) is what
-  would move there.
+- **Saves live on the device, not on the server.** That needed no database, and
+  progress survives the free server sleeping and restarting. The catches:
+  progress only moves to another phone or browser by copying the save code
+  across by hand, clearing site data loses it, and offline players' plots
+  (held 24 hours) and the server's copy of each departed player's latest
+  state (3 days) are kept in memory only, so a server restart or sleep drops
+  them; after that a player could restore an older save of their own. The
+  fix for all of it is server-side storage plus an account; the save format
+  (`packages/server/src/game/profile.js`) is what would move there.
 - **The save secret.** Saves are signed with `PROFILE_SECRET`. `render.yaml`
   generates one; if it changes or is missing, every save stops loading (the
   server logs a warning when it's missing).
@@ -341,6 +346,5 @@ of season), `titles`, `gifts`, `hardening` (filter, rate limits) and
 1. Real names for `spoon-nana`, `bat-rat` and `head-bloom`, and more
    characters (each new one deepens the album).
 2. Server-side saves and accounts, so progress follows a player across
-   devices and offline players' plots stay in the world for others to see
-   and squeeze.
+   devices and offline players' plots survive a server restart.
 3. Real art for the world (ground, plots, props, The Boil).
