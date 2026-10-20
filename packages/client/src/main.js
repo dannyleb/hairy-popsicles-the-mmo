@@ -1,16 +1,18 @@
 import Phaser from 'phaser';
+import { DPR } from './display.js';
 import { BootScene } from './scenes/BootScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: window.innerWidth * DPR,
+  height: window.innerHeight * DPR,
   backgroundColor: '#1a0f14',
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
+  // Character sprites are 256px squares shown at ~60px; without mipmaps they sparkle when shrunk.
+  render: { mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
+  scale: { mode: Phaser.Scale.NONE, zoom: 1 / DPR },
   scene: [BootScene, WorldScene],
 });
+
+window.addEventListener('resize', () => game.scale.resize(window.innerWidth * DPR, window.innerHeight * DPR));

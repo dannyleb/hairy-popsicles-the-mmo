@@ -12,10 +12,21 @@ the **.io-game pattern** (Agar.io / MooMoo.io): one shared real-time room,
 dozens of concurrent players, instant play, no install, no login wall. Feels
 like an MMO, ships like a small game.
 
-**Core loop:** walk around a shared world → claim an empty plot → plant
-something → wait for it to grow (real time, persists while you're offline)
-→ harvest for currency ("scraps") → buy better things to plant → repeat. See
-other players walking around and tending their own plots nearby.
+**Core loop:** walk around a shared world → claim an empty plot → plant a
+seed (5 scraps) → it grows into a random character, a dark silhouette rising
+out of the soil until it ripens in full color → harvest it into your album
+(plus scraps for more seeds) → play as any character you've grown. Rarer
+characters take longer. Everyone sees each other's avatars and plots.
+
+| Rarity | Odds | Grow time | Scraps |
+|---|---|---|---|
+| Common (8) | 55% | 30s | 7 |
+| Uncommon (7) | 28% | 1.5 min | 12 |
+| Rare (7) | 13% | 4 min | 25 |
+| Legendary (3) | 4% | 8 min | 60 |
+
+Timers are short on purpose while nothing persists. Tune them, and which
+character is which rarity, in `packages/shared/src/characters.js`.
 
 ## Decisions locked in so far
 
@@ -27,7 +38,7 @@ other players walking around and tending their own plots nearby.
   ink style.
 - **Characters are the crop:** seeds ripen into characters on your plot,
   rarer ones take longer; you collect them, and can play as any one you've
-  grown. Not wired in yet.
+  grown. New players start with one random common.
 
 ## Character art
 
@@ -37,14 +48,19 @@ character's slug is its `id` in that game's `src/roster.js` (`snoot`,
 Characters with no drawn original keep working names (`spoon-nana`,
 `bat-rat`, `head-bloom`).
 
-Full-size renders stay on Danny's machine; only game sprites are committed,
-to `packages/client/public/characters/<slug>.webp` (768px long edge,
-transparent, ~40-180KB). To add a batch:
+Full-size renders stay on Danny's machine; only game sprites are committed:
+`packages/client/public/characters/<slug>.webp` (768px long edge,
+transparent, ~40-180KB) is the master, and `characters/small/<slug>.webp`
+(256px square, character standing on the bottom edge, ~10-30KB) is what the
+game loads. To add a batch:
 
 ```
 pip install -r tools/requirements.txt          # once; model (~180MB) downloads on first run
 python tools/cutout.py render.png slug [render2.png slug2 ...]
+python tools/cutout.py --small                 # rebuild every small copy from the masters
 ```
+
+A new character also needs an entry in `packages/shared/src/characters.js`.
 
 Background removal is an ML matting model (rembg `isnet-general-use`). It
 handles hair, wings and see-through drips well on the game's dark
@@ -58,7 +74,7 @@ Npm workspaces monorepo:
 
 ```
 packages/
-  shared/   constants + item/economy defs, imported by both client and server
+  shared/   constants + character catalog/rarities, imported by both client and server
   server/   Colyseus room — authoritative state, lives on a Node host
   client/   Phaser 3 + Vite — the actual game, runs in the browser
 ```
@@ -73,13 +89,12 @@ npm run dev:client   # starts Vite on http://localhost:5173
 
 Open the client URL on your phone (same network) or in a desktop browser
 with devtools in mobile emulation. Tap to walk; tap empty ground to claim a
-plot; tap an empty tile in your own plot to plant; tap a grown one to
-harvest.
+plot; tap an empty tile in your own plot to plant; tap a ripe one to
+harvest. To test without waiting, speed up every grow timer:
+`GROW_SCALE=0.01 npm run dev:server` (100x faster).
 
 ## What's stubbed / not real yet
 
-- **Art not in the game yet.** Character sprites exist (see "Character
-  art") but players are still colored circles and crops colored squares.
 - **No persistence.** Server state is in-memory; a restart wipes everyone's
   plots. Needs a real datastore (Redis/Postgres) before this is live for
   real players.
@@ -111,10 +126,9 @@ harvest.
 
 ## Next steps (roughly in order)
 
-1. Camera that follows the player / can be dragged, so the whole world is
+1. Persistence plus device-local identity, so plots and albums survive a
+   server restart and closing the tab. Until then the album resets every
+   visit, which undercuts the collecting hook.
+2. Camera that follows the player / can be dragged, so the whole world is
    reachable.
-2. Basic persistence so a plot survives a server restart.
-3. A real planting UI (pick from `ITEM_DEFS` instead of always planting the
-   cheapest thing).
-4. Wire characters in as the crop and as avatars, plus app icons.
-5. Device-local identity so progress survives closing the tab.
+3. App icons.

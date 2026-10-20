@@ -3,5 +3,5 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "src/constants.js"
+  "main": "src/index.js"
 }
