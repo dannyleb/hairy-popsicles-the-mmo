@@ -3,6 +3,7 @@ import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
+import { isPal, togglePal } from './pals.js';
 import { savedProfile } from '../net/profile.js';
 
 const SETTINGS = [
@@ -60,6 +61,8 @@ export function createSheets(actions) {
     return Object.values(players).sort((a, b) => b.album - a.album || b.level - a.level || a.name.localeCompare(b.name));
   }
 
+  const palMark = () => el('span', 'pal-mark', '♥');
+
   function leaderboard() {
     showing = { kind: 'leaderboard' };
     const list = el('ol', 'ranks');
@@ -71,6 +74,7 @@ export function createSheets(actions) {
       bestImg.title = best.name;
       const who = el('span', 'rank-name', p.id === myId ? `${p.name} (you)` : p.name);
       if (p.color) who.style.color = p.color;
+      if (p.id !== myId && isPal(p.pid)) who.prepend(palMark());
       if (p.title) who.append(el('small', 'rank-title', p.title));
       row.append(
         el('span', 'rank-place', String(i + 1)),
@@ -87,7 +91,7 @@ export function createSheets(actions) {
     const invite = button('sheet-button', 'Invite someone', () => shareLink(invite));
     const actionsRow = el('div', 'sheet-actions');
     actionsRow.append(invite);
-    open(`Who's here · ${Object.keys(players).length}`, el('p', 'overlay-hint', 'Ranked by album size. Tap someone to see them.'), list, actionsRow);
+    open(`Who's here · ${Object.keys(players).length}`, el('p', 'overlay-hint', 'Ranked by album size. Tap someone to see them, or to make them a pal ♥.'), list, actionsRow);
   }
 
   function inspect(id) {
@@ -100,6 +104,7 @@ export function createSheets(actions) {
     const facts = el('div', 'inspect-facts');
     const nameLine = el('p', 'inspect-name', p.name);
     if (p.color) nameLine.style.color = p.color;
+    if (id !== myId && isPal(p.pid)) nameLine.prepend(palMark());
     facts.append(
       nameLine,
       ...(p.title ? [el('p', 'inspect-title', p.title)] : []),
@@ -119,6 +124,12 @@ export function createSheets(actions) {
         button('sheet-button', 'Walk over', () => { close(); actions.goTo(id); }),
         button('sheet-button', 'Wave', () => { close(); actions.emote('wave'); }),
         button('sheet-button', 'Give a character', () => giftPicker(id)),
+        button(`sheet-button${isPal(p.pid) ? ' quiet' : ''}`, isPal(p.pid) ? 'Unpal' : 'Make pal ♥', () => {
+          sfx.click();
+          togglePal(p.pid, p.name);
+          actions.palsChanged();
+          inspect(id);
+        }),
         button('sheet-button quiet', muted.has(id) ? 'Unmute' : 'Mute', () => {
           if (muted.has(id)) muted.delete(id);
           else muted.add(id);

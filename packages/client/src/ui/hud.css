@@ -1791,3 +1791,10 @@
   display: block;
   margin: 0 0 8px;
 }
+
+/* ---------- pals ---------- */
+
+.pal-mark {
+  margin-right: 4px;
+  color: #f0a8bc;
+}

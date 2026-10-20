@@ -82,7 +82,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   Rare and Legendary pulls, boss pops and milestones are announced to all.
   Give a spare copy of a character (you keep at least one) to anyone who's
   here, from their card: they get a "Gift!" reveal and everyone sees it
-  (10 gifts earns the Generous title).
+  (10 gifts earns the Generous title). Make anyone a pal ♥ from their card:
+  pals get a heart by their name, and you're told when one arrives (or is
+  already here when you do). Pals are kept on your device, keyed by a public
+  id derived from the save (never the save id itself).
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
   a first-session coach (claim → plant → wait → harvest → album), an album

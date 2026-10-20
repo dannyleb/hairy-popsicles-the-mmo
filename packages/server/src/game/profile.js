@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
 } from '@hptm/shared';
@@ -122,3 +122,7 @@ export function readToken(token) {
     savedAt: time(p.savedAt),
   };
 }
+
+// A stable public handle for a save, so others can recognise a player across
+// visits (pals) without seeing the save's own id.
+export const publicIdOf = (profileId) => createHash('sha256').update(`pal:${profileId}`).digest('base64url').slice(0, 12);

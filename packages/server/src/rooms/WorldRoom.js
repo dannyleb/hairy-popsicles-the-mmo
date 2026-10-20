@@ -51,7 +51,7 @@ import { rememberDeparture, takeDeparture } from '../game/departed.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
 import { maskText } from '../game/filter.js';
-import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
+import { cleanName, newProfileId, publicIdOf, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
 import { recordJoin, recordOnline } from '../stats.js';
@@ -833,6 +833,7 @@ export class WorldRoom extends Room {
       const best = album.reduce((a, b) => (rank(b) > rank(a) ? b : a));
       players[p.id] = {
         id: p.id,
+        pid: (p.pid ??= publicIdOf(p.profileId)),
         name: p.name,
         x: p.x,
         y: p.y,

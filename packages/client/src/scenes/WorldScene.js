@@ -27,6 +27,7 @@ import { settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
 import { offerInstallLater } from '../ui/install.js';
+import { isPal, notePal } from '../ui/pals.js';
 import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
@@ -134,6 +135,10 @@ export class WorldScene extends Phaser.Scene {
         return key ? this.state.plots[key] : null;
       },
       leave: () => this.leave(),
+      palsChanged: () => {
+        for (const avatar of this.avatars.values()) avatar.label = '';  // redraw names with or without ♥
+        this.syncAvatars();
+      },
     });
 
     this.input.on('pointerdown', (pointer) => this.handleTap(pointer));
@@ -250,6 +255,7 @@ export class WorldScene extends Phaser.Scene {
   applyState(state) {
     this.clockOffset = state.serverNow - Date.now();
     if (this.state) this.noticeComings(this.state.players, state.players);
+    else this.greetPals(state.players);
     this.state = state;
     this.syncPlots();
     this.syncAvatars();
@@ -274,10 +280,27 @@ export class WorldScene extends Phaser.Scene {
     this.updateCoach();
   }
 
+  // Pals already here when I arrive.
+  greetPals(players) {
+    const here = Object.values(players).filter((p) => p.id !== this.myId() && isPal(p.pid));
+    for (const p of here) notePal(p.pid, p.name);
+    if (!here.length) return;
+    const names = here.map((p) => p.name);
+    const list = names.length > 2 ? `${names.slice(0, 2).join(', ')} and ${names.length - 2} more` : names.join(' and ');
+    this.hud.toast(`♥ ${list} ${names.length > 1 ? 'are' : 'is'} here.`, { color: '#f0a8bc' });
+  }
+
   // "So-and-so arrived" in the chat log makes the world feel inhabited.
   noticeComings(before, after) {
     for (const p of Object.values(after)) {
-      if (!before[p.id] && p.id !== this.myId()) this.hud.chatLine({ text: `${p.name} arrived.`, kind: 'system' });
+      if (before[p.id] || p.id === this.myId()) continue;
+      if (isPal(p.pid)) {
+        this.hud.chatLine({ text: `♥ Your pal ${p.name} arrived.`, kind: 'system' });
+        this.hud.toast(`Your pal ${p.name} is here.`, { characterId: p.avatar, color: '#f0a8bc' });
+        sfx.quest();
+      } else {
+        this.hud.chatLine({ text: `${p.name} arrived.`, kind: 'system' });
+      }
     }
     for (const p of Object.values(before)) {
       if (!after[p.id]) this.hud.chatLine({ text: `${p.name} left.`, kind: 'system' });
@@ -758,10 +781,12 @@ export class WorldScene extends Phaser.Scene {
           }
         }
       }
-      const label = `${p.name}|${p.level}|${p.stars}|${p.title}|${p.color}`;
+      const pal = !mine && isPal(p.pid);
+      const label = `${p.name}|${p.level}|${p.stars}|${p.title}|${p.color}|${pal}`;
       if (avatar.label !== label) {
         avatar.label = label;
-        avatar.name.setText(p.name).setColor(p.color ?? (mine ? TEXT : '#d9b8a8'));
+        if (pal) notePal(p.pid, p.name);
+        avatar.name.setText(pal ? `♥ ${p.name}` : p.name).setColor(p.color ?? (mine ? TEXT : '#d9b8a8'));
         avatar.title.setText(p.title ? `~ ${p.title} ~` : '');
         avatar.level.setText(p.stars ? `${p.level} ${'★'.repeat(p.stars)}` : `${p.level}`);
         const total = avatar.name.width + 4 + avatar.level.width;

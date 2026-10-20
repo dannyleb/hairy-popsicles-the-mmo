@@ -58,6 +58,7 @@ a.room.send('plant', { plotKey: '5,5', slot: 4 });
 await sleep(2300);
 const crop = a.state.plots['5,5'].slots[4];
 const saved = a.token();
+const palId = a.state.players[a.room.sessionId].pid;
 check('save updated after planting', saved !== a.saves[0]);
 const collection = JSON.stringify(a.me.collection);
 await a.room.leave(true);
@@ -70,6 +71,7 @@ check('restored: scraps, album, no second daily reward', a2.me.currency === 30 &
 check('restored: same daily quest', JSON.stringify(a2.me.dailyQuest) === JSON.stringify(a.me.dailyQuest));
 check('restored: plot back in the same spot with its crop', a2.state.plots['5,5']?.ownerId === a2.room.sessionId && a2.state.plots['5,5'].slots[4]?.characterId === crop.characterId);
 check('new name applies to player and plot', pub.name === 'Alice Again' && a2.state.plots['5,5'].ownerName === 'Alice Again');
+check('same public id across visits, and not the save id', pub.pid === palId && typeof pub.pid === 'string' && !saved.includes(pub.pid) && a2.me.profileId !== pub.pid);
 check('standing at the plot', Math.abs(pub.x - (5 * 144 + 72)) < 1 && Math.abs(pub.y - (6 * 144 + 26)) < 1);
 const welcome = a2.notices.find((n) => n.kind === 'welcome');
 const ripeNow = Date.now() >= crop.readyAt ? 1 : 0;
