@@ -79,6 +79,7 @@ const HOLD_FROM_LEVEL = 2;      // throwaway saves don't get to fill the world w
 // There is one world, and it lives as long as the server: a second would split
 // players (and their held plots) between them.
 let theWorld = null;
+export const getWorld = () => theWorld;
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
@@ -225,6 +226,7 @@ export class WorldRoom extends Room {
       lastEmoteAt: 0,
       lastHitAt: 0,
       lastGiftAt: 0,
+      joinedAt: Date.now(),
       arrivesAt: 0,
       budget: MESSAGES.burst,
       budgetAt: Date.now(),
@@ -895,6 +897,54 @@ export class WorldRoom extends Room {
     if (plots === this.sentPlots) delete state.plots;
     else this.sentPlots = plots;
     this.broadcast('state', state);
+  }
+
+  // Everything about the world and who's in it, for the admin page only.
+  adminView() {
+    const now = Date.now();
+    const players = Object.values(this.players).map((p) => {
+      const [key, plot] = this.plotOf(p);
+      const crops = plot?.slots.filter(Boolean) ?? [];
+      return {
+        profileId: p.profileId,
+        pid: p.pid,
+        name: p.name,
+        status: p.away ? 'away' : 'online',
+        since: p.joinedAt,
+        level: p.level,
+        xp: p.xp,
+        scraps: p.currency,
+        avatar: p.avatar,
+        collection: p.collection,
+        shinies: p.shinies,
+        inventory: p.inventory,
+        stats: p.stats,
+        titles: p.titles,
+        title: p.title,
+        nameColor: p.nameColor,
+        rows: p.rows,
+        streak: p.daily.streak,
+        quests: p.quests.map(({ kind, target, progress }) => ({ kind, target, progress })),
+        dailyQuest: p.dailyQuest,
+        plot: key && { key, ripe: crops.filter((c) => c.readyAt <= now).length, growing: crops.filter((c) => c.readyAt > now).length, candles: plot.candles ?? 0 },
+      };
+    });
+    return {
+      players,
+      heldPlots: [...this.heldPlots.entries()].map(([profileId, key]) => {
+        const plot = this.plots[key];
+        return { profileId, key, owner: plot?.ownerName, leftAt: plot?.leftAt, crops: plot?.slots.filter(Boolean).length ?? 0, squeezed: plot?.squeezedAway ?? 0 };
+      }),
+      events: {
+        boss: this.boss.view(),
+        itch: this.itch.view(),
+        bloodMoon: this.bloodMoon,
+        rain: this.rain.view(),
+        season: this.seasonView(),
+        featured: featuredFor(dayOf(now)),
+      },
+      chat: this.chatLog.map(({ name, text, at }) => ({ name, text, at })),
+    };
   }
 
   seasonView() {

@@ -296,9 +296,29 @@ Moon), `levels` (high-level growth), `shop`, `integrity` (old saves,
 squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
-of season), `held` (offline players' plots), `titles`, `gifts`, `hardening`
-(filter, rate limits) and `filter`. GitHub Actions runs them on every push
-and pull request (`.github/workflows/test.yml`).
+of season), `held` (offline players' plots), `admin` (key, lockout, what it
+shows), `titles`, `gifts`, `hardening` (filter, rate limits) and `filter`.
+GitHub Actions runs them on every push and pull request
+(`.github/workflows/test.yml`).
+
+## Admin page
+
+`https://hairy-popsicles-mmo-server.onrender.com/admin` (the game server, not
+the Pages site). It asks for the admin key, which is the `ADMIN_KEY`
+environment variable on the Render service (`render.yaml` generates one; find
+it under the service's Environment tab, or set your own long random string).
+Without `ADMIN_KEY` set, the page doesn't exist.
+
+It shows everyone online now and everyone who left in the last 3 days (from
+the server's copy of their last save; it's in memory, so a restart clears it):
+level, scraps, album with counts and shinies, inventory, lifetime stats,
+quests, titles, plot, streak and ids, plus the live events, plots being held
+for absent players, and recent chat. Search, filter and sort; tap a player for
+everything. It refreshes every 10 seconds and is read-only.
+
+The key goes in a header, never in the URL; ten wrong keys lock that address
+out for 10 minutes; nothing is cached; save tokens themselves are never sent.
+Tick "Remember on this device" only on your own phone.
 
 ## What's stubbed / not real yet
 

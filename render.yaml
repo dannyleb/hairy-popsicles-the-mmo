@@ -13,3 +13,6 @@ services:
       # Signs players' saves. Must stay the same across deploys, or every save is lost.
       - key: PROFILE_SECRET
         generateValue: true
+      # Opens the admin page at /admin. Find it under the service's Environment tab.
+      - key: ADMIN_KEY
+        generateValue: true

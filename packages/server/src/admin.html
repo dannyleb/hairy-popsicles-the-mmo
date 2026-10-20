@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Hairy Popsicles admin</title>
+<style>
+  :root {
+    --bg: #140a0d;
+    --panel: #22121a;
+    --panel-2: #2c1820;
+    --line: #3d2129;
+    --text: #f3e2d6;
+    --dim: #b39a8f;
+    --gold: #f3d27a;
+    --green: #a8c66c;
+    --blue: #7fb2e5;
+    --red: #e0614f;
+    --pink: #f0a8bc;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: max(16px, env(safe-area-inset-top)) 16px 32px;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  h1, h2 { margin: 0; font-weight: 600; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin: 24px 0 8px; }
+  button, input, select {
+    font: inherit;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: #8e2b2f; border-color: #b1393e; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  [hidden] { display: none !important; }
+
+  /* sign in */
+  .login {
+    max-width: 360px;
+    margin: 12vh auto 0;
+    padding: 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .login p { color: var(--dim); margin: 8px 0 16px; }
+  .login input[type=password] { width: 100%; margin-bottom: 10px; }
+  .login label { display: flex; gap: 8px; align-items: center; color: var(--dim); margin-bottom: 14px; }
+  .error { color: var(--red); min-height: 1.4em; margin: 8px 0 0; }
+
+  /* header */
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  header h1 { flex: 1 1 auto; }
+  .updated { color: var(--dim); font-size: 13px; }
+  .toggle { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 14px; }
+
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 16px; }
+  .tile { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .tile b { display: block; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--dim); font-size: 13px; }
+
+  /* events */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
+  .chip.on { border-color: var(--gold); }
+  .chip.off { color: var(--dim); }
+
+  /* players */
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .controls input { flex: 1 1 180px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: var(--panel); }
+  .seg button.active { background: var(--panel-2); color: var(--gold); }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); background: var(--panel-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.player { cursor: pointer; }
+  tr.player:hover td { background: #2a161e; }
+  tr.player.open td { background: #2f1922; }
+  .who { display: flex; flex-direction: column; }
+  .who small { color: var(--dim); }
+  .status { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .online .dot { background: var(--green); }
+  .away .dot { background: var(--gold); }
+  .empty { padding: 18px; text-align: center; color: var(--dim); }
+  @media (max-width: 640px) {
+    .hide-sm { display: none; }
+    th, td { padding: 8px 6px; }
+  }
+
+  /* one player's details */
+  td.detail { white-space: normal; background: #1b0e14; padding: 14px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .box h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+  .box dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+  .box dt { color: var(--dim); }
+  .box dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .album { display: flex; flex-wrap: wrap; gap: 4px; }
+  .album span { padding: 2px 8px; border-radius: 8px; background: var(--panel-2); font-size: 13px; }
+  .album span.none { opacity: 0.35; }
+  .r-common { border-left: 3px solid #d9c7b8; }
+  .r-uncommon { border-left: 3px solid var(--green); }
+  .r-rare { border-left: 3px solid var(--blue); }
+  .r-legendary { border-left: 3px solid #e8b04a; }
+  .shiny { color: var(--gold); }
+
+  /* chat */
+  .chat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+  .chat p { margin: 4px 0; overflow-wrap: anywhere; }
+  .chat time { color: var(--dim); font-size: 12px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .chat b { color: var(--pink); font-weight: 600; margin-right: 6px; }
+  .note { color: var(--dim); font-size: 13px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <form class="login" id="login">
+    <h1>Hairy Popsicles admin</h1>
+    <p>Enter the admin key (ADMIN_KEY in the server's settings on Render).</p>
+    <input type="password" id="key" autocomplete="current-password" placeholder="Admin key" required>
+    <label><input type="checkbox" id="remember"> Remember on this device</label>
+    <button class="primary" type="submit">Open</button>
+    <p class="error" id="login-error"></p>
+  </form>
+
+  <main id="app" hidden>
+    <header>
+      <h1>Hairy Popsicles admin</h1>
+      <span class="updated" id="updated"></span>
+      <label class="toggle"><input type="checkbox" id="auto" checked> Auto refresh</label>
+      <button id="refresh">Refresh</button>
+      <button id="signout">Sign out</button>
+    </header>
+    <p class="error" id="error"></p>
+
+    <div class="tiles" id="tiles"></div>
+
+    <h2>World</h2>
+    <div class="chips" id="events"></div>
+
+    <h2>Players</h2>
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search by name">
+      <div class="seg" id="filter">
+        <button data-filter="all" class="active">All</button>
+        <button data-filter="here">Here</button>
+        <button data-filter="offline">Offline</button>
+      </div>
+      <select id="sort" aria-label="Sort by">
+        <option value="seen">Most recent</option>
+        <option value="level">Level</option>
+        <option value="album">Album</option>
+        <option value="scraps">Scraps</option>
+        <option value="name">Name</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Status</th>
+          <th class="num">Lv</th>
+          <th class="num">Album</th>
+          <th class="num hide-sm">Scraps</th>
+          <th class="num hide-sm">Shiny</th>
+          <th class="num hide-sm">Streak</th>
+          <th class="num hide-sm">Harvests</th>
+        </tr>
+      </thead>
+      <tbody id="players"></tbody>
+    </table>
+
+    <h2>Recent chat</h2>
+    <div class="chat" id="chat"></div>
+
+    <p class="note">Saves live on players' phones, so this shows who's here now and who left in the last 3 days, as long as the server hasn't restarted since (Render's free plan restarts it when it sleeps).</p>
+  </main>
+</div>
+<script>
+(() => {
+  const STORE = 'hptm:admin-key';
+  const STAT_LABELS = {
+    harvests: 'Harvests', squeezes: 'Squeezes given', bossTops: 'Top Boil squeezer', globs: 'Globs grabbed',
+    shinies: 'Shinies grown', chats: 'Chat lines', gifts: 'Gifts given', itches: 'Itches scratched', teeth: 'Teeth found',
+  };
+  const REFRESH_MS = 10_000;
+  const $ = (id) => document.getElementById(id);
+  let key = sessionStorage.getItem(STORE) || localStorage.getItem(STORE) || '';
+  let data = null;
+  let filter = 'all';
+  const open = new Set();
+  let timer = 0;
+
+  // Everything players typed goes in as text, never as HTML.
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = String(text);
+    return node;
+  }
+
+  function ago(at) {
+    const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+    if (s < 60) return `${s}s ago`;
+    const m = Math.round(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.round(m / 60);
+    if (h < 48) return `${h}h ago`;
+    return `${Math.round(h / 24)}d ago`;
+  }
+  const clock = (ms) => {
+    const s = Math.max(0, Math.round(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const albumSize = (p) => Object.keys(p.collection ?? {}).length;
+
+  async function load() {
+    clearTimeout(timer);
+    try {
+      const res = await fetch('/admin/data', { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store' });
+      if (res.status === 401 || res.status === 429) {
+        const body = await res.json().catch(() => ({}));
+        signOut(body.error || 'Wrong key.');
+        return;
+      }
+      if (!res.ok) throw new Error(`Server said ${res.status}`);
+      data = await res.json();
+      $('error').textContent = '';
+      $('login').hidden = true;
+      $('app').hidden = false;
+      render();
+    } catch (error) {
+      $('error').textContent = `Couldn't reach the server (${error.message}). It may be waking up; trying again shortly.`;
+    }
+    if ($('auto').checked && key) timer = setTimeout(load, REFRESH_MS);
+  }
+
+  function signOut(message = '') {
+    clearTimeout(timer);
+    key = '';
+    sessionStorage.removeItem(STORE);
+    localStorage.removeItem(STORE);
+    $('app').hidden = true;
+    $('login').hidden = false;
+    $('login-error').textContent = message;
+    $('key').value = '';
+    $('key').focus();
+  }
+
+  function render() {
+    $('updated').textContent = `Updated ${new Date(data.at).toLocaleTimeString()}`;
+    renderTiles();
+    renderEvents();
+    renderPlayers();
+    renderChat();
+  }
+
+  function renderTiles() {
+    const here = data.players.filter((p) => p.status === 'online').length;
+    const away = data.players.filter((p) => p.status === 'away').length;
+    const { today, upSinceMinutes } = data.stats;
+    const up = upSinceMinutes >= 120 ? `${Math.round(upSinceMinutes / 60)}h` : `${upSinceMinutes}m`;
+    const tiles = [
+      [here, 'online now'],
+      [away, 'reconnecting'],
+      [data.players.length, 'seen (3 days)'],
+      [today.players, `players today (${today.joins} joins)`],
+      [today.peakOnline, 'peak online today'],
+      [data.heldPlots.length, 'plots held for absent players'],
+      [up, 'server up'],
+    ];
+    $('tiles').replaceChildren(...tiles.map(([value, label]) => {
+      const tile = el('div', 'tile');
+      tile.append(el('b', null, value), el('span', null, label));
+      return tile;
+    }));
+  }
+
+  function renderEvents() {
+    const e = data.events;
+    const chips = [];
+    const chip = (text, on) => chips.push(el('span', `chip ${on ? 'on' : 'off'}`, text));
+    if (!e) {
+      chip('No world running (nobody has joined since the server started).', false);
+    } else {
+      chip(e.boss ? `The Boil: ${e.boss.hp}/${e.boss.maxHp} hp, ${clock(e.boss.expiresAt - data.at)} left` : 'No Boil', Boolean(e.boss));
+      chip(e.itch ? `The Itch: ${e.itch.kind} ${e.itch.progress}/${e.itch.target}, ${clock(e.itch.endsAt - data.at)} left` : 'No Itch', Boolean(e.itch));
+      chip(e.bloodMoon ? `Blood Moon, ${clock(e.bloodMoon.endsAt - data.at)} left` : 'No Blood Moon', Boolean(e.bloodMoon));
+      chip(e.rain ? `Pus Rain, ${clock(e.rain.endsAt - data.at)} left` : 'No Pus Rain', Boolean(e.rain));
+      chip(e.season ? `${e.season.name} (ends ${e.season.ends})` : 'No season', Boolean(e.season));
+      const featured = data.characters.find((c) => c.id === e.featured);
+      if (featured) chip(`Featured today: ${featured.name} (${featured.rarity})`, true);
+    }
+    $('events').replaceChildren(...chips);
+  }
+
+  function visiblePlayers() {
+    const query = $('search').value.trim().toLowerCase();
+    const sorts = {
+      seen: (a, b) => (b.status !== 'offline') - (a.status !== 'offline') || b.since - a.since,
+      level: (a, b) => b.xp - a.xp,
+      album: (a, b) => albumSize(b) - albumSize(a) || b.xp - a.xp,
+      scraps: (a, b) => b.scraps - a.scraps,
+      name: (a, b) => a.name.localeCompare(b.name),
+    };
+    return data.players
+      .filter((p) => filter === 'all' || (filter === 'here' ? p.status !== 'offline' : p.status === 'offline'))
+      .filter((p) => !query || p.name.toLowerCase().includes(query))
+      .sort(sorts[$('sort').value]);
+  }
+
+  function renderPlayers() {
+    const rows = [];
+    const players = visiblePlayers();
+    for (const p of players) {
+      const row = el('tr', `player${open.has(p.profileId) ? ' open' : ''}`);
+      const who = el('div', 'who');
+      const name = el('span', null, p.name);
+      who.append(name, el('small', null, data.titles[p.title] ?? ''));
+      const status = el('span', `status ${p.status}`);
+      status.append(el('span', 'dot'), el('span', null, p.status === 'offline' ? `left ${ago(p.since)}` : p.status === 'away' ? 'reconnecting' : `here ${ago(p.since).replace(' ago', '')}`));
+      const cells = [
+        who,
+        status,
+        p.level,
+        `${albumSize(p)}/${data.characters.length}`,
+        p.scraps,
+        Object.keys(p.shinies ?? {}).length,
+        p.streak,
+        p.stats?.harvests ?? 0,
+      ];
+      cells.forEach((value, i) => {
+        const td = el('td', [i >= 2 ? 'num' : '', i >= 4 ? 'hide-sm' : ''].join(' ').trim() || null);
+        if (value instanceof Node) td.append(value);
+        else td.textContent = String(value);
+        row.append(td);
+      });
+      row.addEventListener('click', () => {
+        if (open.has(p.profileId)) open.delete(p.profileId);
+        else open.add(p.profileId);
+        renderPlayers();
+      });
+      rows.push(row);
+      if (open.has(p.profileId)) rows.push(detailRow(p));
+    }
+    if (!rows.length) {
+      const row = el('tr');
+      const td = el('td', 'empty', data.players.length ? 'Nobody matches.' : 'Nobody has played since the server started.');
+      td.colSpan = 8;
+      row.append(td);
+      rows.push(row);
+    }
+    $('players').replaceChildren(...rows);
+  }
+
+  function box(title, pairs) {
+    const section = el('div', 'box');
+    section.append(el('h3', null, title));
+    const dl = el('dl');
+    for (const [label, value] of pairs) dl.append(el('dt', null, label), el('dd', null, value));
+    section.append(dl);
+    return section;
+  }
+
+  function detailRow(p) {
+    const row = el('tr');
+    const td = el('td', 'detail');
+    td.colSpan = 8;
+    const grid = el('div', 'detail-grid');
+    const plot = p.plot
+      ? `${p.plot.key}${p.plot.ripe != null ? ` · ${p.plot.ripe} ripe, ${p.plot.growing} growing` : ` · ${p.plot.crops} crops`}`
+      : 'none';
+    const held = data.heldPlots.find((h) => h.profileId === p.profileId);
+    grid.append(
+      box('Player', [
+        ['Name', p.name],
+        ['Level', `${p.level} (${p.xp} xp)`],
+        ['Playing as', data.characters.find((c) => c.id === p.avatar)?.name ?? p.avatar],
+        ['Plot', held ? `${held.key} · held, ${held.crops} crops, squeezed ${held.squeezed}×` : plot],
+        ['Daily streak', p.streak],
+        ['Save id', p.profileId],
+        ...(p.pid ? [['Public id', p.pid]] : []),
+      ]),
+      box('Pockets', [
+        ['Scraps', p.scraps],
+        ['Boil Seeds', p.inventory?.boil ?? 0],
+        ['Fertilizer', p.inventory?.fertilizer ?? 0],
+        ['Teeth', p.inventory?.teeth ?? 0],
+        ['Name color', p.nameColor ?? 'none'],
+        ['Rows done', (p.rows ?? []).join(', ') || 'none'],
+      ]),
+      box('Lifetime', Object.entries(p.stats ?? {}).map(([k, v]) => [STAT_LABELS[k] ?? k, v])),
+      box('Quests', [
+        ...(p.dailyQuest ? [['Daily', `${p.dailyQuest.kind} ${p.dailyQuest.progress}/${p.dailyQuest.target}${p.dailyQuest.done ? ' ✓' : ''}`]] : []),
+        ...(p.quests ?? []).map((q) => [q.kind, `${q.progress}/${q.target}`]),
+        ['Titles', (p.titles ?? []).map((id) => data.titles[id] ?? id).join(', ') || 'none'],
+      ]),
+    );
+    const album = el('div', 'box');
+    album.append(el('h3', null, `Album ${albumSize(p)}/${data.characters.length}`));
+    const list = el('div', 'album');
+    for (const rarity of data.rarities) {
+      for (const c of data.characters.filter((ch) => ch.rarity === rarity)) {
+        const n = p.collection?.[c.id] ?? 0;
+        const shiny = p.shinies?.[c.id];
+        const tag = el('span', `r-${rarity}${n ? '' : ' none'}`, n ? `${c.name} ×${n}` : c.name);
+        if (shiny) tag.append(el('span', 'shiny', ` ✦${shiny}`));
+        list.append(tag);
+      }
+    }
+    album.append(list);
+    td.append(grid, album);
+    row.append(td);
+    return row;
+  }
+
+  function renderChat() {
+    const lines = data.chat.slice().reverse();
+    if (!lines.length) {
+      $('chat').replaceChildren(el('p', 'empty', 'Nothing said yet.'));
+      return;
+    }
+    $('chat').replaceChildren(...lines.map((line) => {
+      const p = el('p');
+      p.append(el('time', null, new Date(line.at).toLocaleTimeString()), el('b', null, line.name), document.createTextNode(line.text));
+      return p;
+    }));
+  }
+
+  $('login').addEventListener('submit', (event) => {
+    event.preventDefault();
+    key = $('key').value.trim();
+    sessionStorage.setItem(STORE, key);
+    if ($('remember').checked) localStorage.setItem(STORE, key);
+    $('login-error').textContent = '';
+    load();
+  });
+  $('refresh').addEventListener('click', load);
+  $('signout').addEventListener('click', () => signOut());
+  $('auto').addEventListener('change', () => { if ($('auto').checked) load(); else clearTimeout(timer); });
+  $('search').addEventListener('input', () => data && renderPlayers());
+  $('sort').addEventListener('change', () => data && renderPlayers());
+  $('filter').addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    filter = button.dataset.filter;
+    for (const b of $('filter').children) b.classList.toggle('active', b === button);
+    if (data) renderPlayers();
+  });
+
+  if (key) load();
+  else $('key').focus();
+})();
+</script>
+</body>
+</html>

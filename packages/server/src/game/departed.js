@@ -14,6 +14,15 @@ export function rememberDeparture(profileId, token) {
   while (departed.size > MAX_KEPT) departed.delete(departed.keys().next().value);
 }
 
+// Everyone who left in the last few days, newest first, for the admin page.
+export function listDepartures() {
+  const now = Date.now();
+  return [...departed.entries()]
+    .filter(([, entry]) => now - entry.at <= KEEP_MS)
+    .map(([profileId, entry]) => ({ profileId, token: entry.token, at: entry.at }))
+    .reverse();
+}
+
 // The server's own latest save for this player, if it has one; taken back out,
 // since the player is live again.
 export function takeDeparture(profileId) {
