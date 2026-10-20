@@ -244,7 +244,8 @@ npm test -- saves gifts  # just those
 with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them
 with real Colyseus clients. Suites: `game` (planting, levels, quests,
 chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
-`shop`, `reconnect`, `saves` (signing,
+`shop`, `integrity` (old saves, squeezes and boss damage across reloads),
+`reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 `filter`. GitHub Actions runs them on every push and pull request
@@ -255,9 +256,11 @@ bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 - **Saves live on the device, not on the server.** That needed no database,
   and progress survives the free server sleeping and restarting. The
   catches: progress doesn't follow you to another phone or browser, clearing
-  site data loses it, a player could restore an older save of their own (say,
-  to harvest the same crop twice), and you only see other players' plots
-  while they're online. The fix for all four is server-side storage plus an
+  site data loses it, and you only see other players' plots while they're
+  online. The server remembers each departed player's latest state for 3
+  days (in memory), so an older save sent back is replaced by the newer one,
+  but after a server restart a player could restore an older save of their
+  own. The fix for all four is server-side storage plus an
   account; the save format (`packages/server/src/game/profile.js`) is what
   would move there.
 - **The save secret.** Saves are signed with `PROFILE_SECRET`. `render.yaml`

@@ -31,6 +31,27 @@ a.room.send('chat', { text: 'still here' });
 await sleep(300);
 check('player can act again after the flood', bad.chat.some((c) => c.text === 'still here'));
 check('server still answering', Date.now() - before < 10_000 && Boolean(bad.state));
+// Garbage in every message type: each must cost only that message.
+const junk = { toString: 1 };
+for (const [type, message] of [
+  ['chat', { text: junk }], ['plant', { plotKey: junk, slot: 4, seed: junk }], ['harvest', { plotKey: junk, slot: 0 }],
+  ['tend', { plotKey: '__proto__', slot: 0 }], ['buy', { item: junk }], ['buy', { item: '__proto__' }],
+  ['gift', { to: 'constructor', characterId: 'pimples' }], ['gift', { to: '__proto__', characterId: junk }],
+  ['setTitle', { id: junk }], ['setColor', { color: junk }], ['setAvatar', { characterId: junk }],
+  ['move', { x: 'a', y: junk }], ['claimPlot', { plotX: junk }], ['grab', { id: junk }], ['emote', { emote: junk }],
+  ['sync', 'hello'], ['chat', null], ['plant', 42],
+]) {
+  a.room.send(type, message);
+  await sleep(60);
+}
+await sleep(500);
+const late = await join('Latecomer');
+a.room.send('chat', { text: 'survived' });
+await sleep(1500);
+a.room.send('chat', { text: 'survived' });
+await sleep(400);
+check('malformed messages never take the server down', Boolean(late.state) && late.chat.some((c) => c.text === 'survived'));
+await late.room.leave(true);
 await a.room.leave(true);
 await bad.room.leave(true);
 console.log(failures ? `\n${failures} FAILED` : '\nall passed');

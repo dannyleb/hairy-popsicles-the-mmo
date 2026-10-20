@@ -1,5 +1,7 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, SEED_BY_ID, SHOP, STAT_NAMES, TITLE_BY_ID, levelFor } from '@hptm/shared';
+import {
+  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
+} from '@hptm/shared';
 import { hasBlocked } from './filter.js';
 
 // Saves live on the player's device, signed by the server so they can't be
@@ -23,7 +25,8 @@ export const newProfileId = () => randomUUID();
 
 // A display name, or '' if it's empty or crosses the line (the player becomes a Guest).
 export function cleanName(name) {
-  const clean = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+  if (typeof name !== 'string') return '';
+  const clean = name.replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
   return hasBlocked(clean) ? '' : clean;
 }
 
@@ -50,7 +53,9 @@ export function saveToken(player, plot, plotKey) {
     plot: plot && {
       key: plotKey,
       candles: plot.candles ?? 0,
-      slots: plot.slots.map((s) => s && { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny }),
+      slots: plot.slots.map((s) => s && {
+        characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny, tendedBy: s.tendedBy,
+      }),
     },
     savedAt: Date.now(),
   };
@@ -89,7 +94,8 @@ export function readToken(token) {
     const s = p.plot?.slots?.[i];
     if (!s || !Object.hasOwn(CHARACTER_BY_ID, s.characterId) || !Object.hasOwn(SEED_BY_ID, s.seed)) return null;
     if (!time(s.plantedAt) || !time(s.readyAt)) return null;
-    return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy: [] };
+    const tendedBy = Array.isArray(s.tendedBy) ? s.tendedBy.filter((id) => typeof id === 'string').slice(0, TEND_MAX) : [];
+    return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy };
   });
   const xp = count(p.xp);
   return {

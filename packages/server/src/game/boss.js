@@ -109,6 +109,13 @@ export function createBoss(room, scale) {
       return { hp: boss.hp, maxHp: boss.maxHp };
     },
 
+    // A player who reloaded carries on under a new session id; so does their damage.
+    renameHitter(oldId, newId) {
+      if (!boss?.damage.has(oldId)) return;
+      boss.damage.set(newId, (boss.damage.get(newId) ?? 0) + boss.damage.get(oldId));
+      boss.damage.delete(oldId);
+    },
+
     hit(player, now) {
       if (!boss) return 0;
       if (Math.hypot(player.x - boss.x, player.y - boss.y) > REACH) return 0;

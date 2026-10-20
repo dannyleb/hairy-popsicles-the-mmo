@@ -248,6 +248,7 @@ export class WorldScene extends Phaser.Scene {
     this.state = state;
     this.syncPlots();
     this.syncAvatars();
+    this.seenFirstState = true;
     this.bossView.sync(state.boss);
     this.drops.sync(state.drops);
     if (!this.lastTarget && state.players[this.myId()]) {
@@ -472,7 +473,7 @@ export class WorldScene extends Phaser.Scene {
   tapNeighborHole(plotKey, plot, slot, x, y) {
     const crop = plot.slots[slot];
     if (crop && this.now() < crop.readyAt) {
-      if (crop.tendedBy.includes(this.myId())) {
+      if (crop.tendedBy.includes(this.private.profileId)) {
         this.hud.toast('You already squeezed this one.');
       } else if (crop.tendedBy.length >= TEND_MAX) {
         this.hud.toast("It's been squeezed dry. Let it grow.");
@@ -646,7 +647,7 @@ export class WorldScene extends Phaser.Scene {
   // when ripe; a neighbor's I could squeeze glow green.
   updateCrops(time) {
     const now = this.now();
-    const myId = this.myId();
+    const me = this.private?.profileId;  // squeezers are remembered by save, not connection
     for (const crop of this.crops.values()) {
       const { image, glow, slotData } = crop;
       const { plantedAt, readyAt, tendedBy } = slotData;
@@ -670,7 +671,7 @@ export class WorldScene extends Phaser.Scene {
         crop.sheen.setVisible(crop.ripe && image.visible).setAlpha(0.45 + 0.2 * Math.sin(time * 0.004 + image.x));
       }
 
-      const squeezable = !crop.mine && !crop.ripe && !tendedBy.includes(myId) && tendedBy.length < TEND_MAX;
+      const squeezable = !crop.mine && !crop.ripe && !tendedBy.includes(me) && tendedBy.length < TEND_MAX;
       const harvestable = crop.mine && crop.ripe && image.visible;
       glow.setVisible(squeezable || harvestable);
       if (glow.visible) {
@@ -712,18 +713,20 @@ export class WorldScene extends Phaser.Scene {
         if (mine) {
           this.cameras.main.centerOn(p.x, p.y - lookAhead());
           this.cameras.main.startFollow(container, false, 0.1, 0.1, 0, lookAhead());
-        } else if (this.state) {
+        } else if (this.seenFirstState) {
+          // Someone arriving after we got here fades in.
           container.setAlpha(0);
-          this.tweens.add({ targets: container, alpha: 1, duration: 400 });
+          avatar.fade = this.tweens.add({ targets: container, alpha: 1, duration: 400 });
         }
       } else if (avatar.x !== p.x || avatar.y !== p.y) {
         avatar.x = p.x;
         avatar.y = p.y;
         const { container } = avatar;
         const distance = Phaser.Math.Distance.Between(container.x, container.y, p.x, p.y);
-        this.tweens.killTweensOf(container);
+        // Only the walk is replaced; a fade in progress carries on.
+        avatar.walkTween?.stop();
         avatar.moving = true;
-        this.tweens.add({
+        avatar.walkTween = this.tweens.add({
           targets: container,
           x: p.x,
           y: p.y,
@@ -765,7 +768,8 @@ export class WorldScene extends Phaser.Scene {
       // Players whose connection dropped fade until they're back (or gone).
       if (avatar.away !== Boolean(p.away)) {
         avatar.away = Boolean(p.away);
-        this.tweens.add({ targets: avatar.container, alpha: avatar.away ? 0.45 : 1, duration: 300 });
+        avatar.fade?.stop();
+        avatar.fade = this.tweens.add({ targets: avatar.container, alpha: avatar.away ? 0.45 : 1, duration: 300 });
       }
     }
   }
@@ -888,7 +892,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   onLevelUp({ level }) {
-    const from = this.private?.level ?? level - 1;
+    // Two level-ups can arrive before the private update that follows them; count
+    // unlocks from the highest level already shown, so none is listed twice.
+    const from = Math.max(this.private?.level ?? level - 1, this.levelShown ?? 0);
+    this.levelShown = level;
     const unlocks = [];
     const holes = holesFor(level) - holesFor(from);
     if (holes > 0) unlocks.push(holes === 1 ? 'A new hole opened in your plot' : `${holes} new holes opened in your plot`);

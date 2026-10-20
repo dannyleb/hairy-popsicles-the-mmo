@@ -41,6 +41,7 @@ import {
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
 import { checkIn, dayOf } from '../game/daily.js';
+import { rememberDeparture, takeDeparture } from '../game/departed.js';
 import { createRain } from '../game/rain.js';
 import { maskText } from '../game/filter.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
@@ -85,9 +86,16 @@ export class WorldRoom extends Room {
     this.bloodMoon = null;
     this.nextBloodMoon = Date.now() + BLOOD_MOON.firstMs * EVENT_SCALE;
 
+    // Every message is from a client we don't trust: anything odd in it must
+    // cost that one message, never the server (an uncaught error ends the process).
     const on = (type, handler) => this.onMessage(type, (client, message) => {
       const player = this.players[client.sessionId];
-      if (player && this.withinBudget(player)) handler(player, message ?? {}, client);
+      if (!player || !this.withinBudget(player)) return;
+      try {
+        handler(player, message !== null && typeof message === 'object' ? message : {}, client);
+      } catch (error) {
+        console.error(`'${type}' from ${client.sessionId} failed:`, error);
+      }
     });
     on('move', (p, m) => this.handleMove(p, m));
     on('claimPlot', (p, m) => this.handleClaimPlot(p, m));
@@ -105,12 +113,28 @@ export class WorldRoom extends Room {
     on('setColor', (p, m) => this.handleSetColor(p, m));
     on('sync', (p, m, client) => this.sendWorld(p, client, true));
 
-    this.clock.setInterval(() => this.flush(), BROADCAST_MS);
-    this.clock.setInterval(() => this.tick(), TICK_MS);
+    this.clock.setInterval(() => this.guarded('flush', () => this.flush()), BROADCAST_MS);
+    this.clock.setInterval(() => this.guarded('tick', () => this.tick()), TICK_MS);
+  }
+
+  // Last line of defense: a bug in the room is logged, never fatal to the server.
+  onUncaughtException(error, methodName) {
+    console.error(`room error in ${methodName}:`, error);
+  }
+
+  guarded(name, run) {
+    try {
+      run();
+    } catch (error) {
+      this.onUncaughtException(error, name);
+    }
   }
 
   onJoin(client, options) {
-    const save = readToken(options?.profile);
+    let save = readToken(options?.profile);
+    // If this player left earlier, the server's copy of their save is the newest.
+    const latest = save && takeDeparture(save.id);
+    if (latest) save = readToken(latest) ?? save;
     // The same save already in the world (a reload, a second tab, or a dropped
     // phone coming back as a new connection): carry on as that player.
     const existing = save && Object.values(this.players).find((p) => p.profileId === save.id);
@@ -247,11 +271,8 @@ export class WorldRoom extends Room {
     this.players[newId] = player;
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
-      for (const crop of plot.slots) {
-        const i = crop ? crop.tendedBy.indexOf(oldId) : -1;
-        if (i >= 0) crop.tendedBy[i] = newId;
-      }
     }
+    this.boss.renameHitter(oldId, newId);
     return player;
   }
 
@@ -285,6 +306,9 @@ export class WorldRoom extends Room {
     }
     // Taken over by a new connection: the player lives on under another id.
     if (!player || this.players[client.sessionId] !== player) return;
+    // Keep their final state for when they come back (their device may not have the last of it).
+    const [plotKey, plot] = this.plotOf(player);
+    rememberDeparture(player.profileId, saveToken(player, plot, plotKey));
     delete this.players[client.sessionId];
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
@@ -347,6 +371,7 @@ export class WorldRoom extends Room {
     const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor } = player;
     const streak = player.daily.streak;
     this.clientOf(player)?.send('me', {
+      profileId: player.profileId,
       currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, streak,
     });
     player.saveDirty = true;
@@ -426,7 +451,7 @@ export class WorldRoom extends Room {
   }
 
   plotAt(plotKey, slot) {
-    const plot = Object.hasOwn(this.plots, plotKey) ? this.plots[plotKey] : null;
+    const plot = typeof plotKey === 'string' && Object.hasOwn(this.plots, plotKey) ? this.plots[plotKey] : null;
     if (!plot || !Number.isInteger(slot) || slot < 0 || slot >= plot.slots.length) return null;
     return plot;
   }
@@ -466,7 +491,7 @@ export class WorldRoom extends Room {
 
   handlePlant(player, { plotKey, slot, seed = 'pimple' }) {
     const plot = this.plotAt(plotKey, slot);
-    const seedDef = Object.hasOwn(SEED_BY_ID, seed) ? SEED_BY_ID[seed] : null;
+    const seedDef = typeof seed === 'string' && Object.hasOwn(SEED_BY_ID, seed) ? SEED_BY_ID[seed] : null;
     if (!plot || !seedDef || plot.ownerId !== player.id || plot.slots[slot]) return;
     if (!holeOpen(slot, player.level) || player.level < seedDef.level) return;
     if (seedDef.dropOnly) {
@@ -548,12 +573,13 @@ export class WorldRoom extends Room {
     const crop = plot.slots[slot];
     const now = Date.now();
     if (!crop || now >= crop.readyAt) return;
-    if (crop.tendedBy.includes(player.id) || crop.tendedBy.length >= TEND_MAX) return;
+    // Squeezers are remembered by save, not connection, so leaving and coming back doesn't reset it.
+    if (crop.tendedBy.includes(player.profileId) || crop.tendedBy.length >= TEND_MAX) return;
     const at = this.slotCenter(plotKey, slot);
     if (Math.hypot(player.x - at.x, player.y - at.y) > REACH || !this.arrived(player)) return;
 
     crop.readyAt -= (crop.readyAt - now) * TEND_SHARE;
-    crop.tendedBy.push(player.id);
+    crop.tendedBy.push(player.profileId);
     player.currency += TEND_SCRAPS;
     this.broadcast('tend', { plotKey, slot, by: player.id });
     const owner = this.players[plot.ownerId];
@@ -581,7 +607,8 @@ export class WorldRoom extends Room {
   handleChat(player, { text }) {
     const now = Date.now();
     if (now - player.lastChatAt < CHAT_COOLDOWN_MS) return;
-    const clean = maskText(String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX));
+    if (typeof text !== 'string') return;
+    const clean = maskText(text.replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX));
     if (!clean) return;
     player.lastChatAt = now;
     const line = { id: player.id, name: player.name, text: clean, at: now };
@@ -615,7 +642,7 @@ export class WorldRoom extends Room {
   // Give a spare copy of a character to another player who's here.
   handleGift(player, { to, characterId }) {
     const now = Date.now();
-    const other = typeof to === 'string' && to !== player.id ? this.players[to] : null;
+    const other = typeof to === 'string' && to !== player.id && Object.hasOwn(this.players, to) ? this.players[to] : null;
     if (!other || other.away || now - player.lastGiftAt < GIFT_COOLDOWN_MS) return;
     if (typeof characterId !== 'string' || !((player.collection[characterId] ?? 0) >= 2)) return;
     player.lastGiftAt = now;
@@ -637,7 +664,7 @@ export class WorldRoom extends Room {
   }
 
   handleBuy(player, { item, color }) {
-    const def = Object.hasOwn(SHOP, item) ? SHOP[item] : null;
+    const def = typeof item === 'string' && Object.hasOwn(SHOP, item) ? SHOP[item] : null;
     if (!def || player.currency < def.cost) return;
     if (item === 'fertilizer') {
       player.inventory.fertilizer += def.doses;
