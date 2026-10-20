@@ -1,4 +1,4 @@
-import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, levelFor, linesOf } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, RARITIES, featuredFor, levelFor, linesOf, seasonOn } from '@hptm/shared';
 import { forgetProfile, peekProfile, storeProfile } from '../net/profile.js';
 import { hasHaptics } from '../audio/sfx.js';
 import { remember, remembered, settings } from '../settings.js';
@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    "The title screen shows what's waiting: your daily gift, ripe crops, today's featured character.",
     'Reduce motion in Settings: no screen shake or flashes. On already if your phone asks for less motion.',
     'Share my album: tap your card for a picture of your collection to post anywhere.',
     'Pals: tap anyone, then Make pal. You\'ll hear when they turn up.',
@@ -36,6 +37,37 @@ function savedName() {
   } catch {
     return '';
   }
+}
+
+const DAY_MS = 86_400_000;
+const utcDay = (time) => new Date(time).toISOString().slice(0, 10);
+
+// What's waiting today, from the save on this device (unverified, so only a
+// hint): the daily gift, ripe crops, the featured character and any season.
+function todayLines(saved) {
+  const now = Date.now();
+  const today = utcDay(now);
+  const lines = [];
+  if (saved) {
+    const { last, streak = 0 } = saved.daily ?? {};
+    if (last !== today) {
+      const day = last === utcDay(now - DAY_MS) ? streak + 1 : 1;
+      lines.push({ text: day > 1 ? `Day ${day} gift waiting` : 'Daily gift waiting', hot: true });
+    }
+    const ripe = (saved.plot?.slots ?? []).filter((s) => s && s.readyAt <= now).length;
+    if (ripe) lines.push({ text: `${ripe} crop${ripe > 1 ? 's' : ''} ripe on your plot`, hot: true });
+  }
+  const featured = CHARACTER_BY_ID[featuredFor(today)];
+  if (featured) {
+    const known = saved?.collection?.[featured.id];
+    lines.push({ text: `Sprouting today: ${known ? featured.name : `a mystery ${RARITIES[featured.rarity].label}`}` });
+  }
+  const season = seasonOn(today);
+  if (season) {
+    const days = Math.ceil((Date.parse(`${season.ends}T00:00:00Z`) - now) / DAY_MS);
+    lines.push({ text: `${season.name.replace(/^The /, '')} · ${days > 1 ? `${days} days left` : 'last day'}`, season: season.id });
+  }
+  return lines;
 }
 
 function saveName(name) {
@@ -77,6 +109,11 @@ export function createMenu({ onPlay }) {
     const albumSize = Object.keys(saved.collection ?? {}).length;
     form.append(el('p', 'menu-continue', `Level ${levelFor(saved.xp ?? 0)} · album ${albumSize}/${CHARACTERS.length}`));
   }
+  const today = el('ul', 'menu-today');
+  for (const line of todayLines(saved)) {
+    today.append(el('li', `${line.hot ? 'hot' : ''}${line.season ? ` season ${line.season}` : ''}`.trim() || null, line.text));
+  }
+  if (today.children.length) form.append(today);
   form.append(name, play);
   form.addEventListener('submit', (event) => {
     event.preventDefault();

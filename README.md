@@ -150,7 +150,9 @@ Timers are short on purpose while nothing persists. Rarities live in
   everyone), and name colors (150 each).
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
   track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
-  streak starts over.
+  streak starts over. The title screen says what's waiting before you tap
+  Continue: "Day 4 gift waiting", "2 crops ripe on your plot", today's
+  featured character and any season, read from the save on the device.
 
 **The world:** like the first game, the world is skin — here a dark, wet,
 candlelit expanse of it seen from above, lit like the character renders.

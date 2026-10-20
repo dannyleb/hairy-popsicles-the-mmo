@@ -314,3 +314,45 @@
   min-height: 1em;
   color: #e0897c;
 }
+
+/* What's waiting today, above the Play button. */
+.menu-today {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-today li {
+  padding: 2px 10px;
+  font-size: 14px;
+  color: #e9dccf;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+}
+
+.menu-today li.hot {
+  color: #1a0a0d;
+  background: #f3d27a;
+}
+
+.menu-today li.season {
+  color: #ffd2a8;
+  background: rgba(120, 50, 110, 0.55);
+  border: 1px solid #ff9a3c;
+}
+
+/* Short portrait phones: make room for the hero by dropping the speech
+   bubble and the less urgent chips when there's news to show. */
+@media (orientation: portrait) and (max-height: 720px) {
+  .menu:has(.menu-today) .menu-bubble {
+    display: none;
+  }
+
+  .menu-today li:not(.hot):not(.season) {
+    display: none;
+  }
+}
