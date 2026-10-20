@@ -10,6 +10,7 @@ import {
   SEED_BY_ID,
   TEND_MAX,
   TILE_SIZE,
+  greenThumb,
   holeOpen,
   holesFor,
   levelForHole,
@@ -855,6 +856,8 @@ export class WorldScene extends Phaser.Scene {
     for (const seed of SEEDS) {
       if (!seed.dropOnly && seed.level > from && seed.level <= level) unlocks.push(`${seed.name}s unlocked`);
     }
+    const thumb = greenThumb(level) - greenThumb(from);
+    if (thumb > 0) unlocks.push(`Your crops grow ${Math.round(thumb * 100)}% faster (${Math.round(greenThumb(level) * 100)}% in all)`);
     if (level >= MAX_LEVEL) unlocks.push('Max level. Bragging rights.');
     this.hud.levelUp(level, unlocks);
     sfx.fanfare();

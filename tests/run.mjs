@@ -20,6 +20,7 @@ const SUITES = {
   hardening: [{ PORT: 2572 }],
   titles: [{ PORT: 2573, GROW_SCALE: 0.01 }],
   gifts: [{ PORT: 2574 }],
+  levels: [{ PORT: 2575, GROW_SCALE: 0.01 }],
 };
 
 function startServer(settings) {

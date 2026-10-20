@@ -29,6 +29,7 @@ import {
   WORLD_PX,
   WORLD_WIDTH_PLOTS,
   XP,
+  greenThumb,
   holeOpen,
   levelFor,
   starsFor,
@@ -471,7 +472,7 @@ export class WorldRoom extends Room {
       characterId: character.id,
       seed,
       plantedAt: now,
-      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow),
+      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)),
       shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1),
       tendedBy: [],
     };

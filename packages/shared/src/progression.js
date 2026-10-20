@@ -24,6 +24,11 @@ export const holesFor = (level) => Math.min(HOLE_ORDER.length, 2 + level);
 export const holeOpen = (slot, level) => HOLE_ORDER.indexOf(slot) < holesFor(level);
 export const levelForHole = (slot) => Math.max(1, HOLE_ORDER.indexOf(slot) - 1);
 
+// Once every hole is open (level 7), each further level makes crops grow a bit faster.
+export const GREEN_THUMB_FROM = HOLE_ORDER.length - 2;
+export const GREEN_THUMB_STEP = 0.03;
+export const greenThumb = (level) => Math.max(0, level - GREEN_THUMB_FROM) * GREEN_THUMB_STEP;
+
 export const XP = {
   harvest: { common: 10, uncommon: 22, rare: 50, legendary: 120 },
   plant: 2,

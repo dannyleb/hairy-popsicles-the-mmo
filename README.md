@@ -41,7 +41,9 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Levels (1-15).** XP from planting, harvesting, squeezing, quests and the
   boss. Your plot starts with 3 open holes; each level opens another
   (scabs cover the locked ones and pop off when they open), and better seeds
-  unlock at levels 3 and 6. Every 5th level is announced to the world.
+  unlock at levels 3 and 6. Past level 7, when every hole is open, each
+  level makes your crops grow 3% faster (24% at level 15). Every 5th level
+  is announced to the world.
 - **Quests.** Three at a time, dealt from ten kinds (harvest, rarity,
   plant, discover something new, squeeze a neighbor, chat, emote, hit the
   boss, change character). Finishing one pays scraps and XP and deals the
@@ -232,7 +234,8 @@ npm test -- saves gifts  # just those
 `tests/run.mjs` starts fresh game servers for each suite (timers sped up
 with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them
 with real Colyseus clients. Suites: `game` (planting, levels, quests,
-chat, squeezing, The Boil, Blood Moon), `reconnect`, `saves` (signing,
+chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
+`reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 `filter`. GitHub Actions runs them on every push and pull request
