@@ -46,6 +46,7 @@ import { maskText } from '../game/filter.js';
 import { cleanName, newProfileId, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
+import { recordJoin, recordOnline } from '../stats.js';
 
 const { Room } = colyseus;
 
@@ -126,6 +127,7 @@ export class WorldRoom extends Room {
       player.notices.push({ kind: 'daily', ...daily });
     }
     this.checkTitles(player);  // a streak can earn one just by showing up
+    recordJoin(player.profileId, Object.keys(this.players).length);
     console.log(`join ${player.id} ${player.name}${save ? ' (saved)' : ''} (${this.clients.length} here)`);
     topUp(player, this.othersPresent(player));
     player.saveDirty = true;
@@ -284,6 +286,7 @@ export class WorldRoom extends Room {
     // Taken over by a new connection: the player lives on under another id.
     if (!player || this.players[client.sessionId] !== player) return;
     delete this.players[client.sessionId];
+    recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
     // The plot is in their save and comes back with them.
     for (const [key, plot] of Object.entries(this.plots)) {

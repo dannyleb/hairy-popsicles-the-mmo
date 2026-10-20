@@ -273,7 +273,9 @@ bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 ## Deploy
 
 - **Server:** Render free web service, defined in `render.yaml`, live at
-  `https://hairy-popsicles-mmo-server.onrender.com` (responds `ok`). The
+  `https://hairy-popsicles-mmo-server.onrender.com` (responds `ok`;
+  `/stats` shows who's online now and players, joins and the peak today,
+  since the last restart). The
   free tier sleeps after 15 min idle; the first visitor after that waits
   ~30-60s and the live world (who's online, The Boil) resets. Players'
   progress is in their saves and comes back with them. Needs the
