@@ -1,4 +1,5 @@
 import { Client } from 'colyseus.js';
+import { savedProfile } from './profile.js';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'ws://localhost:2567';
 
@@ -12,7 +13,7 @@ function quiet(room) {
 }
 
 export async function connect(playerName) {
-  return quiet(await client.joinOrCreate('world', { name: playerName }));
+  return quiet(await client.joinOrCreate('world', { name: playerName, profile: savedProfile() }));
 }
 
 // Back into the same seat after the socket dropped (phones do this whenever the

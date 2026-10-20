@@ -283,6 +283,8 @@ export function createHud(actions) {
 
     reveal: reveal.character,
     levelUp: reveal.levelUp,
+    welcome: reveal.welcome,
+    daily: reveal.daily,
     chatLine: chat.line,
     chatHistory: chat.history,
     isMuted: sheets.isMuted,

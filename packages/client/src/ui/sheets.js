@@ -141,7 +141,7 @@ export function createSheets(actions) {
     rulesList.append(...HOW_TO_PLAY.map((line) => el('li', null, line)));
     rules.append(el('summary', null, 'How to play'), rulesList);
     const leave = button('sheet-button quiet', 'Leave the world', () => actions.leave());
-    const note = el('p', 'overlay-hint', 'Nothing saves yet: leaving (or a long time away) resets your album and plot.');
+    const note = el('p', 'overlay-hint', "Your progress is saved on this device. Your plot comes back with you and keeps growing while you're away.");
     open('Settings', list, rules, note, leave);
   }
 

@@ -68,6 +68,15 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Phones.** If the app goes to the background and the socket drops, the
   server holds your player and plot for 90 seconds and the client
   reconnects into the same seat.
+- **Saves.** Your level, album, scraps, quests, streak and plot (with its
+  crops) are saved on your device, signed by the server so they can't be
+  edited. Come back and your plot reappears where it was (or as close as
+  is free), and the crops kept growing while you were gone: "Welcome back,
+  4 crops are ripe and waiting." Reloading or opening a second tab takes
+  over your existing player rather than making a copy.
+- **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
+  track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
+  streak starts over.
 
 **The world:** like the first game, the world is skin — here a dark, wet,
 candlelit expanse of it seen from above, lit like the character renders.
@@ -181,13 +190,17 @@ The Boil and the Blood Moon come (and go) 5x sooner, e.g.
 
 ## What's stubbed / not real yet
 
-- **No persistence.** Server state is in-memory: leaving (or 90 seconds
-  disconnected) loses your album, level and plot, and a server restart (or
-  the free Render instance going to sleep) wipes everyone. Needs a real
-  datastore before this is live for real players.
-- **No auth / identity.** Every session is anonymous, so progress can't
-  follow a player between visits. Needs *some* identity (even a
-  device-local token) before "persistent world" is true for a player.
+- **Saves live on the device, not on the server.** That needed no database,
+  and progress survives the free server sleeping and restarting. The
+  catches: progress doesn't follow you to another phone or browser, clearing
+  site data loses it, a player could restore an older save of their own (say,
+  to harvest the same crop twice), and you only see other players' plots
+  while they're online. The fix for all four is server-side storage plus an
+  account; the save format (`packages/server/src/game/profile.js`) is what
+  would move there.
+- **The save secret.** Saves are signed with `PROFILE_SECRET`. `render.yaml`
+  generates one; if it changes or is missing, every save stops loading (the
+  server logs a warning when it's missing).
 - **One room, no sharding.** Everyone joins the same `world` room (200
   max). Fine until it gets crowded; then it needs zones or shards.
 - **State sync is a blunt instrument.** The server broadcasts the whole
@@ -202,7 +215,9 @@ The Boil and the Blood Moon come (and go) 5x sooner, e.g.
 - **Server:** Render free web service, defined in `render.yaml`, live at
   `https://hairy-popsicles-mmo-server.onrender.com` (responds `ok`). The
   free tier sleeps after 15 min idle; the first visitor after that waits
-  ~30-60s and the in-memory world resets.
+  ~30-60s and the live world (who's online, The Boil) resets. Players'
+  progress is in their saves and comes back with them. Needs the
+  `PROFILE_SECRET` environment variable (see "What's stubbed").
 - **Client:** GitHub Pages via `.github/workflows/pages.yml` on every push
   to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`.
   Production builds point at the Render server via
@@ -210,10 +225,10 @@ The Boil and the Blood Moon come (and go) 5x sooner, e.g.
 
 ## Next steps (roughly in order)
 
-1. Persistence plus device-local identity, so plots, levels and albums
-   survive closing the tab and server restarts. Until then the album resets
-   every visit, which undercuts the collecting hook.
-2. Real names for `spoon-nana`, `bat-rat` and `head-bloom`, and more
+1. Real names for `spoon-nana`, `bat-rat` and `head-bloom`, and more
    characters (each new one deepens the album).
+2. Server-side saves and accounts, so progress follows a player across
+   devices and offline players' plots stay in the world for others to see
+   and squeeze.
 3. Real art for the world (ground, plots, props, The Boil).
-4. A reason to come back: daily quests and a login streak (needs 1).
+4. Daily quests on top of the login streak.

@@ -1135,3 +1135,68 @@
 .sheet-rules li {
   margin: 4px 0;
 }
+
+/* ---------- daily gift, welcome back ---------- */
+
+.reveal-art.small {
+  width: min(170px, 46vw);
+}
+
+.reveal.welcome,
+.reveal.daily {
+  --rarity: #e8b04a;
+}
+
+.daily-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin: 16px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 7px;
+  background: #2a161c;
+  border: 2px solid transparent;
+  border-radius: 10px;
+}
+
+.daily-day.done {
+  opacity: 0.45;
+}
+
+.daily-day.today {
+  background: #3d1d25;
+  border-color: #e8b04a;
+  box-shadow: 0 0 16px rgba(232, 176, 74, 0.45);
+  animation: daily-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes daily-pulse {
+  50% { transform: scale(1.06); }
+}
+
+.daily-label {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.daily-prize {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.daily-icon {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 2px;
+}

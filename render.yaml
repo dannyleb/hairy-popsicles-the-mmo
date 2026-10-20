@@ -10,3 +10,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.11.0
+      # Signs players' saves. Must stay the same across deploys, or every save is lost.
+      - key: PROFILE_SECRET
+        generateValue: true

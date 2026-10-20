@@ -18,6 +18,7 @@ import {
 import { sfx } from '../audio/sfx.js';
 import { DPR } from '../display.js';
 import { reconnect } from '../net/connection.js';
+import { storeProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
@@ -49,6 +50,7 @@ const SLOW_TICK_MS = 250;         // minimap, event timers, coach
 const BOSS_STANDOFF = 105;        // where to stand when walking up to The Boil
 const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
+const REPLACED = 4001;            // close code: this save was opened somewhere else
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
 const textStyle = (size, color = TEXT) => ({ fontFamily: FONT, fontSize: `${size}px`, color, resolution: DPR });
@@ -139,12 +141,19 @@ export class WorldScene extends Phaser.Scene {
       if (this.state) this.state.boss = null;
     });
     on('bossReward', this.onBossReward);
-    room.onLeave(() => this.onDisconnect());
+    on('save', ({ token }) => storeProfile(token));
+    on('notice', this.onNotice);
+    room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
   }
 
-  async onDisconnect() {
+  async onDisconnect(code) {
     if (this.leaving) return;
+    if (code === REPLACED) {
+      loading.show('');
+      loading.error("You're playing in another tab or window.", () => window.location.reload());
+      return;
+    }
     const token = this.room.reconnectionToken;
     loading.show('Reconnecting...');
     for (const delay of RECONNECT_DELAYS) {
@@ -755,6 +764,16 @@ export class WorldScene extends Phaser.Scene {
     this.bossView.pop(x, y);
     sfx.splat();
     if (this.state) this.state.boss = null;
+  }
+
+  onNotice(notice) {
+    if (notice.kind === 'welcome') {
+      this.hud.welcome({ ...notice, avatar: this.me()?.avatar });
+      sfx.discover();
+    } else if (notice.kind === 'daily') {
+      this.hud.daily(notice);
+      if (notice.reward.boil) this.hud.selectSeed('boil');
+    }
   }
 
   onBossReward({ damage, top, scraps, xp, seeds }) {

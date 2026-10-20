@@ -1,4 +1,5 @@
-import { CHARACTERS, NAME_MAX, linesOf } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, levelFor, linesOf } from '@hptm/shared';
+import { forgetProfile, peekProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
@@ -28,7 +29,9 @@ function saveName(name) {
 }
 
 export function createMenu({ onPlay }) {
-  const hero = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+  // A returning player is greeted by the character they play as.
+  const saved = peekProfile();
+  const hero = CHARACTER_BY_ID[saved?.avatar] ?? CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
   const lines = linesOf(hero.id);
 
   const root = el('div', 'menu');
@@ -49,15 +52,19 @@ export function createMenu({ onPlay }) {
   name.placeholder = 'Your name';
   name.maxLength = NAME_MAX;
   name.autocomplete = 'off';
-  name.value = savedName();
-  const play = el('button', 'menu-play', 'Play');
+  name.value = saved?.name || savedName();
+  const play = el('button', 'menu-play', saved ? 'Continue' : 'Play');
   play.type = 'submit';
+  if (saved) {
+    const albumSize = Object.keys(saved.collection ?? {}).length;
+    form.append(el('p', 'menu-continue', `Level ${levelFor(saved.xp ?? 0)} · album ${albumSize}/${CHARACTERS.length}`));
+  }
   form.append(name, play);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const chosen = name.value.trim();
     saveName(chosen);
-    onPlay(chosen || `Guest${Math.floor(Math.random() * 10000)}`);
+    onPlay(chosen);
   });
 
   const panel = el('div', 'menu-panel');
@@ -96,8 +103,19 @@ export function createMenu({ onPlay }) {
     showPanel('Settings', toggles);
   });
   link('Credits', () => showPanel('Credits', list(PANELS.Credits)));
+  if (saved) {
+    link('Start over', () => {
+      const confirmButton = el('button', 'menu-panel-close danger', 'Start over for good');
+      confirmButton.type = 'button';
+      confirmButton.addEventListener('click', () => {
+        forgetProfile();
+        window.location.reload();
+      });
+      showPanel('Start over?', el('p', null, 'Your level, album, scraps and plot on this device are gone for good.'), confirmButton);
+    });
+  }
 
-  root.append(title, stage, form, row, el('p', 'menu-fine', 'v0.3 · nothing saves yet'), panel);
+  root.append(title, stage, form, row, el('p', 'menu-fine', 'v0.4 · progress saves on this device'), panel);
   document.body.append(root);
 
   return {

@@ -1,10 +1,27 @@
-import { CHARACTER_BY_ID, RARITIES, linesOf } from '@hptm/shared';
-import { button, el, img, bigSpriteUrl } from './dom.js';
+import { CHARACTER_BY_ID, DAILY_REWARDS, RARITIES, dailyReward, linesOf } from '@hptm/shared';
+import { button, el, img, bigSpriteUrl, worldUrl } from './dom.js';
 
 const LEVEL_UP_MS = 3800;
 const TAP_GUARD_MS = 700;  // ignore taps right after it opens, which were meant for the world
 
-// Full-screen moments: a new character joining your album, and leveling up. Queued, one at a time.
+function formatAway(ms) {
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return minutes <= 1 ? 'a minute' : `${minutes} minutes`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return minutes % 60 ? `${hours}h ${minutes % 60}m` : `${hours} hours`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'a day' : `${days} days`;
+}
+
+function rewardParts(reward) {
+  const parts = [];
+  if (reward.scraps) parts.push(`+${reward.scraps} scraps`);
+  if (reward.boil) parts.push(`+${reward.boil} Boil Seed${reward.boil > 1 ? 's' : ''}`);
+  return parts;
+}
+
+// Full-screen moments: a new character joining your album, leveling up,
+// coming back, the day's login reward. Queued, one at a time.
 export function createReveal({ onWear }) {
   const root = el('div', 'reveal');
   root.hidden = true;
@@ -68,6 +85,54 @@ export function createReveal({ onWear }) {
           el('h2', 'reveal-name', character.name),
           el('p', 'reveal-line', `"${lines[Math.floor(Math.random() * lines.length)]}"`),
           actions,
+        );
+        root.append(card);
+      });
+    },
+
+    welcome({ awayMs, ripe, growing, avatar }) {
+      enqueue(() => {
+        root.classList.add('welcome');
+        const card = el('div', 'reveal-card');
+        const art = el('div', 'reveal-art small');
+        if (avatar) art.append(img(bigSpriteUrl(avatar), 'reveal-image'));
+        const lines = [`You were away ${formatAway(awayMs)}.`];
+        if (ripe) lines.push(`${ripe === 1 ? 'A crop is' : `${ripe} crops are`} ripe and waiting.`);
+        if (growing) lines.push(`${growing} still growing.`);
+        card.append(
+          art,
+          el('p', 'reveal-rarity', 'Your plot kept growing'),
+          el('h2', 'reveal-name', 'Welcome back'),
+          el('p', 'reveal-line', lines.join(' ')),
+          button('reveal-button primary', ripe ? 'Go pick them' : "Let's go", () => next()),
+        );
+        root.append(card);
+      });
+    },
+
+    // The 7-day track, today's reward highlighted.
+    daily({ streak }) {
+      enqueue(() => {
+        root.classList.add('daily');
+        const reward = dailyReward(streak);
+        const today = (streak - 1) % DAILY_REWARDS.length;
+        const track = el('ol', 'daily-track');
+        DAILY_REWARDS.forEach((r, i) => {
+          const day = el('li', `daily-day${i < today ? ' done' : ''}${i === today ? ' today' : ''}`);
+          day.append(el('span', 'daily-label', `Day ${i + 1}`));
+          const prize = el('span', 'daily-prize');
+          if (r.boil) prize.append(img(worldUrl('seed-boil'), 'daily-icon'), el('span', null, `×${r.boil}`));
+          else prize.append(img(worldUrl('drop-pus'), 'daily-icon'), el('span', null, String(r.scraps)));
+          day.append(prize);
+          track.append(day);
+        });
+        const card = el('div', 'reveal-card');
+        card.append(
+          el('p', 'reveal-rarity', streak > 1 ? `${streak}-day streak` : 'Daily gift'),
+          el('h2', 'reveal-name', streak > 1 ? `Day ${streak}` : 'Welcome in'),
+          track,
+          el('p', 'reveal-line', `${rewardParts(reward).join(' · ')}. Come back tomorrow for day ${streak + 1}.`),
+          button('reveal-button primary', 'Collect', () => next()),
         );
         root.append(card);
       });
