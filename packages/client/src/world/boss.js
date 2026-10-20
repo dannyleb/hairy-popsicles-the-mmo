@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { textResolution } from '../display.js';
+import { settings } from '../settings.js';
 import { DEPTH, FONT } from './layout.js';
 
 const SIZE = 170;           // on-screen width at full health
@@ -106,8 +107,10 @@ export function createBossView(scene, fx) {
     pop(x, y) {
       clear();
       boss = null;
-      scene.cameras.main.shake(380, 0.012);
-      scene.cameras.main.flash(180, 255, 220, 140);
+      if (!settings.get('calm')) {
+        scene.cameras.main.shake(380, 0.012);
+        scene.cameras.main.flash(180, 255, 220, 140);
+      }
       fx.droplets(x, y - 40, { count: 46, speed: [160, 420], size: [8, 18], up: 1.4 });
       fx.droplets(x, y - 40, { count: 16, key: 'drop-blood', speed: [120, 300], size: [6, 12], up: 1.4 });
       fx.ring(x, y - 30, { color: 0xffd070, size: 520, duration: 700 });

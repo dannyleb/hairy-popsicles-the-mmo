@@ -12,6 +12,7 @@ const SETTINGS = [
   { name: 'music', label: 'Music' },
   { name: 'bubbles', label: 'Speech bubbles' },
   ...(hasHaptics ? [{ name: 'haptics', label: 'Vibration' }] : []),
+  { name: 'calm', label: 'Reduce motion' },
 ];
 
 // The share sheet on phones; a copied link elsewhere.

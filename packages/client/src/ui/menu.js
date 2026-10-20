@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'Reduce motion in Settings: no screen shake or flashes. On already if your phone asks for less motion.',
     'Share my album: tap your card for a picture of your collection to post anywhere.',
     'Pals: tap anyone, then Make pal. You\'ll hear when they turn up.',
     'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
@@ -111,6 +112,7 @@ export function createMenu({ onPlay }) {
     const toggles = el('div', 'menu-settings');
     const options = [['sound', 'Sound effects'], ['music', 'Music'], ['bubbles', 'Speech bubbles']];
     if (hasHaptics) options.push(['haptics', 'Vibration']);
+    options.push(['calm', 'Reduce motion']);
     for (const [name, label] of options) {
       const row = el('label', 'menu-setting');
       const box = el('input');

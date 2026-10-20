@@ -1798,3 +1798,12 @@
   margin-right: 4px;
   color: #f0a8bc;
 }
+
+/* ---------- calm (Reduce motion) ---------- */
+
+/* Anything that loops plays once and stops; one-off entrances stay. */
+.calm *,
+.calm *::before,
+.calm *::after {
+  animation-iteration-count: 1 !important;
+}

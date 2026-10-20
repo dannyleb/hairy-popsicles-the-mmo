@@ -99,7 +99,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   it's off screen.
 - **Phones.** If the app goes to the background and the socket drops, the
   server holds your player and plot for 90 seconds and the client
-  reconnects into the same seat.
+  reconnects into the same seat. Settings has sound, music, speech
+  bubbles, vibration and Reduce motion (no screen shake or flashes, nothing
+  pulsing forever), which starts on if the phone already asks for less
+  motion.
 - **Saves.** Your level, album, scraps, quests, streak and plot (with its
   crops) are saved on your device, signed by the server so they can't be
   edited. Come back and your plot reappears where it was (or as close as

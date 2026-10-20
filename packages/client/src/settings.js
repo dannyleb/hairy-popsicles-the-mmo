@@ -1,6 +1,8 @@
 // Per-device preferences, remembered in localStorage when it's available.
 const KEY = 'hptm:settings';
-const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true };
+// Calm starts on for anyone whose phone already asks apps for less motion.
+const prefersCalm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm: prefersCalm };
 
 function load() {
   try {
@@ -12,6 +14,15 @@ function load() {
 
 const values = load();
 const listeners = new Set();
+
+// Calm: no screen shakes or flashes, and nothing on screen pulses forever.
+function applyCalm() {
+  document.documentElement.classList.toggle('calm', Boolean(values.calm));
+}
+applyCalm();
+listeners.add((name) => {
+  if (name === 'calm') applyCalm();
+});
 
 export const settings = {
   get(name) {
