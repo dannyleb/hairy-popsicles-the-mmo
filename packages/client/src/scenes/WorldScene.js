@@ -485,6 +485,28 @@ export class WorldScene extends Phaser.Scene {
     this.walkId++;
     this.arrivesAt = Date.now() + travelMs(Math.hypot(to.x - from.x, to.y - from.y));
     this.room.send('move', to);
+    // Set off straight away rather than a round trip to the server later; when the
+    // server's word arrives it agrees, so nothing jumps (and if not, it wins).
+    const mine = this.avatars.get(this.myId());
+    if (mine) this.walkAvatar(mine, to.x, to.y);
+  }
+
+  walkAvatar(avatar, x, y) {
+    avatar.x = x;
+    avatar.y = y;
+    const { container } = avatar;
+    const distance = Phaser.Math.Distance.Between(container.x, container.y, x, y);
+    // Only the walk is replaced; a fade in progress carries on.
+    avatar.walkTween?.stop();
+    avatar.moving = true;
+    avatar.walkTween = this.tweens.add({
+      targets: container,
+      x,
+      y,
+      duration: travelMs(distance),
+      ease: 'Sine.inOut',
+      onComplete: () => { avatar.moving = false; },
+    });
   }
 
   // Do something once you've arrived where you were walking (straight away if
@@ -838,21 +860,7 @@ export class WorldScene extends Phaser.Scene {
           avatar.fade = this.tweens.add({ targets: container, alpha: 1, duration: 400 });
         }
       } else if (avatar.x !== p.x || avatar.y !== p.y) {
-        avatar.x = p.x;
-        avatar.y = p.y;
-        const { container } = avatar;
-        const distance = Phaser.Math.Distance.Between(container.x, container.y, p.x, p.y);
-        // Only the walk is replaced; a fade in progress carries on.
-        avatar.walkTween?.stop();
-        avatar.moving = true;
-        avatar.walkTween = this.tweens.add({
-          targets: container,
-          x: p.x,
-          y: p.y,
-          duration: travelMs(distance),
-          ease: 'Sine.inOut',
-          onComplete: () => { avatar.moving = false; },
-        });
+        this.walkAvatar(avatar, p.x, p.y);
       }
       if (avatar.characterId !== p.avatar) {
         const changed = avatar.characterId !== null;
