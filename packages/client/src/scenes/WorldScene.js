@@ -51,6 +51,8 @@ const BOSS_STANDOFF = 105;        // where to stand when walking up to The Boil
 const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
 const REPLACED = 4001;            // close code: this save was opened somewhere else
+const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint
+const SHEEN = 0xffcf5a;
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
 const textStyle = (size, color = TEXT) => ({ fontFamily: FONT, fontSize: `${size}px`, color, resolution: DPR });
@@ -90,6 +92,7 @@ export class WorldScene extends Phaser.Scene {
     this.bubbles = [];
     this.nextMutter = 0;
     this.nextStep = 0;
+    this.nextSparkle = 0;
     this.nextSlowTick = 0;
     this.state = null;
     this.private = null;
@@ -426,9 +429,15 @@ export class WorldScene extends Phaser.Scene {
     const image = this.add.image(at.x, at.y + 3, `char:${slotData.characterId}`).setOrigin(0.5, 1).setDepth(at.y + 3);
     const glow = this.add.image(at.x, at.y, 'world:glow').setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(DEPTH.light).setVisible(false);
+    // A shiny shows its gold sheen once it's ripe.
+    const sheen = slotData.shiny
+      ? this.add.image(at.x, at.y - CROP_SIZE * 0.45, 'world:glow').setTint(SHEEN).setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(DEPTH.light).setScale(110 / 256).setVisible(false)
+      : null;
     return {
       image,
       glow,
+      sheen,
       slotData,
       mine: plot.ownerId === this.myId(),
       fullScale: CROP_SIZE / image.width,
@@ -501,10 +510,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   destroyCrop(cropKey) {
-    const { image, glow } = this.crops.get(cropKey);
+    const { image, glow, sheen } = this.crops.get(cropKey);
     this.tweens.killTweensOf(image);
     image.destroy();
     glow.destroy();
+    sheen?.destroy();
     this.crops.delete(cropKey);
   }
 
@@ -528,6 +538,13 @@ export class WorldScene extends Phaser.Scene {
         image.clearTint().setAlpha(1).setScale(crop.fullScale);
         this.tweens.add({ targets: image, scaleY: crop.fullScale * 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
         if (crop.mine) this.fx.ring(image.x, image.y - 10, { color: 0xffe2a0, size: 120 });
+        if (crop.sheen) {
+          this.fx.ring(image.x, image.y - 20, { color: SHEEN, size: 200, duration: 700 });
+          image.preFX?.addGlow(SHEEN, 3, 0, false, 0.1, 10);
+        }
+      }
+      if (crop.sheen) {
+        crop.sheen.setVisible(crop.ripe && image.visible).setAlpha(0.45 + 0.2 * Math.sin(time * 0.004 + image.x));
       }
 
       const squeezable = !crop.mine && !crop.ripe && !tendedBy.includes(myId) && tendedBy.length < TEND_MAX;
@@ -557,13 +574,15 @@ export class WorldScene extends Phaser.Scene {
       let avatar = this.avatars.get(p.id);
       if (!avatar) {
         const shadow = this.add.image(0, 0, 'world:glow').setTint(0x000000).setAlpha(0.6).setDisplaySize(46, 14);
+        const sheen = this.add.image(0, -AVATAR_SIZE * 0.45, 'world:glow').setTint(SHEEN)
+          .setBlendMode(Phaser.BlendModes.ADD).setScale(130 / 256).setVisible(false);
         const image = this.add.image(0, 0, `char:${p.avatar}`).setOrigin(0.5, 1);
         const name = this.add.text(0, 6, '', textStyle(15, mine ? TEXT : '#d9b8a8'))
           .setOrigin(0.5, 0).setShadow(0, 1, '#000', 4, false, true);
         const level = this.add.text(0, 8, '', textStyle(12, '#f3d27a'))
           .setOrigin(0, 0).setShadow(0, 1, '#000', 4, false, true);
-        const container = this.add.container(p.x, p.y, [shadow, image, name, level]);
-        avatar = { container, image, name, level, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false };
+        const container = this.add.container(p.x, p.y, [shadow, sheen, image, name, level]);
+        avatar = { container, sheen, image, name, level, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false, shiny: false };
         this.avatars.set(p.id, avatar);
         if (mine) {
           this.cameras.main.centerOn(p.x, p.y - LOOK_AHEAD);
@@ -597,14 +616,21 @@ export class WorldScene extends Phaser.Scene {
           this.fx.droplets(p.x, p.y - 30, { count: 6 });
         }
       }
-      const label = `${p.name}|${p.level}`;
+      const label = `${p.name}|${p.level}|${p.stars}`;
       if (avatar.label !== label) {
         avatar.label = label;
         avatar.name.setText(p.name);
-        avatar.level.setText(`${p.level}`);
+        avatar.level.setText(p.stars ? `${p.level} ${'★'.repeat(p.stars)}` : `${p.level}`);
         const total = avatar.name.width + 4 + avatar.level.width;
         avatar.name.setX(-total / 2 + avatar.name.width / 2);
         avatar.level.setX(-total / 2 + avatar.name.width + 4);
+      }
+      if (avatar.shiny !== Boolean(p.shiny)) {
+        avatar.shiny = Boolean(p.shiny);
+        avatar.sheen.setVisible(avatar.shiny);
+        // A gold outline (WebGL only; elsewhere the sheen behind them does the job).
+        avatar.image.preFX?.clear();
+        if (avatar.shiny) avatar.image.preFX?.addGlow(SHEEN, 3, 0, false, 0.1, 10);
       }
       // Players whose connection dropped fade until they're back (or gone).
       if (avatar.away !== Boolean(p.away)) {
@@ -667,7 +693,7 @@ export class WorldScene extends Phaser.Scene {
   onAnnounce({ text, kind }) {
     // My own rare harvests already get the big reveal.
     const myName = this.me()?.name;
-    if (myName && RANK[kind] !== undefined && text.startsWith(`${myName} grew`)) return;
+    if (myName && (RANK[kind] !== undefined || kind === 'shiny') && text.startsWith(`${myName} grew`)) return;
     this.hud.announce(text, kind);
     this.hud.chatLine({ text, kind: 'system' });
     if (kind === 'boss' && text.includes('swelling')) sfx.rumble();
@@ -700,7 +726,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- rewards ----------
 
-  onHarvested({ characterId, scraps, xp, isNew }) {
+  onHarvested({ characterId, scraps, xp, isNew, shiny, starUp }) {
     const character = CHARACTER_BY_ID[characterId];
     const { rarity } = character;
     const me = this.me();
@@ -709,16 +735,24 @@ export class WorldScene extends Phaser.Scene {
     this.fx.float(at.x, at.y - 18, `+${scraps}`, { color: '#f3d27a', size: 22 });
     this.fx.float(at.x, at.y + 2, `+${xp} xp`, { color: '#bfe38a', size: 15, delay: 160 });
     if (RANK[rarity] >= 2) this.fx.ring(at.x, at.y, { color: rarity === 'legendary' ? 0xffd070 : 0x9cc8ff, size: 300, duration: 700 });
+    if (shiny) {
+      this.fx.ring(at.x, at.y, { color: SHEEN, size: 360, duration: 800 });
+      for (let i = 0; i < 12; i++) this.fx.sparkle(at.x + Phaser.Math.Between(-40, 40), at.y + Phaser.Math.Between(-30, 20));
+    }
     sfx.harvest(rarity);
     this.coached.harvested = true;
 
-    if (isNew || RANK[rarity] >= 2) {
-      this.hud.reveal(characterId, { isNew });
-      if (rarity === 'legendary') sfx.fanfare();
+    if (isNew || shiny || RANK[rarity] >= 2) {
+      this.hud.reveal(characterId, { isNew, shiny });
+      if (rarity === 'legendary' || shiny) sfx.fanfare();
       else if (isNew) sfx.discover();
-      if (isNew) this.hud.markNew();
+      if (isNew || shiny) this.hud.markNew();
     } else {
       this.hud.toast(`${character.name} +${scraps} scraps`, { characterId });
+    }
+    if (starUp) {
+      this.hud.toast(`${character.name} earned ${'★'.repeat(starUp)}`, { characterId, color: '#f3d27a' });
+      sfx.quest();
     }
   }
 
@@ -788,6 +822,24 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- frame ----------
 
+  // Shiny crops and players wearing a shiny glint now and then, and their sheen breathes.
+  sparkle(time) {
+    const view = this.cameras.main.worldView;
+    const shiny = [];
+    for (const crop of this.crops.values()) {
+      if (crop.sheen?.visible && view.contains(crop.image.x, crop.image.y)) shiny.push({ x: crop.image.x, y: crop.image.y, h: CROP_SIZE });
+    }
+    for (const avatar of this.avatars.values()) {
+      if (!avatar.shiny) continue;
+      avatar.sheen.setAlpha(0.4 + 0.2 * Math.sin(time * 0.004 + avatar.x));
+      const { x, y } = avatar.container;
+      if (view.contains(x, y)) shiny.push({ x, y: y + avatar.image.y, h: AVATAR_SIZE });
+    }
+    if (!shiny.length) return;
+    const { x, y, h } = shiny[Math.floor(Math.random() * shiny.length)];
+    this.fx.sparkle(x + Phaser.Math.Between(-h * 0.35, h * 0.35), y - Phaser.Math.Between(h * 0.2, h * 0.9));
+  }
+
   // While The Boil is off screen, an arrow at the screen edge points the way.
   pointAtBoss() {
     const boss = this.bossView.position();
@@ -824,6 +876,10 @@ export class WorldScene extends Phaser.Scene {
       // A little hop in each step.
       if (avatar.moving) avatar.image.y = -Math.abs(Math.sin(time * 0.017 + avatar.x)) * 5;
       else if (!this.tweens.isTweening(avatar.image)) avatar.image.y = 0;
+    }
+    if (time > this.nextSparkle) {
+      this.nextSparkle = time + SPARKLE_MS;
+      this.sparkle(time);
     }
     if (mine?.moving && time > this.nextStep) {
       sfx.step();

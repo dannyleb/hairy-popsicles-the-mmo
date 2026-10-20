@@ -95,8 +95,8 @@ export function createSheets(actions) {
     facts.append(
       el('p', 'inspect-name', p.name),
       el('p', null, `Level ${p.level}${p.away ? ' · away' : ''}`),
-      el('p', null, `Playing as ${avatar.name}`),
-      el('p', null, `Album ${p.album}/${CHARACTERS.length}`),
+      el('p', null, `Playing as ${p.shiny ? 'shiny ' : ''}${avatar.name}${p.stars ? ` ${'★'.repeat(p.stars)}` : ''}`),
+      el('p', null, `Album ${p.album}/${CHARACTERS.length}${p.shinies ? ` · ${p.shinies} shiny` : ''}`),
     );
     const bestLine = el('p', 'inspect-best');
     bestLine.append('Best: ', Object.assign(el('span', null, `${best.name} (${RARITIES[best.rarity].label})`), { style: `color:${RARITIES[best.rarity].color}` }));

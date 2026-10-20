@@ -41,3 +41,13 @@ export const SEED_BY_ID = Object.fromEntries(SEEDS.map((s) => [s.id, s]));
 
 // During a Blood Moon the rare end of every seed's odds is multiplied.
 export const BLOOD_MOON_BOOST = { rare: 2.5, legendary: 3 };
+
+// Now and then a crop comes up shiny: the same character with a gold sheen,
+// worth more scraps and announced to everyone. Twice as likely under a Blood Moon.
+export const SHINY_CHANCE = 1 / 40;
+export const SHINY_SCRAPS = 3;  // a shiny pays this many times the usual scraps
+
+// Growing more copies of a character earns it stars (shown in the album and
+// over your head while you play as it).
+export const STAR_COPIES = [3, 10, 25];
+export const starsFor = (copies) => STAR_COPIES.filter((n) => copies >= n).length;

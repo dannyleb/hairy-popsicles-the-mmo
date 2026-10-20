@@ -214,14 +214,14 @@ export function createHud(actions) {
       renderCard();
       renderQuests();
       renderSeeds();
-      album.update(me.collection, pub?.avatar);
+      album.update(me.collection, me.shinies ?? {}, pub?.avatar);
       if (firstTime) lastScraps = me.currency;
     },
 
     setPublic(nextPub) {
       pub = nextPub;
       renderCard();
-      if (me) album.update(me.collection, pub.avatar);
+      if (me) album.update(me.collection, me.shinies ?? {}, pub.avatar);
     },
 
     setPlayers(players, myId) {

@@ -1,4 +1,4 @@
-import { CHARACTERS, RARITIES, RARITY_ORDER } from '@hptm/shared';
+import { CHARACTERS, RARITIES, RARITY_ORDER, STAR_COPIES, starsFor } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 
@@ -9,7 +9,7 @@ export function createAlbum({ onWear, onOpen }) {
   const title = el('h2');
   const header = el('div', 'overlay-header');
   header.append(title, iconButton('overlay-close', 'close', 'Close album', () => { root.hidden = true; }));
-  root.append(header, el('p', 'overlay-hint', "Tap anyone you've grown to play as them."));
+  root.append(header, el('p', 'overlay-hint', `Tap anyone you've grown to play as them. Grow ${STAR_COPIES.join(', ')} of someone for stars; a shiny one plays with a gold sheen.`));
 
   const cards = new Map();
   const sections = new Map();
@@ -28,10 +28,11 @@ export function createAlbum({ onWear, onOpen }) {
       card.disabled = true;
       const name = el('span', 'album-name');
       const count = el('span', 'album-count');
-      card.append(img(spriteUrl(character.id)), name, count);
+      const stars = el('span', 'album-stars');
+      card.append(img(spriteUrl(character.id)), name, stars, count);
       card.style.setProperty('--rarity', RARITIES[rarity].color);
       grid.append(card);
-      cards.set(character.id, { card, name, count, character });
+      cards.set(character.id, { card, name, count, stars, character });
     }
   }
 
@@ -45,18 +46,22 @@ export function createAlbum({ onWear, onOpen }) {
     },
     isOpen: () => !root.hidden,
 
-    update(collection, wearing) {
+    update(collection, shinies, wearing) {
       const owned = Object.keys(collection).length;
-      title.textContent = `Album ${owned}/${CHARACTERS.length}`;
+      const shinyCount = Object.keys(shinies).length;
+      title.textContent = `Album ${owned}/${CHARACTERS.length}${shinyCount ? ` · ✦${shinyCount}` : ''}`;
       for (const rarity of RARITY_ORDER) {
         const all = CHARACTERS.filter((c) => c.rarity === rarity);
         const have = all.filter((c) => collection[c.id]).length;
         sections.get(rarity).textContent = `${RARITIES[rarity].label} · ${have}/${all.length}`;
       }
-      for (const { card, name, count, character } of cards.values()) {
+      for (const { card, name, count, stars, character } of cards.values()) {
         const n = collection[character.id] ?? 0;
+        const earned = starsFor(n);
         card.disabled = n === 0;
         card.classList.toggle('owned', n > 0);
+        card.classList.toggle('shiny', Boolean(shinies[character.id]));
+        stars.textContent = n ? '★'.repeat(earned) + '☆'.repeat(STAR_COPIES.length - earned) : '';
         card.classList.toggle('wearing', wearing === character.id);
         name.textContent = n ? character.name : '???';
         count.textContent = n ? (wearing === character.id ? 'wearing' : `×${n}`) : '';

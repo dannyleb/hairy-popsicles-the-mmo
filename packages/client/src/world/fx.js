@@ -84,5 +84,20 @@ export function createFx(scene) {
     });
   }
 
-  return { droplets, float, ring, puddle, squish };
+  // A gold glint drifting up off something shiny.
+  function sparkle(x, y) {
+    const glint = scene.add.image(x, y, 'world:spore').setTint(0xffe08a).setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(DEPTH.flies - 1).setScale(Phaser.Math.FloatBetween(5, 9) / 32);
+    scene.tweens.add({
+      targets: glint,
+      y: y - Phaser.Math.Between(14, 30),
+      alpha: 0,
+      scale: glint.scale * 0.4,
+      duration: Phaser.Math.Between(600, 900),
+      ease: 'Sine.out',
+      onComplete: () => glint.destroy(),
+    });
+  }
+
+  return { droplets, float, ring, puddle, squish, sparkle };
 }

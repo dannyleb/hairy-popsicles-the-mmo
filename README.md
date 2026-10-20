@@ -74,6 +74,12 @@ Timers are short on purpose while nothing persists. Rarities live in
   is free), and the crops kept growing while you were gone: "Welcome back,
   4 crops are ripe and waiting." Reloading or opening a second tab takes
   over your existing player rather than making a copy.
+- **Shinies and stars.** About 1 crop in 40 comes up shiny (1 in 20 under a
+  Blood Moon): the same character with a gold outline that everyone can see
+  once it's ripe, triple scraps, its own reveal and a world announcement.
+  Play as a character you have a shiny of and you wear the gold. Growing 3,
+  10 and 25 copies of a character earns it stars, shown in the album and
+  next to your level while you play as it.
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
   track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
   streak starts over.
@@ -186,7 +192,8 @@ Open the client URL on your phone (same network) or in a desktop browser
 with devtools in mobile emulation. To test without waiting, speed things up:
 `GROW_SCALE=0.05` makes every grow timer 20x faster, `EVENT_SCALE=0.2` makes
 The Boil and the Blood Moon come (and go) 5x sooner, e.g.
-`GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`.
+`GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`. `SHINY_BOOST=40`
+makes every crop shiny.
 
 ## What's stubbed / not real yet
 

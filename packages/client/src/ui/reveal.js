@@ -60,15 +60,16 @@ export function createReveal({ onWear }) {
     root,
     isOpen: () => !root.hidden,
 
-    character(characterId, { isNew }) {
+    character(characterId, { isNew, shiny }) {
       enqueue(() => {
         const character = CHARACTER_BY_ID[characterId];
         const rarity = RARITIES[character.rarity];
         const lines = linesOf(characterId);
         root.classList.add(character.rarity);
-        root.style.setProperty('--rarity', rarity.color);
+        root.classList.toggle('shiny', Boolean(shiny));
+        root.style.setProperty('--rarity', shiny ? '#ffcf5a' : rarity.color);
         const card = el('div', 'reveal-card');
-        if (isNew) card.append(el('div', 'reveal-stamp', 'New!'));
+        if (shiny || isNew) card.append(el('div', 'reveal-stamp', shiny ? 'Shiny!' : 'New!'));
         const art = el('div', 'reveal-art');
         art.append(el('div', 'reveal-rays'), img(bigSpriteUrl(characterId), 'reveal-image'));
         const actions = el('div', 'reveal-actions');
@@ -81,7 +82,7 @@ export function createReveal({ onWear }) {
         );
         card.append(
           art,
-          el('p', 'reveal-rarity', rarity.label),
+          el('p', 'reveal-rarity', shiny ? `Shiny ${rarity.label}${isNew ? ' · new' : ''}` : rarity.label),
           el('h2', 'reveal-name', character.name),
           el('p', 'reveal-line', `"${lines[Math.floor(Math.random() * lines.length)]}"`),
           actions,

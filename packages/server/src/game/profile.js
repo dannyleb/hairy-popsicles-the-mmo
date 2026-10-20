@@ -34,12 +34,13 @@ export function saveToken(player, plot, plotKey) {
     xp: player.xp,
     currency: player.currency,
     collection: player.collection,
+    shinies: player.shinies,
     inventory: player.inventory,
     quests: player.quests.map(({ kind, target, progress }) => ({ kind, target, progress })),
     daily: player.daily,
     plot: plot && {
       key: plotKey,
-      slots: plot.slots.map((s) => s && { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt }),
+      slots: plot.slots.map((s) => s && { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny }),
     },
     savedAt: Date.now(),
   };
@@ -69,11 +70,16 @@ export function readToken(token) {
   for (const [id, n] of Object.entries(p.collection ?? {})) {
     if (Object.hasOwn(CHARACTER_BY_ID, id) && count(n)) collection[id] = count(n);
   }
+  // Older saves have no shinies.
+  const shinies = {};
+  for (const [id, n] of Object.entries(p.shinies ?? {})) {
+    if (Object.hasOwn(collection, id) && count(n)) shinies[id] = Math.min(count(n), collection[id]);
+  }
   const slots = Array.from({ length: PLOT_SIZE * PLOT_SIZE }, (_, i) => {
     const s = p.plot?.slots?.[i];
     if (!s || !Object.hasOwn(CHARACTER_BY_ID, s.characterId) || !Object.hasOwn(SEED_BY_ID, s.seed)) return null;
     if (!time(s.plantedAt) || !time(s.readyAt)) return null;
-    return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, tendedBy: [] };
+    return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy: [] };
   });
   const xp = count(p.xp);
   return {
@@ -84,6 +90,7 @@ export function readToken(token) {
     level: levelFor(xp),
     currency: count(p.currency),
     collection,
+    shinies,
     inventory: { boil: count(p.inventory?.boil) },
     quests: Array.isArray(p.quests) ? p.quests : [],
     daily: { last: typeof p.daily?.last === 'string' ? p.daily.last.slice(0, 10) : null, streak: count(p.daily?.streak) },

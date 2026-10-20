@@ -10,6 +10,8 @@ import {
   RARITY_ORDER,
   REACH,
   SEED_BY_ID,
+  SHINY_CHANCE,
+  SHINY_SCRAPS,
   STARTING_CURRENCY,
   TEND_MAX,
   TEND_SCRAPS,
@@ -21,6 +23,7 @@ import {
   XP,
   holeOpen,
   levelFor,
+  starsFor,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
 import { checkIn } from '../game/daily.js';
@@ -33,6 +36,7 @@ const { Room } = colyseus;
 // Speed up timers for local testing, e.g. GROW_SCALE=0.01 EVENT_SCALE=0.01.
 const GROW_SCALE = Number(process.env.GROW_SCALE) || 1;
 const EVENT_SCALE = Number(process.env.EVENT_SCALE) || 1;
+const SHINY_BOOST = Number(process.env.SHINY_BOOST) || 1;  // e.g. 40 to make every crop shiny
 
 const SPAWN_SPREAD = 400;
 const BROADCAST_MS = 100;
@@ -118,6 +122,7 @@ export class WorldRoom extends Room {
       xp: 0,
       currency: STARTING_CURRENCY,
       collection: { [starter.id]: 1 },
+      shinies: {},
       inventory: { boil: 0 },
       quests: [],
       daily: { last: null, streak: 0 },
@@ -135,6 +140,7 @@ export class WorldRoom extends Room {
         xp: save.xp,
         level: save.level,
         currency: save.currency,
+        shinies: save.shinies,
         inventory: save.inventory,
         quests: restoreQuests(save.quests),
         daily: save.daily,
@@ -281,8 +287,8 @@ export class WorldRoom extends Room {
   }
 
   sendMe(player) {
-    const { currency, xp, level, collection, inventory, quests } = player;
-    this.clientOf(player)?.send('me', { currency, xp, level, collection, inventory, quests });
+    const { currency, xp, level, collection, shinies, inventory, quests } = player;
+    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests });
     player.saveDirty = true;
   }
 
@@ -382,6 +388,7 @@ export class WorldRoom extends Room {
       seed,
       plantedAt: now,
       readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE,
+      shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * (this.bloodMoon ? 2 : 1),
       tendedBy: [],
     };
     this.grantXp(player, XP.plant);
@@ -396,17 +403,29 @@ export class WorldRoom extends Room {
     const planted = plot.slots[slot];
     if (!planted || Date.now() < planted.readyAt) return;
 
-    const { characterId } = planted;
+    const { characterId, shiny } = planted;
     const character = CHARACTER_BY_ID[characterId];
     const rarity = RARITIES[character.rarity];
     const isNew = !player.collection[characterId];
-    player.collection[characterId] = (player.collection[characterId] ?? 0) + 1;
-    player.currency += rarity.scraps;
+    const before = player.collection[characterId] ?? 0;
+    player.collection[characterId] = before + 1;
+    const stars = starsFor(before + 1);
+    const scraps = rarity.scraps * (shiny ? SHINY_SCRAPS : 1);
+    if (shiny) player.shinies[characterId] = (player.shinies[characterId] ?? 0) + 1;
+    player.currency += scraps;
     plot.slots[slot] = null;
 
     const xp = XP.harvest[character.rarity];
-    this.clientOf(player)?.send('harvested', { characterId, scraps: rarity.scraps, xp, isNew });
-    if (rank(characterId) >= 2) this.announce(`${player.name} grew a ${rarity.label} ${character.name}!`, character.rarity);
+    this.clientOf(player)?.send('harvested', {
+      characterId,
+      scraps,
+      xp,
+      isNew,
+      shiny: Boolean(shiny),
+      starUp: stars > starsFor(before) ? stars : 0,
+    });
+    if (shiny) this.announce(`${player.name} grew a shiny ${character.name}!`, 'shiny');
+    else if (rank(characterId) >= 2) this.announce(`${player.name} grew a ${rarity.label} ${character.name}!`, character.rarity);
     this.grantXp(player, xp);
     this.progress(player, 'harvest');
     if (rank(characterId) >= 1) this.progress(player, 'uncommon');
@@ -526,7 +545,21 @@ export class WorldRoom extends Room {
     for (const p of Object.values(this.players)) {
       const album = Object.keys(p.collection);
       const best = album.reduce((a, b) => (rank(b) > rank(a) ? b : a));
-      players[p.id] = { id: p.id, name: p.name, x: p.x, y: p.y, avatar: p.avatar, level: p.level, album: album.length, best, away: p.away };
+      players[p.id] = {
+        id: p.id,
+        name: p.name,
+        x: p.x,
+        y: p.y,
+        avatar: p.avatar,
+        // Playing as a character shows off its stars, and its gold sheen if you've grown a shiny one.
+        stars: starsFor(p.collection[p.avatar] ?? 0),
+        shiny: Boolean(p.shinies[p.avatar]),
+        level: p.level,
+        album: album.length,
+        shinies: Object.keys(p.shinies).length,
+        best,
+        away: p.away,
+      };
     }
     // serverNow lets clients correct for their own clock being off when showing grow progress.
     return { players, plots: this.plots, boss: this.boss.view(), bloodMoon: this.bloodMoon, serverNow: Date.now() };
