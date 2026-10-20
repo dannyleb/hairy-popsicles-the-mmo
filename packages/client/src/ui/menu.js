@@ -1,15 +1,23 @@
 import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, levelFor, linesOf } from '@hptm/shared';
 import { forgetProfile, peekProfile } from '../net/profile.js';
 import { hasHaptics } from '../audio/sfx.js';
-import { settings } from '../settings.js';
+import { remember, remembered, settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
+const VERSION = 'v0.5';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
+  "What's new": [
+    'Your progress saves on this device, and your plot keeps growing while you\'re away.',
+    'A daily gift for coming back, and a bigger daily quest.',
+    'Shiny crops, stars for duplicates, and bonuses for who you play as.',
+    'Pus Rain: globs fall from the sky. Nearest gets them.',
+    'Titles to earn, characters to give away, and a shop for your scraps.',
+  ],
   Credits: ['Characters and art: dannyleb.', 'From the world of Hairy Popsicles.', 'Music from the first game.', 'Built with Phaser and Colyseus.'],
 };
 
@@ -83,6 +91,7 @@ export function createMenu({ onPlay }) {
     button.type = 'button';
     button.addEventListener('click', onClick);
     row.append(button);
+    return button;
   };
   const list = (lines) => {
     const ul = el('ul');
@@ -105,6 +114,13 @@ export function createMenu({ onPlay }) {
     }
     showPanel('Settings', toggles);
   });
+  // A dot on What's new until this version's list has been read.
+  const newsLink = link("What's new", () => {
+    remember(`news-${VERSION}`);
+    newsLink.classList.remove('unread');
+    showPanel("What's new", list(PANELS["What's new"]));
+  });
+  if (!remembered(`news-${VERSION}`) && saved) newsLink.classList.add('unread');
   link('Credits', () => showPanel('Credits', list(PANELS.Credits)));
   if (saved) {
     link('Start over', () => {
@@ -118,7 +134,7 @@ export function createMenu({ onPlay }) {
     });
   }
 
-  root.append(title, stage, form, row, el('p', 'menu-fine', 'v0.4 · progress saves on this device'), panel);
+  root.append(title, stage, form, row, el('p', 'menu-fine', `${VERSION} · progress saves on this device`), panel);
   document.body.append(root);
 
   return {
