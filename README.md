@@ -159,8 +159,8 @@ Timers are short on purpose while nothing persists. Rarities live in
   scratch The Itch 5 times, 31 teeth in the Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
-- **Shop.** Somewhere to spend scraps besides seeds (tap your card, then
-  Shop): fertilizer (3 doses for 30; each makes a crop grow twice as fast),
+- **Shop.** Somewhere to spend scraps besides seeds (the bag button, top
+  right; also from your card and the season pill): fertilizer (3 doses for 30; each makes a crop grow twice as fast),
   candles for the corners of your plot (50 each, up to 4, seen by
   everyone), and name colors (150 each).
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day

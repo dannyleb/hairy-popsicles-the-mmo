@@ -66,6 +66,7 @@ export function createHud(actions) {
   albumButton.append(albumBadge);
   buttons.append(
     albumButton,
+    iconButton('hud-round', 'shop', 'Shop', () => sheets.shop()),
     iconButton('hud-round', 'ranks', 'Leaderboard', () => sheets.leaderboard()),
     iconButton('hud-round', 'gear', 'Settings', () => sheets.settings()),
   );
