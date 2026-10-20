@@ -69,19 +69,29 @@ harvest.
 - **State sync is a blunt instrument.** The server broadcasts the *entire*
   world state on every change. Fine at small scale; swap in
   `@colyseus/schema` delta encoding before this matters.
-- **No deploy target picked yet.** The client (static Vite build) can go on
-  GitHub Pages like the original game — but the Colyseus server is a live
-  Node/WebSocket process and **cannot** run on GitHub Pages. It needs a
-  small always-on Node host (Render/Fly.io/Railway all have free tiers that
-  fit this). This is the next concrete decision to make.
+- **No camera movement.** You can only see and tap the part of the world
+  that fits on screen; the rest of the 20x20 plot grid is unreachable.
+- **No icons.** The PWA manifest has no icons yet, so "Add to Home Screen"
+  shows a blank tile.
+
+## Deploy
+
+- **Server:** Render free web service, defined in `render.yaml`, live at
+  `https://hairy-popsicles-mmo-server.onrender.com` (responds `ok`). The
+  free tier sleeps after 15 min idle; the first visitor after that waits
+  ~30-60s and the in-memory world resets.
+- **Client:** GitHub Pages via `.github/workflows/pages.yml` on every push
+  to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`.
+  Production builds point at the Render server via
+  `packages/client/.env.production`.
 
 ## Next steps (roughly in order)
 
-1. Pick a server host and get the deployed client talking to a deployed
-   server (not just localhost).
+1. Camera that follows the player / can be dragged, so the whole world is
+   reachable.
 2. Basic persistence so a plot survives a server restart.
 3. A real planting UI (pick from `ITEM_DEFS` instead of always planting the
    cheapest thing).
 4. First real art pass — bring in traced illustration for at least the
-   player avatar and one plant.
+   player avatar and one plant, plus app icons.
 5. Device-local identity so progress survives closing the tab.
