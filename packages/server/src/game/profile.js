@@ -2,7 +2,7 @@ import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from
 import {
   CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
 } from '@hptm/shared';
-import { hasBlocked } from './filter.js';
+import { hasBlocked, plainText } from './filter.js';
 
 // Saves live on the player's device, signed by the server so they can't be
 // edited: no database needed, and progress survives the free host restarting.
@@ -26,7 +26,7 @@ export const newProfileId = () => randomUUID();
 // A display name, or '' if it's empty or crosses the line (the player becomes a Guest).
 export function cleanName(name) {
   if (typeof name !== 'string') return '';
-  const clean = name.replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+  const clean = plainText(name, NAME_MAX);
   return hasBlocked(clean) ? '' : clean;
 }
 

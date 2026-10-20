@@ -313,7 +313,9 @@ squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
 of season), `held` (offline players' plots), `admin` (key, lockout, what it
-shows), `titles`, `gifts`, `hardening` (filter, rate limits) and `filter`.
+shows), `limits` (joins and seats per address, request sizes, invisible
+characters, lockout by real address), `titles`, `gifts`, `hardening`
+(filter, rate limits) and `filter`.
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 
@@ -333,8 +335,48 @@ for absent players, and recent chat. Search, filter and sort; tap a player for
 everything. It refreshes every 10 seconds and is read-only.
 
 The key goes in a header, never in the URL; ten wrong keys lock that address
-out for 10 minutes; nothing is cached; save tokens themselves are never sent.
-Tick "Remember on this device" only on your own phone.
+out for 10 minutes; nothing is cached; save tokens themselves are never sent;
+the page may run only its own script (Content-Security-Policy). Tick
+"Remember on this device" only on your own phone. The bottom of the page says
+which address the server sees for you and where it got it: it should be your
+own address, from `CF-Connecting-IP`.
+
+## Security
+
+What protects what, and what's still open.
+
+- **Saves can't be forged or edited.** Each is signed (HMAC-SHA256 with
+  `PROFILE_SECRET`, compared in constant time) and every field is re-checked
+  on load. Other players only ever see a public id, never a profile id or
+  save. Keep `PROFILE_SECRET` and `ADMIN_KEY` long and random, and never
+  commit them.
+- **The server decides everything:** what grows, what drops, who gets paid.
+  Clients send requests, each one checked and rate limited per player.
+- **Player text never becomes code.** Names and chat only ever reach the page
+  as text (`textContent`, or drawn on the canvas), lose control, bidi and
+  zero-width characters on the server, and pass the word filter. The built
+  game and the admin page both carry a Content-Security-Policy that allows
+  only their own scripts, as a backstop.
+- **One person can't take the world.** Per address (Render's
+  `CF-Connecting-IP`; the last `X-Forwarded-For` entry or the socket if
+  that's missing): 30 joins a minute (`JOINS_PER_MINUTE`) and 10 players at
+  once (`SEATS_PER_ADDRESS`); a join's seat waits 10 seconds for its
+  connection; join requests over 16 KB, or without a length, are refused
+  unread; a full copy of the world goes out at most once a second per
+  connection. Raise the two settings on Render if a school or office shares
+  one address.
+- **Old saves can't be replayed** while the server is up: it keeps everyone's
+  latest save for 3 days, with newcomers in a separate pool so a flood of
+  throwaway players can't push out anyone with progress.
+- **Known gaps, by design for now:**
+  - The save code is the account. Anyone holding it can play as that player,
+    and there's no way to revoke one; the game warns players never to share it.
+  - The server's memory of saves resets when it restarts or sleeps, so after
+    that a player could restore an older save of their own.
+  - Movement is trusted within walking speed (anyone can be anywhere within
+    about 1.4 seconds), which is fine for a game with no combat between players.
+  - The game shares the `dannyleb.github.io` origin with any other Pages site on
+    that account. A custom domain would give it its own.
 
 ## What's stubbed / not real yet
 

@@ -33,6 +33,16 @@ function blocked(word) {
   return WHOLE_N.has(n) || ANYWHERE_N.some((root) => n.includes(root));
 }
 
+// Player text on one line, without the invisible characters that can hide
+// words, fake someone else's name, or flip the text around it: control
+// characters, bidi overrides, zero-width spaces. (Keeps the zero-width joiner
+// that builds emoji like 👨‍👩‍👧.)
+const INVISIBLE = /[\p{Cc}\u2028\u2029]|(?!\u200D)\p{Cf}/gu;
+
+export function plainText(text, max) {
+  return text.replace(/\s+/g, ' ').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
 // The text with any blocked word replaced by asterisks.
 export function maskText(text) {
   return text.replace(/\S+/g, (word) => (blocked(word) ? '*'.repeat(word.length) : word));

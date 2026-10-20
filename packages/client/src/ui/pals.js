@@ -5,7 +5,7 @@ const KEY = 'hptm:pals';
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    return saved && typeof saved === 'object' ? saved : {};
+    return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
   } catch {
     return {};
   }

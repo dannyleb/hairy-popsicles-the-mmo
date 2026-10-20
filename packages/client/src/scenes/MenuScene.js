@@ -42,8 +42,9 @@ export class MenuScene extends Phaser.Scene {
       this.menu.destroy();
       this.scene.start('world', { room });
       loading.hide();
-    } catch {
-      loading.error("Couldn't reach the server.", () => this.play(name));
+    } catch (error) {
+      // Turned away for joining too often, or too many from one network: say so.
+      loading.error(error?.code === 429 ? error.message : "Couldn't reach the server.", () => this.play(name));
     } finally {
       clearTimeout(slow);
     }

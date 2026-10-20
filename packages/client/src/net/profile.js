@@ -25,15 +25,18 @@ export function forgetProfile() {
   }
 }
 
-// What the save says, for the menu. Not verified: only the server can check it.
-export function peekProfile() {
-  const token = savedProfile();
-  if (!token) return null;
+// What a save code says, or null if it isn't one. Not verified: only the
+// server can check the signature, so this is only ever a hint for the menu.
+export function readSaveCode(token) {
+  if (typeof token !== 'string' || !/^[\w-]+\.[\w-]{20,}$/.test(token)) return null;
   try {
     const base64 = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const save = JSON.parse(new TextDecoder().decode(bytes));
+    return save && typeof save === 'object' && !Array.isArray(save) && typeof save.id === 'string' ? save : null;
   } catch {
     return null;
   }
 }
+
+export const peekProfile = () => readSaveCode(savedProfile());

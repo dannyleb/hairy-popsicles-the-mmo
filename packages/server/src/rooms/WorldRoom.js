@@ -1,4 +1,4 @@
-import colyseus from 'colyseus';
+import colyseus from '@colyseus/core';
 import {
   ALBUM_ROWS,
   CHARACTER_BY_ID,
@@ -50,13 +50,14 @@ import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
-import { maskText } from '../game/filter.js';
+import { maskText, plainText } from '../game/filter.js';
 import { cleanName, newProfileId, publicIdOf, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
+import { clientAddress } from '../net.js';
 import { recordJoin, recordOnline } from '../stats.js';
 
-const { Room } = colyseus;
+const { Room, ServerError } = colyseus;
 
 // Speed up timers for local testing, e.g. GROW_SCALE=0.01 EVENT_SCALE=0.01.
 const GROW_SCALE = Number(process.env.GROW_SCALE) || 1;
@@ -85,6 +86,9 @@ let theWorld = null;
 export const getWorld = () => theWorld;
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
+const SEATS_PER_ADDRESS = Number(process.env.SEATS_PER_ADDRESS) || 10;  // players at once from one network
+const SEAT_HOLD_SECONDS = 10;    // a join's seat waits this long for its connection
+const SYNC_COOLDOWN_MS = 1000;   // a full copy of the world, at most this often per connection
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
 const BLOOD_MOON = { firstMs: 150_000, everyMs: 9 * 60_000, lastsMs: 90_000 };
 // Pretend it's this (UTC) day for seasons, e.g. SEASON_DAY=2026-10-25 for testing.
@@ -104,6 +108,7 @@ export class WorldRoom extends Room {
     // One world that carries on when it empties: held plots, the departed and
     // the event clocks all live here, so it's never thrown away.
     this.autoDispose = false;
+    this.setSeatReservationTime(SEAT_HOLD_SECONDS);
     this.players = {};
     this.plots = {};
     this.heldPlots = new Map();  // profile id → key of their plot, while they're gone (oldest first)
@@ -140,7 +145,13 @@ export class WorldRoom extends Room {
     on('gift', (p, m) => this.handleGift(p, m));
     on('buy', (p, m) => this.handleBuy(p, m));
     on('setColor', (p, m) => this.handleSetColor(p, m));
-    on('sync', (p, m, client) => this.sendWorld(p, client, true));
+    on('sync', (p, m, client) => {
+      // The biggest thing the server sends, so it's not something to ask for on repeat.
+      const now = Date.now();
+      if (now - (client.userData?.syncAt ?? 0) < SYNC_COOLDOWN_MS) return;
+      client.userData = { ...client.userData, syncAt: now };
+      this.sendWorld(p, client, true);
+    });
 
     this.clock.setInterval(() => this.guarded('flush', () => this.flush()), BROADCAST_MS);
     this.clock.setInterval(() => this.guarded('tick', () => this.tick()), TICK_MS);
@@ -152,7 +163,17 @@ export class WorldRoom extends Room {
 
   // Last line of defense: a bug in the room is logged, never fatal to the server.
   onUncaughtException(error, methodName) {
-    console.error(`room error in ${methodName}:`, error);
+    if (error.cause instanceof ServerError) console.log(`refused in ${methodName}: ${error.cause.message}`);
+    else console.error(`room error in ${methodName}:`, error);
+  }
+
+  // Seats are shared out by network, so one person can't fill the world with
+  // players of their own. (A reconnection skips this, but keeps the address.)
+  onAuth(client, options, request) {
+    const { address } = clientAddress(request);
+    const here = this.clients.filter((c) => c.auth?.address === address).length;
+    if (here >= SEATS_PER_ADDRESS) throw new ServerError(429, 'Too many players from your network right now. Try again later.');
+    return { address };
   }
 
   guarded(name, run) {
@@ -389,7 +410,7 @@ export class WorldRoom extends Room {
     if (!player || this.players[client.sessionId] !== player) return;
     // Keep their final state for when they come back (their device may not have the last of it).
     const [plotKey, plot] = this.plotOf(player);
-    rememberDeparture(player.profileId, saveToken(player, plot, plotKey));
+    rememberDeparture(player.profileId, saveToken(player, plot, plotKey), player.xp > 0);
     delete this.players[client.sessionId];
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
@@ -736,7 +757,7 @@ export class WorldRoom extends Room {
     const now = Date.now();
     if (now - player.lastChatAt < CHAT_COOLDOWN_MS) return;
     if (typeof text !== 'string') return;
-    const clean = maskText(text.replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX));
+    const clean = maskText(plainText(text, CHAT_MAX));
     if (!clean) return;
     player.lastChatAt = now;
     const line = { id: player.id, name: player.name, text: clean, at: now };

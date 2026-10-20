@@ -1027,7 +1027,8 @@ export class WorldScene extends Phaser.Scene {
       ...textStyle(16),
       ...BUBBLE_STYLE[kind],
       padding: { x: 9, y: 4 },
-      wordWrap: { width: 190 },
+      // Advanced wrap breaks a long unbroken word too, so no bubble runs off.
+      wordWrap: { width: 190, useAdvancedWrap: true },
       align: 'center',
     }).setOrigin(0.5, 1).setDepth(DEPTH.bubbles).setAlpha(0);
     const entry = { bubble, follow, offset: height + 10 };

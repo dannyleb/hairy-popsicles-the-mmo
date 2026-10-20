@@ -187,6 +187,7 @@
     <div class="chat" id="chat"></div>
 
     <p class="note">Saves live on players' phones, so this shows who's here now and who left in the last 3 days, as long as the server hasn't restarted since (Render's free plan restarts it when it sleeps).</p>
+    <p class="note" id="you"></p>
   </main>
 </div>
 <script>
@@ -266,6 +267,8 @@
     renderEvents();
     renderPlayers();
     renderChat();
+    // Limits go by address: this should be your own, not one shared by everyone.
+    $('you').textContent = data.you ? `The server sees you as ${data.you.address} (from ${data.you.source}). Join limits and wrong-key lockouts go by this address.` : '';
   }
 
   function renderTiles() {

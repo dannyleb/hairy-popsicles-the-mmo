@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { CHARACTERS, RARITY_ORDER, TITLE_BY_ID, levelFor } from '@hptm/shared';
 import { listDepartures } from './game/departed.js';
 import { readToken } from './game/profile.js';
+import { clientAddress, createLimiter } from './net.js';
 import { getWorld } from './rooms/WorldRoom.js';
 import { statsReport } from './stats.js';
 
@@ -11,11 +12,25 @@ import { statsReport } from './stats.js';
 // Without ADMIN_KEY set, none of it exists.
 const KEY = process.env.ADMIN_KEY ?? '';
 const PAGE = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
-const LOCKOUT = { tries: 10, windowMs: 10 * 60_000 };  // wrong keys allowed per address per window
+// Wrong keys allowed per address, per 10 minutes.
+const failures = createLimiter({ limit: 10, windowMs: 10 * 60_000, maxAddresses: 1000 });
 
 const digest = (text) => createHash('sha256').update(text).digest();
 const keyDigest = digest(KEY);
-const failures = new Map();  // address → { count, since }
+
+// The page may run only its own script and style (and talk only to this server),
+// so nothing injected into it could run or send the key anywhere.
+const inline = (tag) => createHash('sha256').update(PAGE.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))[1]).digest('base64');
+const POLICY = [
+  "default-src 'none'",
+  `script-src 'sha256-${inline('script')}'`,
+  `style-src 'sha256-${inline('style')}'`,
+  "connect-src 'self'",
+  "img-src 'self' data:",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
 
 function send(res, status, type, body) {
   res.writeHead(status, {
@@ -24,27 +39,10 @@ function send(res, status, type, body) {
     'X-Robots-Tag': 'noindex',
     'Referrer-Policy': 'no-referrer',
     'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': POLICY,
   });
   res.end(body);
-}
-
-// Render puts the caller's address first in X-Forwarded-For.
-const addressOf = (req) => String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim();
-
-function lockedOut(address) {
-  const entry = failures.get(address);
-  if (!entry) return false;
-  if (Date.now() - entry.since > LOCKOUT.windowMs) {
-    failures.delete(address);
-    return false;
-  }
-  return entry.count >= LOCKOUT.tries;
-}
-
-function noteFailure(address) {
-  const entry = failures.get(address);
-  if (entry && Date.now() - entry.since <= LOCKOUT.windowMs) entry.count += 1;
-  else failures.set(address, { count: 1, since: Date.now() });
 }
 
 function authorized(req) {
@@ -88,11 +86,12 @@ function departedPlayers(liveIds) {
   return players;
 }
 
-function report() {
+function report(you) {
   const world = getWorld()?.adminView() ?? { players: [], heldPlots: [], events: null, chat: [] };
   const liveIds = new Set(world.players.map((p) => p.profileId));
   return {
     at: Date.now(),
+    you,  // the address this server sees for you, and where it got it: the lockout goes by it
     stats: statsReport(),
     players: [...world.players, ...departedPlayers(liveIds)],
     heldPlots: world.heldPlots,
@@ -116,17 +115,17 @@ export function handleAdmin(req, res) {
     send(res, 200, 'text/html; charset=utf-8', PAGE);
     return true;
   }
-  const address = addressOf(req);
-  if (lockedOut(address)) {
+  const you = clientAddress(req);
+  if (failures.blocked(you.address)) {
     send(res, 429, 'application/json', JSON.stringify({ error: 'Too many wrong keys. Try again in a few minutes.' }));
     return true;
   }
   if (!authorized(req)) {
-    noteFailure(address);
+    failures.take(you.address);
     send(res, 401, 'application/json', JSON.stringify({ error: 'Wrong key.' }));
     return true;
   }
-  failures.delete(address);
-  send(res, 200, 'application/json', JSON.stringify(report()));
+  failures.clear(you.address);
+  send(res, 200, 'application/json', JSON.stringify(report(you)));
   return true;
 }

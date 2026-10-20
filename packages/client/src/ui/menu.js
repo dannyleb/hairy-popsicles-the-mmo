@@ -1,5 +1,5 @@
 import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, RARITIES, featuredFor, levelFor, linesOf, seasonOn } from '@hptm/shared';
-import { forgetProfile, peekProfile, storeProfile } from '../net/profile.js';
+import { forgetProfile, peekProfile, readSaveCode, storeProfile } from '../net/profile.js';
 import { hasHaptics } from '../audio/sfx.js';
 import { remember, remembered, settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
@@ -48,7 +48,8 @@ function todayLines(saved) {
       const day = last === utcDay(now - DAY_MS) ? streak + 1 : 1;
       lines.push({ text: day > 1 ? `Day ${day} gift waiting` : 'Daily gift waiting', hot: true });
     }
-    const ripe = (saved.plot?.slots ?? []).filter((s) => s && s.readyAt <= now).length;
+    const slots = Array.isArray(saved.plot?.slots) ? saved.plot.slots : [];
+    const ripe = slots.filter((s) => s && s.readyAt <= now).length;
     if (ripe) lines.push({ text: `${ripe} crop${ripe > 1 ? 's' : ''} ripe on your plot`, hot: true });
   }
   const featured = CHARACTER_BY_ID[featuredFor(today)];
@@ -75,7 +76,7 @@ function saveName(name) {
 export function createMenu({ onPlay }) {
   // A returning player is greeted by the character they play as.
   const saved = peekProfile();
-  const hero = CHARACTER_BY_ID[saved?.avatar] ?? CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+  const hero = (Object.hasOwn(CHARACTER_BY_ID, saved?.avatar) && CHARACTER_BY_ID[saved.avatar]) || CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
   const lines = linesOf(hero.id);
 
   const root = el('div', 'menu');
@@ -103,10 +104,17 @@ export function createMenu({ onPlay }) {
   play.type = 'submit';
   if (saved) {
     const albumSize = Object.keys(saved.collection ?? {}).length;
-    form.append(el('p', 'menu-continue', `Level ${levelFor(saved.xp ?? 0)} · album ${albumSize}/${CHARACTERS.length}`));
+    form.append(el('p', 'menu-continue', `Level ${levelFor(Number(saved.xp) || 0)} · album ${albumSize}/${CHARACTERS.length}`));
   }
   const today = el('ul', 'menu-today');
-  for (const line of todayLines(saved)) {
+  // The save is unverified: an odd one costs the hints, never the menu.
+  let hints = [];
+  try {
+    hints = todayLines(saved);
+  } catch {
+    hints = [];
+  }
+  for (const line of hints) {
     today.append(el('li', `${line.hot ? 'hot' : ''}${line.season ? ` season ${line.season}` : ''}`.trim() || null, line.text));
   }
   if (today.children.length) form.append(today);
@@ -173,16 +181,16 @@ export function createMenu({ onPlay }) {
     const load = el('button', 'menu-panel-close', 'Load it');
     load.type = 'button';
     load.addEventListener('click', () => {
-      const token = code.value.trim();
+      const token = code.value.replace(/\s+/g, '');
       // Only the server can check the signature; this just catches a bad paste.
-      if (!/^[\w-]+\.[\w-]+$/.test(token)) {
+      if (!readSaveCode(token)) {
         problem.textContent = "That doesn't look like a save code.";
         return;
       }
       storeProfile(token);
       window.location.reload();
     });
-    const warning = saved ? [el('p', null, 'This replaces the save on this phone.')] : [];
+    const warning = [el('p', null, `Only paste a code you copied from your own game.${saved ? ' It replaces the save on this phone.' : ''}`)];
     showPanel('Load a save', ...warning, code, problem, load);
   });
   if (saved) {

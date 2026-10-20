@@ -29,11 +29,15 @@ const SUITES = {
   held: [{ PORT: 2582, GROW_SCALE: 0.05, PLOT_HOLD_MS: 8000 }],
   admin: [{ PORT: 2583, ADMIN_KEY: 'test-admin-key' }, { PORT: 2584 }],
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
+  limits: [{ PORT: 2585, JOINS_PER_MINUTE: 16, SEATS_PER_ADDRESS: 3, NEWCOMERS_KEPT: 3, ADMIN_KEY: 'test-admin-key' }],
 };
+// Every test player comes from this one machine, so the per-address limits are
+// out of the way unless a suite sets its own.
+const DEFAULTS = { JOINS_PER_MINUTE: 100_000, SEATS_PER_ADDRESS: 100_000 };
 
 function startServer(settings) {
   const env = { ...process.env, PROFILE_SECRET: 'test' };
-  for (const [key, value] of Object.entries(settings)) env[key] = String(value);
+  for (const [key, value] of Object.entries({ ...DEFAULTS, ...settings })) env[key] = String(value);
   const server = spawn(process.execPath, [SERVER], { env, stdio: ['ignore', 'pipe', 'inherit'] });
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`server on ${settings.PORT} didn't start`)), 15_000);

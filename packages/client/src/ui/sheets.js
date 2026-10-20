@@ -329,6 +329,7 @@ export function createSheets(actions) {
     move.append(
       el('summary', null, 'Move to another phone'),
       el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. Play on one phone at a time: each phone keeps its own copy, so progress on one won\'t show up on the other.'),
+      el('p', 'overlay-hint warn', 'This code is your save. Anyone who has it can play as you, so never post it or send it to anyone. Nobody from the game will ever ask for it.'),
       code,
       copy,
     );

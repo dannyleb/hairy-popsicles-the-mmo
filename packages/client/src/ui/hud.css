@@ -473,6 +473,7 @@
 
 .chat-name {
   color: var(--flesh);
+  unicode-bidi: isolate;  /* a right-to-left name doesn't flip the line around it */
 }
 
 .chat-log.expanded {
@@ -743,6 +744,11 @@
   margin: 4px 0 12px;
   font-size: 15px;
   opacity: 0.7;
+}
+
+.overlay-hint.warn {
+  color: #e0897c;
+  opacity: 1;
 }
 
 .album-section {
