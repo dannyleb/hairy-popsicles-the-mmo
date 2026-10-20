@@ -4,6 +4,7 @@ import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { isPal, togglePal } from './pals.js';
+import { shareAlbum } from './sharecard.js';
 import { savedProfile } from '../net/profile.js';
 
 const SETTINGS = [
@@ -137,8 +138,20 @@ export function createSheets(actions) {
         }),
       );
     } else {
+      const share = button('sheet-button', 'Share my album', async () => {
+        if (!me) return;
+        share.disabled = true;
+        share.textContent = 'Making it...';
+        const result = await shareAlbum({
+          name: p.name, title: p.title, level: me.level, avatar: p.avatar,
+          collection: me.collection, shinies: me.shinies ?? {}, nameColor: p.color,
+        });
+        share.disabled = false;
+        share.textContent = result === 'downloaded' ? 'Saved the picture' : 'Share my album';
+      });
       actionsRow.append(
         button('sheet-button', 'Shop', () => shop()),
+        share,
         button('sheet-button quiet', 'Change character', () => { close(); actions.openAlbum(); }),
       );
     }
@@ -313,7 +326,7 @@ export function createSheets(actions) {
     });
     move.append(
       el('summary', null, 'Move to another phone'),
-      el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. Whichever one plays last is the one that counts.'),
+      el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. Play on one phone at a time: each phone keeps its own copy, so progress on one won\'t show up on the other.'),
       code,
       copy,
     );

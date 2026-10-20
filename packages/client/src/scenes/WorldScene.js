@@ -157,11 +157,7 @@ export class WorldScene extends Phaser.Scene {
     on('harvested', this.onHarvested);
     on('levelUp', this.onLevelUp);
     on('questDone', (quest) => this.hud.questDone(quest));
-    on('itchScratched', ({ share, helpers, scraps, xp, boil }) => {
-      const text = helpers > 1 ? `You helped ${share}× of ${helpers} players` : `You did it all yourself (${share}×)`;
-      this.hud.questDone({ itch: true, text, scraps, xp, boil });
-      this.hud.selectSeed('boil');
-    });
+    on('itchScratched', this.onItchScratched);
     on('chat', this.onChat);
     on('chatLog', (lines) => this.hud.chatHistory(lines.filter((l) => !this.hud.isMuted(l.id))));
     on('emote', this.onEmote);
@@ -931,10 +927,17 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  onLevelUp({ level }) {
+  onItchScratched({ share, helpers, scraps, xp, boil }) {
+    const text = helpers > 1 ? `You helped ${share}× of ${helpers} players` : `You did it all yourself (${share}×)`;
+    this.hud.questDone({ itch: true, text, scraps, xp, boil });
+    this.hud.selectSeed('boil');
+  }
+
+  // `from` comes with a level-up that waited as a notice (my level has already moved on by then).
+  onLevelUp({ level, from: before }) {
     // Two level-ups can arrive before the private update that follows them; count
     // unlocks from the highest level already shown, so none is listed twice.
-    const from = Math.max(this.private?.level ?? level - 1, this.levelShown ?? 0);
+    const from = Math.max(before ?? this.private?.level ?? level - 1, this.levelShown ?? 0);
     this.levelShown = level;
     const unlocks = [];
     const holes = holesFor(level) - holesFor(from);
@@ -989,6 +992,10 @@ export class WorldScene extends Phaser.Scene {
     } else if (notice.kind === 'daily') {
       this.hud.daily(notice);
       if (notice.reward.boil) this.hud.selectSeed('boil');
+    } else if (notice.kind === 'itch') {
+      this.onItchScratched(notice);
+    } else if (notice.kind === 'levelUp') {
+      this.onLevelUp(notice);
     } else if (notice.kind === 'row') {
       this.hud.albumRow(notice);
       sfx.fanfare();

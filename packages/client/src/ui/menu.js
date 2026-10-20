@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'Share my album: tap your card for a picture of your collection to post anywhere.',
     'Pals: tap anyone, then Make pal. You\'ll hear when they turn up.',
     'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',

@@ -15,6 +15,7 @@ async function join(name, url = 'ws://localhost:2567') {
   room.onMessage('init', (s) => { p.state = s; });
   room.onMessage('state', (s) => { p.state = s; });
   room.onMessage('me', (m) => { p.me = m; });
+  room.send('sync');  // listening for everything now, as the real client says once it's ready
   await sleep(300);
   p.pub = () => p.state.players[room.sessionId];
   p.ev = (type) => p.events[type] ?? [];

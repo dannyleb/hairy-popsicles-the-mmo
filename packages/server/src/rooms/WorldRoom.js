@@ -302,6 +302,9 @@ export class WorldRoom extends Room {
     const player = this.players[client.sessionId];
     if (!consented && player) {
       player.away = true;
+      // Nothing reaches them while away: anything worth seeing waits as a notice
+      // until the returning client asks with 'sync'.
+      player.synced = false;
       this.markDirty();
       console.log(`drop ${player.id} ${player.name}`);
       try {
@@ -448,7 +451,8 @@ export class WorldRoom extends Room {
     player.xp += amount;
     player.level = levelFor(player.xp);
     if (player.level > before) {
-      this.clientOf(player)?.send('levelUp', { level: player.level });
+      if (player.synced) this.clientOf(player)?.send('levelUp', { level: player.level });
+      else player.notices.push({ kind: 'levelUp', level: player.level, from: before });
       if (player.level % ANNOUNCE_LEVELS === 0) this.announce(`${player.name} reached level ${player.level}!`, 'level');
       this.markDirty();
     }
@@ -477,12 +481,14 @@ export class WorldRoom extends Room {
   // Everyone still here who helped scratch The Itch gets the same reward.
   rewardItch(helpers) {
     const { scraps, xp, boil } = ITCH.reward;
-    for (const helper of Object.values(this.players)) {
-      const share = helpers.get(helper.profileId);
-      if (!share) continue;
+    const paid = Object.values(this.players).filter((p) => helpers.get(p.profileId));
+    this.announce(`Scratched! ${paid.length === 1 ? 'One player' : `${paid.length} players`} scratched The Itch.`, 'itch');
+    for (const helper of paid) {
+      const reward = { share: helpers.get(helper.profileId), helpers: paid.length, scraps, xp, boil };
       helper.currency += scraps;
       helper.inventory.boil += boil;
-      this.clientOf(helper)?.send('itchScratched', { share, helpers: helpers.size, scraps, xp, boil });
+      if (helper.synced) this.clientOf(helper)?.send('itchScratched', reward);
+      else helper.notices.push({ kind: 'itch', ...reward });
       this.grantXp(helper, xp);
       this.bump(helper, 'itches');
       this.sendMe(helper);

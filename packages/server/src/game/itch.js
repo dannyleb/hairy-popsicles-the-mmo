@@ -46,15 +46,14 @@ export function createItch(room, scale) {
     },
 
     // Called for every quest-kind action. When this one scratches it, returns
-    // who helped (profile id → how much) so the room can pay them.
+    // who helped (profile id → how much) so the room can pay and announce them.
     progress(player, kind, amount) {
-      if (!itch || itch.kind !== kind) return null;
+      if (!itch || itch.kind !== kind || Date.now() >= itch.endsAt) return null;
       itch.progress = Math.min(itch.target, itch.progress + amount);
       itch.helpers.set(player.profileId, (itch.helpers.get(player.profileId) ?? 0) + amount);
       room.markDirty();
       if (itch.progress < itch.target) return null;
       const { helpers } = itch;
-      room.announce(`Scratched! ${helpers.size === 1 ? 'One player' : `${helpers.size} players`} scratched The Itch.`, 'itch');
       end(Date.now());
       return helpers;
     },

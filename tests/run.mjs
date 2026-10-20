@@ -23,8 +23,8 @@ const SUITES = {
   gifts: [{ PORT: 2574 }],
   levels: [{ PORT: 2575, GROW_SCALE: 0.01 }],
   shop: [{ PORT: 2576 }],
-  integrity: [{ PORT: 2577, EVENT_SCALE: 0.1 }],
-  itch: [{ PORT: 2578, GROW_SCALE: 0.01, EVENT_SCALE: 0.01 }],
+  integrity: [{ PORT: 2577, EVENT_SCALE: 0.2 }],
+  itch: [{ PORT: 2578, GROW_SCALE: 0.01, EVENT_SCALE: 0.02 }],
   rows: [{ PORT: 2579 }],
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
 };

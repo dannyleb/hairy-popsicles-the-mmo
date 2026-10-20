@@ -85,7 +85,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   (10 gifts earns the Generous title). Make anyone a pal ♥ from their card:
   pals get a heart by their name, and you're told when one arrives (or is
   already here when you do). Pals are kept on your device, keyed by a public
-  id derived from the save (never the save id itself).
+  id derived from the save (never the save id itself). Tap your own card,
+  then Share my album, for a picture of who you play as, your level and
+  title, and every character (silhouettes for the unfound) with the game's
+  link: the phone's share sheet where it can take pictures, a download
+  elsewhere.
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
   a first-session coach (claim → plant → wait → harvest → album), an album
