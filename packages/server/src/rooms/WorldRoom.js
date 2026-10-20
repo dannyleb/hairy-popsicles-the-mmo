@@ -58,6 +58,7 @@ export class WorldRoom extends Room {
 
     const player = this.players[client.sessionId];
     if (!player) return;
+    if (Object.values(this.plots).some((p) => p.ownerId === client.sessionId)) return; // one plot per player
 
     this.plots[key] = {
       ownerId: client.sessionId,

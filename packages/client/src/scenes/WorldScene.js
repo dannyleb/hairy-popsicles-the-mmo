@@ -29,12 +29,13 @@ export class WorldScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer) => this.handleTap(pointer));
 
-    this.add.text(12, 12, 'Tap ground to walk + claim a plot.\nTap an owned empty tile to plant, a grown one to harvest.', {
+    this.add.text(12, 12, 'Tap ground to walk. First tap on empty ground claims your plot. Tap an empty tile in your plot to plant, a grown one to harvest.', {
       fontSize: '13px',
       color: '#ffe8d6',
+      wordWrap: { width: Math.min(this.scale.width - 24, 480) },
     }).setDepth(100);
 
-    this.hud = this.add.text(12, 56, '', { fontSize: '14px', color: '#ffe8d6' }).setDepth(100);
+    this.hud = this.add.text(12, 76, '', { fontSize: '14px', color: '#ffe8d6' }).setDepth(100);
   }
 
   handleTap(pointer) {
