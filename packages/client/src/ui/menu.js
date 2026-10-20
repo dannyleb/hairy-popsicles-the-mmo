@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',
     'A featured character every day that sprouts more often. Check the album to see who.',
     'Tap anyone in your album for a closer look: their stars, bonus, and how many more for the next star.',

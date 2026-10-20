@@ -293,6 +293,7 @@ export class WorldScene extends Phaser.Scene {
   // First-time tips for things that turn up later on.
   updateTips() {
     if (this.state.rain) this.hud.tip('rain', 'Pus Rain! Tap the globs to grab them before they soak in. Nearest gets there first.');
+    if (this.state.season) this.hud.tip(`season-${this.state.season.id}`, `${this.state.season.name} is on! Harvests can drop teeth 🦷 for a limited name color and title. Tap its pill (top right) to see.`);
     if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
     if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? Tap your card (top left), then Shop: fertilizer, candles for your plot, a name color.');
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
@@ -870,7 +871,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- rewards ----------
 
-  onHarvested({ characterId, scraps, xp, isNew, shiny, starUp }) {
+  onHarvested({ characterId, scraps, xp, isNew, shiny, starUp, teeth }) {
     const character = CHARACTER_BY_ID[characterId];
     const { rarity } = character;
     const me = this.me();
@@ -878,6 +879,10 @@ export class WorldScene extends Phaser.Scene {
     this.fx.droplets(at.x, at.y, { count: 6 + 5 * RANK[rarity] });
     this.fx.float(at.x, at.y - 18, `+${scraps}`, { color: '#f3d27a', size: 22 });
     this.fx.float(at.x, at.y + 2, `+${xp} xp`, { color: '#bfe38a', size: 15, delay: 160 });
+    if (teeth) {
+      this.fx.float(at.x + 34, at.y - 4, `+${teeth} 🦷`, { color: '#ffb36b', size: 20, delay: 320 });
+      this.hud.tip('first-tooth', 'A tooth! Spend teeth in the shop (tap Rotting Season, top right) before the season ends.');
+    }
     if (RANK[rarity] >= 2) this.fx.ring(at.x, at.y, { color: rarity === 'legendary' ? 0xffd070 : 0x9cc8ff, size: 300, duration: 700 });
     if (shiny) {
       this.fx.ring(at.x, at.y, { color: SHEEN, size: 360, duration: 800 });

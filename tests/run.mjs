@@ -26,6 +26,7 @@ const SUITES = {
   integrity: [{ PORT: 2577, EVENT_SCALE: 0.1 }],
   itch: [{ PORT: 2578, GROW_SCALE: 0.01, EVENT_SCALE: 0.01 }],
   rows: [{ PORT: 2579 }],
+  season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
 };
 
 function startServer(settings) {

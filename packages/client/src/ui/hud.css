@@ -1738,3 +1738,56 @@
 .reveal-button:disabled {
   opacity: 0.55;
 }
+
+/* ---------- seasons ---------- */
+
+.hud-teeth {
+  margin-left: 10px;
+  font-size: 15px;
+  color: #ffb36b;
+}
+
+.hud-teeth[hidden] {
+  display: none;
+}
+
+.event-pill.season {
+  grid-template-columns: auto;
+  min-width: 0;
+  gap: 0;
+  color: #ffe0c0;
+  background: rgba(70, 30, 60, 0.9);
+  border: 1px solid #ff9a3c;
+}
+
+.season-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.season-veil.rot {
+  background:
+    radial-gradient(ellipse 110% 70% at 50% 110%, rgba(255, 120, 30, 0.16), transparent 60%),
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(90, 30, 120, 0.22), transparent 60%);
+}
+
+.shop-season {
+  margin: 0 0 12px;
+  padding: 10px 12px 4px;
+  border: 1px solid #ff9a3c;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(90, 30, 110, 0.45), rgba(120, 50, 10, 0.35));
+}
+
+.shop-season-name {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 400;
+  color: #ffb36b;
+}
+
+.shop-season > .shop-text {
+  display: block;
+  margin: 0 0 8px;
+}

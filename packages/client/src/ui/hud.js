@@ -30,7 +30,10 @@ export function createHud(actions) {
   xpBar.append(xpFill);
   const scraps = el('span', 'hud-scraps-count');
   const scrapsRow = el('div', 'hud-scraps');
-  scrapsRow.append(img(worldUrl('drop-pus'), 'hud-scraps-icon'), scraps);
+  // The season's token (teeth), shown while it's on or while you still have some.
+  const teethCount = el('span', 'hud-teeth');
+  teethCount.hidden = true;
+  scrapsRow.append(img(worldUrl('drop-pus'), 'hud-scraps-icon'), scraps, teethCount);
   const nameRow = el('div', 'hud-name-row');
   nameRow.append(name, level);
   const cardBody = el('div', 'hud-card-body');
@@ -83,10 +86,16 @@ export function createHud(actions) {
   const rainPill = el('div', 'event-pill rain');
   const rainTime = el('span', 'event-time');
   rainPill.append(el('span', 'event-label', 'Pus Rain'), rainTime);
+  // A limited-time season: tap for the shop, where its things are sold.
+  const seasonPill = button('event-pill season', null, () => sheets.shop());
+  const seasonLabel = el('span', 'event-label');
+  const seasonTime = el('span', 'event-time');
+  seasonPill.append(seasonLabel, seasonTime);
   bossPill.hidden = true;
   moonPill.hidden = true;
   rainPill.hidden = true;
-  events.append(bossPill, moonPill, rainPill);
+  seasonPill.hidden = true;
+  events.append(bossPill, moonPill, rainPill, seasonPill);
 
   // Points at the boss while it's off screen.
   const bossArrow = el('div', 'boss-arrow');
@@ -121,6 +130,8 @@ export function createHud(actions) {
   const banners = el('div', 'banners');
   const bloodMoon = el('div', 'blood-moon-veil');
   bloodMoon.hidden = true;
+  const seasonVeil = el('div', 'season-veil');
+  seasonVeil.hidden = true;
 
   const album = createAlbum({
     onWear: (id) => actions.wear(id),
@@ -133,7 +144,7 @@ export function createHud(actions) {
   const reveal = createReveal({ onWear: (id) => actions.wear(id) });
   const coach = createCoach();
 
-  root.append(bloodMoon, card, quests, corner, toasts, coach.root, chat.log, banners, bossArrow, dock, chat.bar, chat.emotes);
+  root.append(seasonVeil, bloodMoon, card, quests, corner, toasts, coach.root, chat.log, banners, bossArrow, dock, chat.bar, chat.emotes);
   document.body.append(root, album.root, sheets.root, reveal.root);
 
   let me = null;      // private data from the server
@@ -141,6 +152,7 @@ export function createHud(actions) {
   let preferred = 'pimple';  // the seed last picked; pimple seeds stand in while it's unavailable
   let lastScraps = null;
   let featured = null;  // today's featured character
+  let season = null;    // the limited-time season, while one is on
 
   function chipState(seed) {
     if (!me) return { locked: true, reason: '' };
@@ -206,6 +218,8 @@ export function createHud(actions) {
     level.textContent = `Lv ${me.level}`;
     xpFill.style.width = `${(me.level >= MAX_LEVEL ? 1 : levelProgress(me.xp)) * 100}%`;
     scraps.textContent = me.currency;
+    teethCount.hidden = !season && !me.inventory.teeth;
+    teethCount.textContent = `🦷 ${me.inventory.teeth ?? 0}`;
     if (lastScraps !== null && me.currency !== lastScraps) {
       const delta = me.currency - lastScraps;
       const float = el('span', `hud-scraps-delta ${delta > 0 ? 'up' : 'down'}`, `${delta > 0 ? '+' : ''}${delta}`);
@@ -276,7 +290,7 @@ export function createHud(actions) {
     },
 
     // Live events: the boss, the blood moon and the pus rain, with countdowns.
-    setEvents({ boss, bloodMoon: moon, rain, itch }, now) {
+    setEvents({ boss, bloodMoon: moon, rain, itch, season: nextSeason }, now) {
       bossPill.hidden = !boss;
       if (boss) {
         bossTime.textContent = formatClock(boss.expiresAt - now);
@@ -288,6 +302,22 @@ export function createHud(actions) {
       rainPill.hidden = !rain;
       if (rain) rainTime.textContent = formatClock(rain.endsAt - now);
       this.setItch(itch, now);
+      this.setSeason(nextSeason, now);
+    },
+
+    setSeason(next, now) {
+      if (next?.id !== season?.id) {
+        season = next ?? null;
+        sheets.setSeason(season);
+        seasonVeil.hidden = !season;
+        seasonVeil.className = `season-veil${season ? ` ${season.id}` : ''}`;
+        renderCard();
+      }
+      seasonPill.hidden = !season;
+      if (!season) return;
+      seasonLabel.textContent = season.name.replace(/^The /, '');
+      const days = Math.ceil((Date.parse(`${season.ends}T00:00:00Z`) - now) / 86_400_000);
+      seasonTime.textContent = days > 1 ? `${days}d left` : 'last day';
     },
 
     setItch(itch, now) {

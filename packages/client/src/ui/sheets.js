@@ -1,4 +1,4 @@
-import { CHARACTERS, CHARACTER_BY_ID, NAME_COLORS, RARITIES, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, NAME_COLORS, RARITIES, SEASONS, SEASON_COLORS, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
 import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
@@ -38,6 +38,7 @@ export function createSheets(actions) {
   });
 
   let players = {};
+  let season = null;  // { id, name, ends } while a limited-time season is on
   let myId = null;
   let me = null;  // my private data, for the titles list
   let showing = null;  // which sheet is open, so it can refresh as players change
@@ -175,6 +176,8 @@ export function createSheets(actions) {
     const swatches = el('div', 'shop-colors');
     for (const [color, hex] of Object.entries(NAME_COLORS)) {
       const owned = me.colors.includes(color);
+      // Season colors are sold in the season's own section; once bought they wear like any other.
+      if (SEASON_COLORS.has(color) && !owned) continue;
       const worn = me.nameColor === color;
       const swatch = button(`shop-swatch${owned ? ' owned' : ''}${worn ? ' worn' : ''}`, color, () => {
         if (worn) actions.setColor(null);
@@ -194,10 +197,42 @@ export function createSheets(actions) {
     colorRow.append(colorInfo, swatches);
     open(
       `Shop · ${me.currency} scraps`,
+      ...seasonShop(),
       item(SHOP.fertilizer, me.inventory.fertilizer ? `You have ${me.inventory.fertilizer} doses` : '', () => actions.buy('fertilizer')),
       item(SHOP.candle, plot ? `${candles}/${SHOP.candle.max} on your plot` : 'Claim a plot first', () => actions.buy('candle'), Boolean(plot) && candles < SHOP.candle.max),
       colorRow,
     );
+  }
+
+  // While a season is on, its own corner of the shop, paid for in its token.
+  function seasonShop() {
+    const def = season && SEASONS.find((s) => s.id === season.id);
+    if (!def) return [];
+    const { token, color } = def;
+    const have = me.inventory.teeth ?? 0;
+    const lastDay = new Date(Date.parse(`${def.ends}T00:00:00Z`) - 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const title = TITLE_BY_ID[def.title];
+    const box = el('div', `shop-season ${def.id}`);
+    box.append(
+      el('h3', 'shop-season-name', def.name),
+      el('p', 'shop-text', `Until ${lastDay}. Harvests drop ${token.many} ${token.icon} (rarer ones more often). You have ${have}.`),
+    );
+    const owned = me.colors.includes(color.id);
+    const row = el('div', 'shop-item');
+    const info = el('div', 'shop-info');
+    const name = el('span', 'shop-name', `${color.name} name`);
+    name.style.color = NAME_COLORS[color.id];
+    info.append(name, el('span', 'shop-text', 'Only sold this season.'), el('span', 'shop-state', owned ? 'Yours. Wear it from the colors below.' : ''));
+    const buy = button('sheet-button shop-buy', owned ? 'Owned' : `${color.cost} ${token.icon}`, () => actions.buy('seasonColor'));
+    buy.disabled = owned || have < color.cost;
+    row.append(info, buy);
+    box.append(row);
+    if (title) {
+      const got = me.titles.includes(title.id);
+      const count = Math.min(title.count, me.stats[title.stat] ?? 0);
+      box.append(el('p', 'shop-text', got ? `You earned the ${title.name} title.` : `${title.goal} for the ${title.name} title (${count}/${title.count}).`));
+    }
+    return [box];
   }
 
   // Every title: earned ones can be worn (tap), the rest show how close you are.
@@ -292,6 +327,11 @@ export function createSheets(actions) {
     },
 
     shop: () => { sfx.click(); shop(); },
+
+    setSeason(next) {
+      season = next;
+      if (showing?.kind === 'shop') shop();
+    },
 
     setPlayers(next, me) {
       players = next;

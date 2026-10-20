@@ -112,6 +112,13 @@ Timers are short on purpose while nothing persists. Rarities live in
   250 + 2, Legendary 600 + 3 (plus XP), with its own reveal and a world
   announcement. Album headings show each row's reward. Saves from before
   this get paid for rows they already finished.
+- **The Rotting Season (limited event, Oct 20 to Nov 1 UTC).** While it's
+  on, harvests drop teeth 🦷 (15% for a Common up to every Legendary or
+  shiny). Teeth buy a Pumpkin name color sold only this season, and 31 earn
+  the Trick or Treater title. A pill (top right) counts down the days and
+  opens the shop's season corner; the world gets a faint orange-and-purple
+  cast. Seasons are data (`packages/shared/src/season.js`): add another
+  entry with dates, a token, a color and a title for the next one.
 - **Featured character.** Each UTC day one character (picked from the date)
   sprouts 4x as often as the others of its rarity. The daily gift card and
   the album say who, or "a mystery Rare" if you've never grown it, and its
@@ -121,9 +128,9 @@ Timers are short on purpose while nothing persists. Rarities live in
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Twelve lifetime goals (harvest 25 and 150, squeeze 20, top The
+- **Titles.** Thirteen goals (harvest 25 and 150, squeeze 20, top The
   Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
-  scratch The Itch 5 times, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
+  scratch The Itch 5 times, 31 teeth in the Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
 - **Shop.** Somewhere to spend scraps besides seeds (tap your card, then
@@ -266,9 +273,10 @@ odds), `game` (planting, levels, quests, chat, squeezing, The Boil, Blood
 Moon), `levels` (high-level growth), `shop`, `integrity` (old saves,
 squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
-bonuses), `rain`, `itch`, `rows` (album row rewards), `titles`, `gifts`,
-`hardening` (filter, rate limits) and `filter`. GitHub Actions runs them on
-every push and pull request (`.github/workflows/test.yml`).
+bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
+of season), `titles`, `gifts`, `hardening` (filter, rate limits) and
+`filter`. GitHub Actions runs them on every push and pull request
+(`.github/workflows/test.yml`).
 
 ## What's stubbed / not real yet
 

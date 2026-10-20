@@ -108,7 +108,7 @@ export function readToken(token) {
     currency: count(p.currency),
     collection,
     shinies,
-    inventory: { boil: count(p.inventory?.boil), fertilizer: count(p.inventory?.fertilizer) },
+    inventory: { boil: count(p.inventory?.boil), fertilizer: count(p.inventory?.fertilizer), teeth: count(p.inventory?.teeth) },
     quests: Array.isArray(p.quests) ? p.quests : [],
     daily: { last: typeof p.daily?.last === 'string' ? p.daily.last.slice(0, 10) : null, streak: count(p.daily?.streak) },
     dailyQuest: p.dailyQuest ?? null,  // checked against today by restoreDaily

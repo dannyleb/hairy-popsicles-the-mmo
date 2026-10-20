@@ -16,6 +16,7 @@ import {
   RARITIES,
   RARITY_ORDER,
   REACH,
+  SEASON_COLORS,
   SEED_BY_ID,
   SHOP,
   SHINY_CHANCE,
@@ -39,6 +40,7 @@ import {
   featuredFor,
   levelFor,
   rowComplete,
+  seasonOn,
   starsFor,
   titleProgress,
   wearBonus,
@@ -72,6 +74,8 @@ const REPLACED = 4001;           // close code: the same save was opened somewhe
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
 const BLOOD_MOON = { firstMs: 150_000, everyMs: 9 * 60_000, lastsMs: 90_000 };
+// Pretend it's this (UTC) day for seasons, e.g. SEASON_DAY=2026-10-25 for testing.
+const today = () => process.env.SEASON_DAY || dayOf(Date.now());
 
 const rank = (characterId) => RARITY_ORDER.indexOf(CHARACTER_BY_ID[characterId].rarity);
 
@@ -182,7 +186,7 @@ export class WorldRoom extends Room {
       currency: STARTING_CURRENCY,
       collection: { [starter.id]: 1 },
       shinies: {},
-      inventory: { boil: 0, fertilizer: 0 },
+      inventory: { boil: 0, fertilizer: 0, teeth: 0 },
       colors: [],
       nameColor: null,
       quests: [],
@@ -587,6 +591,10 @@ export class WorldRoom extends Room {
     if (shiny) player.shinies[characterId] = (player.shinies[characterId] ?? 0) + 1;
     player.currency += scraps;
     plot.slots[slot] = null;
+    // In season, a harvest can drop the season's token (rarer ones more often).
+    const season = seasonOn(today());
+    const teeth = season && (shiny || Math.random() < season.drop[character.rarity]) ? 1 : 0;
+    player.inventory.teeth += teeth;
 
     const xp = XP.harvest[character.rarity];
     this.clientOf(player)?.send('harvested', {
@@ -596,7 +604,9 @@ export class WorldRoom extends Room {
       isNew,
       shiny: Boolean(shiny),
       starUp: stars > starsFor(before) ? stars : 0,
+      teeth,
     });
+    if (teeth) this.bump(player, 'teeth', teeth);
     this.bump(player, 'harvests');
     if (shiny) this.bump(player, 'shinies');
     if (shiny) this.announce(`${player.name} grew a shiny ${character.name}!`, 'shiny');
@@ -710,6 +720,7 @@ export class WorldRoom extends Room {
   }
 
   handleBuy(player, { item, color }) {
+    if (item === 'seasonColor') return this.buySeasonColor(player);
     const def = typeof item === 'string' && Object.hasOwn(SHOP, item) ? SHOP[item] : null;
     if (!def || player.currency < def.cost) return;
     if (item === 'fertilizer') {
@@ -720,7 +731,7 @@ export class WorldRoom extends Room {
       plot.candles = (plot.candles ?? 0) + 1;
       this.markDirty();
     } else if (item === 'color') {
-      if (!Object.hasOwn(NAME_COLORS, color) || player.colors.includes(color)) return;
+      if (!Object.hasOwn(NAME_COLORS, color) || SEASON_COLORS.has(color) || player.colors.includes(color)) return;
       player.colors.push(color);
       player.nameColor = color;
       this.markDirty();
@@ -728,6 +739,20 @@ export class WorldRoom extends Room {
     player.currency -= def.cost;
     this.clientOf(player)?.send('bought', { item, color });
     this.sendMe(player);
+  }
+
+  // The season's name color, paid for in its token, only while it's on.
+  buySeasonColor(player) {
+    const season = seasonOn(today());
+    if (!season) return;
+    const { id, cost } = season.color;
+    if (player.colors.includes(id) || player.inventory.teeth < cost) return;
+    player.inventory.teeth -= cost;
+    player.colors.push(id);
+    player.nameColor = id;
+    this.clientOf(player)?.send('bought', { item: 'color', color: id });
+    this.sendMe(player);
+    this.markDirty();
   }
 
   handleSetColor(player, { color }) {
@@ -796,6 +821,11 @@ export class WorldRoom extends Room {
     this.broadcast('state', this.snapshot());
   }
 
+  seasonView() {
+    const season = seasonOn(today());
+    return season && { id: season.id, name: season.name, ends: season.ends };
+  }
+
   snapshot() {
     const players = {};
     for (const p of Object.values(this.players)) {
@@ -828,6 +858,7 @@ export class WorldRoom extends Room {
       rain: this.rain.view(),
       itch: this.itch.view(),
       featured: featuredFor(dayOf(Date.now())),
+      season: this.seasonView(),
       drops: this.rain.drops(),
       serverNow: Date.now(),
     };

@@ -11,6 +11,7 @@ export const NAME_COLORS = {
   vein: '#9cc8ff',
   flush: '#f0a8bc',
   bone: '#fff4e0',
+  pumpkin: '#ff9a3c',  // Rotting Season only, for teeth (see season.js)
 };
 
 export const FERTILIZER_SPEEDUP = 0.5;  // a fertilized crop takes half as long
