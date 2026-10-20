@@ -111,7 +111,8 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Shinies and stars.** About 1 crop in 40 comes up shiny (1 in 20 under a
   Blood Moon): the same character with a gold outline that everyone can see
   once it's ripe, triple scraps, its own reveal and a world announcement.
-  Play as a character you have a shiny of and you wear the gold. Growing 3,
+  Play as a character you have a shiny of and you wear the gold, and leave
+  a glinting trail as you walk (Rares leave a blue one, Legendaries gold). Growing 3,
   10 and 25 copies of a character earns it stars, shown in the album and
   next to your level while you play as it.
 - **Album rows.** Grow every character of a rarity and that row of the

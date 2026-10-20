@@ -56,6 +56,9 @@ const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
 const REPLACED = 4001;            // close code: this save was opened somewhere else
 const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint
+// Walking as a Rare or better leaves a trail everyone sees: how often, and in what color.
+const TRAILS = { rare: { every: 120, tint: 0x7fb2e5, size: 11 }, legendary: { every: 70, tint: 0xffc95a, size: 15 } };
+const SHINY_TRAIL = { every: 80, tint: 0xffe08a, size: 13 };
 const RAIN_DROP_MS = 60;          // how often a drop falls on screen during a Pus Rain
 const SHEEN = 0xffcf5a;
 
@@ -1015,6 +1018,17 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- frame ----------
 
+  trail(avatar, time, view) {
+    const { x, y } = avatar.container;
+    const style = avatar.shiny ? SHINY_TRAIL : TRAILS[CHARACTER_BY_ID[avatar.characterId]?.rarity];
+    if (!style || !view.contains(x, y)) {
+      avatar.nextTrail = time + 250;
+      return;
+    }
+    avatar.nextTrail = time + style.every;
+    this.fx.trail(x, y - 6, style.tint, style.size, avatar.container.depth - 0.5);
+  }
+
   // Shiny crops and players wearing a shiny glint now and then, and their sheen breathes.
   sparkle(time) {
     const view = this.cameras.main.worldView;
@@ -1081,6 +1095,7 @@ export class WorldScene extends Phaser.Scene {
       // A little hop in each step.
       if (avatar.moving) avatar.image.y = -Math.abs(Math.sin(time * 0.017 + avatar.x)) * 5;
       else if (!this.tweens.isTweening(avatar.image)) avatar.image.y = 0;
+      if (avatar.moving && time > (avatar.nextTrail ?? 0)) this.trail(avatar, time, camera.worldView);
     }
     if (time > this.nextSparkle) {
       this.nextSparkle = time + SPARKLE_MS;

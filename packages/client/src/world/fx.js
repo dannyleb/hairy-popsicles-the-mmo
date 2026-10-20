@@ -99,6 +99,23 @@ export function createFx(scene) {
     });
   }
 
+  // A mote left behind someone walking as a Rare or better: it hangs, then fades.
+  // `depth` is the walker's, so motes sit just behind them, over the ground and plots.
+  function trail(x, y, tint, size = 7, depth = DEPTH.flies - 1) {
+    const mote = scene.add.image(x + Phaser.Math.Between(-8, 8), y + Phaser.Math.Between(-6, 4), 'world:spore')
+      .setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth)
+      .setScale(Phaser.Math.FloatBetween(size * 0.7, size * 1.3) / 32).setAlpha(0.9);
+    scene.tweens.add({
+      targets: mote,
+      y: mote.y - Phaser.Math.Between(4, 12),
+      alpha: 0,
+      scale: mote.scale * 0.3,
+      duration: Phaser.Math.Between(700, 1100),
+      ease: 'Sine.in',
+      onComplete: () => mote.destroy(),
+    });
+  }
+
   // One drop of a Pus Rain, falling somewhere on screen.
   function rainDrop(view) {
     const x = view.x + Math.random() * view.width;
@@ -118,5 +135,5 @@ export function createFx(scene) {
     });
   }
 
-  return { droplets, float, ring, puddle, squish, sparkle, rainDrop };
+  return { droplets, float, ring, puddle, squish, sparkle, trail, rainDrop };
 }
