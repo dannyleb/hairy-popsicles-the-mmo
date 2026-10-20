@@ -43,10 +43,11 @@ room.send('chat', { text: 'back again' });
 await sleep(1500);
 check('still playable after reconnect', b.me && b.state.players[id]);
 
-// Leaving on purpose removes the player right away; their growing plot stays, marked away.
+// Leaving on purpose removes the player right away. (A level 1 player's plot
+// goes with them; from level 2 a growing plot is held, see the held suite.)
 await room.leave(true);
 await sleep(300);
-check('consented leave removes the player and holds the plot', !obs.state.players[id] && obs.state.plots['3,3']?.away === true && obs.state.plots['3,3'].ownerId === null);
+check('consented leave removes the player and, at level 1, the plot', !obs.state.players[id] && !obs.state.plots['3,3']);
 await observer.leave();
 console.log(failures ? `\n${failures} FAILED` : '\nall passed');
 process.exit(failures ? 1 : 0);

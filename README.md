@@ -58,8 +58,8 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Squeezing.** Tap a neighbor's growing crop: it ripens 25% sooner and
   you get 3 scraps. Up to 3 different people per crop. Squeezable crops
   glow green. This is the main reason to care that other people exist.
-  When a player leaves, their plot stays in the world for 24 hours if
-  anything is growing in it (dimmed, marked "away"), so the world doesn't
+  When a player (level 2 or up) leaves, their plot stays in the world for
+  24 hours if anything is growing in it (dimmed, marked "away"), so the world doesn't
   empty out and others can still squeeze it. It's theirs again when they
   come back, head start included: "Neighbors squeezed your crops 3 times
   while you were gone." The world room is never disposed, so this holds
@@ -314,8 +314,11 @@ and pull request (`.github/workflows/test.yml`).
 - **The save secret.** Saves are signed with `PROFILE_SECRET`. `render.yaml`
   generates one; if it changes or is missing, every save stops loading (the
   server logs a warning when it's missing).
-- **One room, no sharding.** Everyone joins the same `world` room (200
-  max). Fine until it gets crowded; then it needs zones or shards.
+- **One room, no sharding.** Everyone joins the same `world` room (300
+  max; the 301st is told the world is full). There is exactly one, it is
+  never disposed, and clients can only join it or reconnect to it (no
+  creating rooms or joining by id). A 60-bot load test ran clean. Past 300
+  it needs zones or shards.
 - **State sync is a blunt instrument.** The server broadcasts the whole
   public world state at most 10 times a second when something changes,
   leaving out the plots (most of it) unless a plot changed since the last

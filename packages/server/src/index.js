@@ -4,7 +4,7 @@ import wsTransport from '@colyseus/ws-transport';
 import { WorldRoom } from './rooms/WorldRoom.js';
 import { statsReport } from './stats.js';
 
-const { Server } = colyseus;
+const { Server, matchMaker } = colyseus;
 const { WebSocketTransport } = wsTransport;
 
 const port = Number(process.env.PORT) || 2567;
@@ -29,6 +29,9 @@ const gameServer = new Server({
 });
 
 gameServer.define('world', WorldRoom);
+// The game only ever joins (or makes) the one world, and reconnects to it. Nobody
+// gets to make rooms of their own, or pick one by id.
+matchMaker.controller.exposedMethods = ['joinOrCreate', 'reconnect'];
 
 httpServer.listen(port, () => {
   console.log(`Hairy Popsicles MMO server listening on ws://localhost:${port}`);

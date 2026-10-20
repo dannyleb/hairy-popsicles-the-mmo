@@ -112,7 +112,7 @@ check('emote broadcast, unknown emote ignored', b.ev('emote').length === 1 && b.
   sa.room.send('tend', { plotKey: key, slot: 4 });
   await sleep(250);
   const after = sb.state.plots[key].slots[4];
-  check('squeeze shortens the grow time', after && after.readyAt < before && after.tendedBy.includes(sa.me.profileId), `${Math.round((before - after?.readyAt) / 1000)}s off`);
+  check('squeeze shortens the grow time', after && after.readyAt < before && after.tendedBy.includes(sa.pub().pid), `${Math.round((before - after?.readyAt) / 1000)}s off`);
   check('owner told, squeezer paid', sb.ev('tended').length === 1 && sb.ev('tended')[0].by === 'Sal' && sa.ev('tendDone').length === 1 && sa.ev('tendDone')[0].scraps > 0);
   check('everyone sees the squeeze', sb.ev('tend').length === 1 && sa.ev('tend').length === 1);
   sa.room.send('tend', { plotKey: key, slot: 4 });

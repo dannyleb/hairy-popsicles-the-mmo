@@ -152,8 +152,10 @@ export class WorldScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer) => this.onPointerDown(pointer));
     this.input.on('pointermove', () => this.onPinchMove());
     this.input.on('pointerup', (pointer) => this.onPointerUp(pointer));
+    this.input.on('pointerupoutside', (pointer) => this.onPointerUp(pointer));
     this.input.on('wheel', (pointer, objects, dx, dy) => {
-      this.setUserZoom(this.userZoom * (dy > 0 ? 0.9 : 1.1));
+      if (!dy) return;  // sideways scrolling
+      this.setUserZoom(this.userZoom * Phaser.Math.Clamp(Math.exp(-dy * 0.0015), 0.8, 1.25));
       settings.set('zoom', this.userZoom);
     });
     this.bindRoom(this.room);
@@ -356,19 +358,21 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- taps and pinches ----------
 
+  // Fingers on the world itself: one resting on the HUD doesn't count.
   fingersDown() {
-    return [this.input.pointer1, this.input.pointer2].filter((p) => p?.isDown);
+    return [this.input.pointer1, this.input.pointer2].filter((p) => p?.isDown && p.downElement === this.game.canvas);
   }
 
+  // Every finger that lands may be a tap (two thumbs drumming on The Boil are two
+  // taps). Two fingers only become a pinch once the gap between them changes.
   onPointerDown(pointer) {
+    this.pendingTaps ??= new Map();
+    this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y });
     const fingers = this.fingersDown();
-    if (fingers.length >= 2) {
+    if (fingers.length >= 2 && !this.pinch) {
       const [a, b] = fingers;
-      this.pinch = { from: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.userZoom };
-      this.pendingTap = null;
-      return;
+      this.pinch = { from: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.userZoom, active: false };
     }
-    if (!this.pinch) this.pendingTap = { id: pointer.id, x: pointer.x, y: pointer.y };
   }
 
   onPinchMove() {
@@ -377,22 +381,22 @@ export class WorldScene extends Phaser.Scene {
     if (fingers.length < 2) return;
     const [a, b] = fingers;
     const distance = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
-    if (this.pinch.from > 0) this.setUserZoom(this.pinch.zoom * (distance / this.pinch.from));
+    if (!this.pinch.active && Math.abs(distance - this.pinch.from) > TAP_SLOP * DPR) {
+      this.pinch.active = true;
+      this.pendingTaps.clear();
+    }
+    if (this.pinch.active && this.pinch.from > 0) this.setUserZoom(this.pinch.zoom * (distance / this.pinch.from));
   }
 
   onPointerUp(pointer) {
-    if (this.pinch) {
-      // The pinch ends when the last finger lifts; remember how far out they like it.
-      if (!this.fingersDown().length) {
-        this.pinch = null;
-        settings.set('zoom', this.userZoom);
-      }
-      return;
+    const tap = this.pendingTaps?.get(pointer.id);
+    this.pendingTaps?.delete(pointer.id);
+    if (this.pinch && this.fingersDown().length < 2) {
+      // A pinch ends when a finger lifts; remember how far out they like it.
+      if (this.pinch.active) settings.set('zoom', this.userZoom);
+      this.pinch = null;
     }
-    const tap = this.pendingTap;
-    this.pendingTap = null;
-    if (!tap || tap.id !== pointer.id) return;
-    if (Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * DPR) return;
+    if (!tap || Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * DPR) return;
     this.handleTap(pointer);
   }
 
@@ -565,7 +569,7 @@ export class WorldScene extends Phaser.Scene {
   tapNeighborHole(plotKey, plot, slot, x, y) {
     const crop = plot.slots[slot];
     if (crop && this.now() < crop.readyAt) {
-      if (crop.tendedBy.includes(this.private.profileId)) {
+      if (crop.tendedBy.includes(this.me()?.pid)) {
         this.hud.toast('You already squeezed this one.');
       } else if (crop.tendedBy.length >= TEND_MAX) {
         this.hud.toast("It's been squeezed dry. Let it grow.");
@@ -753,7 +757,7 @@ export class WorldScene extends Phaser.Scene {
   // when ripe; a neighbor's I could squeeze glow green.
   updateCrops(time) {
     const now = this.now();
-    const me = this.private?.profileId;  // squeezers are remembered by save, not connection
+    const me = this.me()?.pid;  // squeezers are remembered by save (its public id), not connection
     for (const crop of this.crops.values()) {
       const { image, glow, slotData } = crop;
       const { plantedAt, readyAt, tendedBy } = slotData;

@@ -74,6 +74,11 @@ const WELCOME_AFTER_MS = 60_000; // away at least this long to get a "welcome ba
 // long, for others to see and squeeze, and is theirs again when they come back.
 const PLOT_HOLD_MS = Number(process.env.PLOT_HOLD_MS) || 24 * 3600_000;
 const MAX_HELD_PLOTS = 120;     // past this, the longest-held plots go first
+const HOLD_FROM_LEVEL = 2;      // throwaway saves don't get to fill the world with plots
+
+// There is one world, and it lives as long as the server: a second would split
+// players (and their held plots) between them.
+let theWorld = null;
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
@@ -87,9 +92,11 @@ const rank = (characterId) => RARITY_ORDER.indexOf(CHARACTER_BY_ID[characterId].
 // BROADCAST_MS). Per-player data (scraps, collection, quests) goes only to that
 // player. Swap for @colyseus/schema delta sync once crowds make this expensive.
 export class WorldRoom extends Room {
-  maxClients = 200;
+  maxClients = 300;
 
   onCreate() {
+    if (theWorld) throw new Error('The world is full right now. Try again in a bit.');
+    theWorld = this;
     // One world that carries on when it empties: held plots, the departed and
     // the event clocks all live here, so it's never thrown away.
     this.autoDispose = false;
@@ -133,6 +140,10 @@ export class WorldRoom extends Room {
 
     this.clock.setInterval(() => this.guarded('flush', () => this.flush()), BROADCAST_MS);
     this.clock.setInterval(() => this.guarded('tick', () => this.tick()), TICK_MS);
+  }
+
+  onDispose() {
+    if (theWorld === this) theWorld = null;
   }
 
   // Last line of defense: a bug in the room is logged, never fatal to the server.
@@ -184,6 +195,7 @@ export class WorldRoom extends Room {
     const player = {
       id: client.sessionId,
       profileId: save?.id ?? newProfileId(),
+      pid: null,  // public id, set below
       name: save?.name || `Guest${Math.floor(Math.random() * 10000)}`,
       // Near the middle of the world, so new players land near each other.
       x: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
@@ -240,6 +252,7 @@ export class WorldRoom extends Room {
         player.avatar = save.avatar;
       }
     }
+    player.pid = publicIdOf(player.profileId);
     this.players[player.id] = player;
     if (save?.plot || this.heldPlots.has(player.profileId)) this.restorePlot(player, save);
     return player;
@@ -273,7 +286,7 @@ export class WorldRoom extends Room {
   holdPlot(player) {
     const [key, plot] = this.plotOf(player);
     if (!plot) return;
-    if (!plot.slots.some(Boolean)) {
+    if (!plot.slots.some(Boolean) || player.level < HOLD_FROM_LEVEL) {
       delete this.plots[key];
       return;
     }
@@ -679,13 +692,14 @@ export class WorldRoom extends Room {
     const crop = plot.slots[slot];
     const now = Date.now();
     if (!crop || now >= crop.readyAt) return;
-    // Squeezers are remembered by save, not connection, so leaving and coming back doesn't reset it.
-    if (crop.tendedBy.includes(player.profileId) || crop.tendedBy.length >= TEND_MAX) return;
+    // Squeezers are remembered by save (its public id, as everyone sees these), not
+    // connection, so leaving and coming back doesn't reset it.
+    if (crop.tendedBy.includes(player.pid) || crop.tendedBy.length >= TEND_MAX) return;
     const at = this.slotCenter(plotKey, slot);
     if (Math.hypot(player.x - at.x, player.y - at.y) > REACH || !this.arrived(player)) return;
 
     crop.readyAt -= (crop.readyAt - now) * TEND_SHARE;
-    crop.tendedBy.push(player.profileId);
+    crop.tendedBy.push(player.pid);
     if (plot.away) plot.squeezedAway += 1;
     player.currency += TEND_SCRAPS;
     this.broadcast('tend', { plotKey, slot, by: player.id });
@@ -895,7 +909,7 @@ export class WorldRoom extends Room {
       const best = album.reduce((a, b) => (rank(b) > rank(a) ? b : a));
       players[p.id] = {
         id: p.id,
-        pid: (p.pid ??= publicIdOf(p.profileId)),
+        pid: p.pid,
         name: p.name,
         x: p.x,
         y: p.y,

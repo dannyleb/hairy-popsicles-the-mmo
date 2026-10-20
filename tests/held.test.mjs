@@ -80,6 +80,17 @@ await c.room.leave(true);
 await sleep(300);
 check('an empty plot goes when its owner does', !b.state.plots['12,12']);
 
+// ---- nor is a brand-new player's (throwaway saves can't fill the world)
+const d = await join({ name: 'Newbie' });
+d.room.send('claimPlot', { plotX: 13, plotY: 13 });
+await sleep(200);
+d.room.send('plant', { plotKey: '13,13', slot: 4 });
+await sleep(300);
+const planted13 = Boolean(b.state.plots['13,13']?.slots[4]);
+await d.room.leave(true);
+await sleep(300);
+check("a level 1 player's plot isn't held", planted13 && !b.state.plots['13,13']);
+
 // ---- held plots don't last forever
 await sleep(2400);
 const token2 = back.saves.at(-1);

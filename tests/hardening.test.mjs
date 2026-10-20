@@ -51,6 +51,14 @@ await sleep(1500);
 a.room.send('chat', { text: 'survived' });
 await sleep(400);
 check('malformed messages never take the server down', Boolean(late.state) && late.chat.some((c) => c.text === 'survived'));
+// ---- one world: nobody makes rooms of their own or picks one by id
+const refused = async (attempt) => attempt.then(() => false, () => true);
+check("clients can't create rooms", await refused(new Client(URL).create('world', { name: 'Squatter' })));
+check("or join one by id", await refused(new Client(URL).joinById(a.room.roomId, { name: 'Sneak' })));
+const extra = await new Client(URL).joinOrCreate('world', { name: 'Normal' });
+check('joining lands in the one world', extra.roomId === a.room.roomId);
+await extra.leave(true);
+
 await late.room.leave(true);
 await a.room.leave(true);
 await bad.room.leave(true);
