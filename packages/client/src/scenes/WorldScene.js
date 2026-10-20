@@ -257,6 +257,19 @@ export class WorldScene extends Phaser.Scene {
     this.updateCoach();
   }
 
+  // First-time tips for things that turn up later on.
+  updateTips() {
+    if (this.state.rain) this.hud.tip('rain', 'Pus Rain! Tap the globs to grab them before they soak in. Nearest gets there first.');
+    if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
+    if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
+    for (const crop of this.crops.values()) {
+      if (crop.glow.visible && !crop.mine && this.cameras.main.worldView.contains(crop.image.x, crop.image.y)) {
+        this.hud.tip('squeeze', "The green glow: tap a neighbor's growing crop to squeeze it. It ripens sooner and you get scraps.");
+        break;
+      }
+    }
+  }
+
   updateCoach() {
     if (!this.state || !this.private) return;
     const key = this.myPlotKey();
@@ -973,6 +986,7 @@ export class WorldScene extends Phaser.Scene {
       this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time);
       this.hud.setEvents(this.state, this.now());
       this.updateCoach();
+      if (this.private) this.updateTips();
     }
   }
 }

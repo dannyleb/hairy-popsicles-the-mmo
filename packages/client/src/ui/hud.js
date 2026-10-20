@@ -248,6 +248,10 @@ export function createHud(actions) {
       coach.show(step);
     },
 
+    tip(key, text) {
+      coach.tip(key, text);
+    },
+
     markNew() {
       albumBadge.hidden = false;
     },
