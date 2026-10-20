@@ -95,7 +95,11 @@ export function readToken(token) {
     const s = p.plot?.slots?.[i];
     if (!s || !Object.hasOwn(CHARACTER_BY_ID, s.characterId) || !Object.hasOwn(SEED_BY_ID, s.seed)) return null;
     if (!time(s.plantedAt) || !time(s.readyAt)) return null;
-    const tendedBy = Array.isArray(s.tendedBy) ? s.tendedBy.filter((id) => typeof id === 'string').slice(0, TEND_MAX) : [];
+    // Squeezers are public ids; older saves recorded save ids, which are converted
+    // here so they aren't sent to everyone and still count as already squeezed.
+    const tendedBy = Array.isArray(s.tendedBy)
+      ? s.tendedBy.filter((id) => typeof id === 'string').slice(0, TEND_MAX).map((id) => (id.length === PUBLIC_ID_LENGTH ? id : publicIdOf(id)))
+      : [];
     return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy };
   });
   const xp = count(p.xp);
@@ -125,4 +129,5 @@ export function readToken(token) {
 
 // A stable public handle for a save, so others can recognise a player across
 // visits (pals) without seeing the save's own id.
-export const publicIdOf = (profileId) => createHash('sha256').update(`pal:${profileId}`).digest('base64url').slice(0, 12);
+const PUBLIC_ID_LENGTH = 12;
+export const publicIdOf = (profileId) => createHash('sha256').update(`pal:${profileId}`).digest('base64url').slice(0, PUBLIC_ID_LENGTH);
