@@ -1,5 +1,5 @@
 import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, levelFor, linesOf } from '@hptm/shared';
-import { forgetProfile, peekProfile } from '../net/profile.js';
+import { forgetProfile, peekProfile, storeProfile } from '../net/profile.js';
 import { hasHaptics } from '../audio/sfx.js';
 import { remember, remembered, settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
@@ -122,6 +122,26 @@ export function createMenu({ onPlay }) {
   });
   if (!remembered(`news-${VERSION}`) && saved) newsLink.classList.add('unread');
   link('Credits', () => showPanel('Credits', list(PANELS.Credits)));
+  link('Load a save', () => {
+    const code = el('textarea', 'save-code');
+    code.rows = 4;
+    code.placeholder = 'Paste the code from Settings → Move to another phone';
+    const problem = el('p', 'menu-problem');
+    const load = el('button', 'menu-panel-close', 'Load it');
+    load.type = 'button';
+    load.addEventListener('click', () => {
+      const token = code.value.trim();
+      // Only the server can check the signature; this just catches a bad paste.
+      if (!/^[\w-]+\.[\w-]+$/.test(token)) {
+        problem.textContent = "That doesn't look like a save code.";
+        return;
+      }
+      storeProfile(token);
+      window.location.reload();
+    });
+    const warning = saved ? [el('p', null, 'This replaces the save on this phone.')] : [];
+    showPanel('Load a save', ...warning, code, problem, load);
+  });
   if (saved) {
     link('Start over', () => {
       const confirmButton = el('button', 'menu-panel-close danger', 'Start over for good');

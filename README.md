@@ -90,7 +90,9 @@ Timers are short on purpose while nothing persists. Rarities live in
   edited. Come back and your plot reappears where it was (or as close as
   is free), and the crops kept growing while you were gone: "Welcome back,
   4 crops are ripe and waiting." Reloading or opening a second tab takes
-  over your existing player rather than making a copy.
+  over your existing player rather than making a copy. To move to another
+  phone, copy the save code from Settings → Move to another phone and paste
+  it into Menu → Load a save on the new one.
 - **Shinies and stars.** About 1 crop in 40 comes up shiny (1 in 20 under a
   Blood Moon): the same character with a gold outline that everyone can see
   once it's ripe, triple scraps, its own reveal and a world announcement.
@@ -255,8 +257,8 @@ bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 
 - **Saves live on the device, not on the server.** That needed no database,
   and progress survives the free server sleeping and restarting. The
-  catches: progress doesn't follow you to another phone or browser, clearing
-  site data loses it, and you only see other players' plots while they're
+  catches: progress only moves to another phone or browser by copying the
+  save code across by hand, clearing site data loses it, and you only see other players' plots while they're
   online. The server remembers each departed player's latest state for 3
   days (in memory), so an older save sent back is replaced by the newer one,
   but after a server restart a player could restore an older save of their
@@ -301,4 +303,3 @@ bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
    devices and offline players' plots stay in the world for others to see
    and squeeze.
 3. Real art for the world (ground, plots, props, The Boil).
-4. Daily quests on top of the login streak.

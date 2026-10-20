@@ -3,6 +3,7 @@ import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
+import { savedProfile } from '../net/profile.js';
 
 const SETTINGS = [
   { name: 'sound', label: 'Sound effects' },
@@ -250,9 +251,29 @@ export function createSheets(actions) {
     const rulesList = el('ul');
     rulesList.append(...HOW_TO_PLAY.map((line) => el('li', null, line)));
     rules.append(el('summary', null, 'How to play'), rulesList);
+    // Saves live on the device; this is how they get to another one.
+    const move = el('details', 'sheet-rules');
+    const code = el('textarea', 'save-code');
+    code.readOnly = true;
+    code.rows = 3;
+    code.value = savedProfile() ?? '';
+    const copy = button('sheet-button', 'Copy my save', async () => {
+      try {
+        await navigator.clipboard.writeText(code.value);
+        copy.textContent = 'Copied';
+      } catch {
+        code.select();
+      }
+    });
+    move.append(
+      el('summary', null, 'Move to another phone'),
+      el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. Whichever one plays last is the one that counts.'),
+      code,
+      copy,
+    );
     const leave = button('sheet-button quiet', 'Leave the world', () => actions.leave());
     const note = el('p', 'overlay-hint', "Your progress is saved on this device. Your plot comes back with you and keeps growing while you're away.");
-    open('Settings', list, rules, note, leave);
+    open('Settings', list, rules, move, note, leave);
   }
 
   return {
