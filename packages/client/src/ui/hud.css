@@ -47,6 +47,9 @@
 
 .hud-card {
   position: absolute;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   top: var(--top);
   left: 10px;
   display: flex;
@@ -1351,4 +1354,89 @@
   margin: -8px 0 14px;
   font-size: 16px;
   color: #bfe38a;
+}
+
+/* ---------- titles ---------- */
+
+.rank-title,
+.inspect-facts .inspect-title {
+  display: block;
+  font-size: 13px;
+  color: #e9b9a0;
+  opacity: 0.85;
+}
+
+.inspect-facts .inspect-title {
+  margin-top: -2px;
+  font-size: 16px;
+}
+
+.titles-section h3 {
+  margin: 18px 0 6px;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e9b9a0;
+}
+
+.titles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.title-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1px 8px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 7px 10px 8px;
+  text-align: left;
+  background: #2a161c;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.title-row:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.title-row.earned .title-name {
+  color: #f3d27a;
+}
+
+.title-row.worn {
+  border-color: #e8b04a;
+}
+
+.title-name {
+  font-size: 17px;
+}
+
+.title-state {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.title-goal {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.title-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  margin-top: 3px;
+  overflow: hidden;
+  background: #1a0c10;
+  border-radius: 2px;
+}
+
+.title-fill {
+  height: 100%;
+  background: #e8b04a;
 }

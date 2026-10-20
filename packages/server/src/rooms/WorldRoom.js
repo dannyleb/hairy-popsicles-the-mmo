@@ -14,6 +14,9 @@ import {
   SEED_BY_ID,
   SHINY_CHANCE,
   SHINY_SCRAPS,
+  STAT_NAMES,
+  TITLES,
+  TITLE_BY_ID,
   STARTING_CURRENCY,
   TEND_MAX,
   TEND_SCRAPS,
@@ -28,6 +31,7 @@ import {
   holeOpen,
   levelFor,
   starsFor,
+  titleProgress,
   wearBonus,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
@@ -89,6 +93,7 @@ export class WorldRoom extends Room {
     on('emote', (p, m) => this.handleEmote(p, m));
     on('hitBoss', (p) => this.handleHitBoss(p));
     on('grab', (p, m) => this.handleGrab(p, m));
+    on('setTitle', (p, m) => this.handleSetTitle(p, m));
     on('sync', (p, m, client) => this.sendWorld(p, client, true));
 
     this.clock.setInterval(() => this.flush(), BROADCAST_MS);
@@ -112,6 +117,7 @@ export class WorldRoom extends Room {
       player.inventory.boil += daily.reward.boil ?? 0;
       player.notices.push({ kind: 'daily', ...daily });
     }
+    this.checkTitles(player);  // a streak can earn one just by showing up
     console.log(`join ${player.id} ${player.name}${save ? ' (saved)' : ''} (${this.clients.length} here)`);
     topUp(player, this.othersPresent(player));
     player.saveDirty = true;
@@ -139,7 +145,11 @@ export class WorldRoom extends Room {
       quests: [],
       daily: { last: null, streak: 0 },
       dailyQuest: null,
+      stats: Object.fromEntries(STAT_NAMES.map((name) => [name, 0])),
+      titles: [],
+      title: null,
       notices: [],         // shown once the client is listening ('sync')
+      synced: false,
       saveDirty: true,
       lastSaveAt: 0,
       reconnection: null,  // while away: the pending reconnection, so a takeover can cancel it
@@ -161,6 +171,9 @@ export class WorldRoom extends Room {
         quests: restoreQuests(save.quests),
         daily: save.daily,
         dailyQuest: restoreDaily(save.dailyQuest, dayOf(Date.now())),
+        stats: save.stats,
+        titles: save.titles,
+        title: save.title,
       });
       if (Object.keys(save.collection).length) {
         player.collection = save.collection;
@@ -215,7 +228,7 @@ export class WorldRoom extends Room {
     player.reconnection?.reject?.();
     this.clients.getById(oldId)?.leave(REPLACED);
     delete this.players[oldId];
-    Object.assign(player, { id: newId, away: false, reconnection: null });
+    Object.assign(player, { id: newId, away: false, reconnection: null, synced: false });
     this.players[newId] = player;
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
@@ -308,14 +321,16 @@ export class WorldRoom extends Room {
     client.send('chatLog', this.chatLog);
     this.sendMe(player);
     if (!synced) return;
+    player.synced = true;
     for (const notice of player.notices) client.send('notice', notice);
     player.notices = [];
     this.sendSave(player);
   }
 
   sendMe(player) {
-    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest } = player;
-    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests, dailyQuest });
+    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title } = player;
+    const streak = player.daily.streak;
+    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, streak });
     player.saveDirty = true;
   }
 
@@ -330,6 +345,28 @@ export class WorldRoom extends Room {
     client.send('save', { token: saveToken(player, plot, key) });
     player.saveDirty = false;
     player.lastSaveAt = Date.now();
+  }
+
+  // Count something toward lifetime stats (and the titles they earn).
+  bump(player, stat, amount = 1) {
+    player.stats[stat] += amount;
+    this.checkTitles(player);
+  }
+
+  checkTitles(player) {
+    const album = Object.keys(player.collection).length;
+    for (const title of TITLES) {
+      if (player.titles.includes(title.id)) continue;
+      if (titleProgress(title, player.stats, album, player.daily.streak) < title.count) continue;
+      player.titles.push(title.id);
+      player.title ??= title.id;  // the first one earned goes on straight away
+      // Before the client is listening (joining), it waits with the other notices.
+      if (player.synced) this.clientOf(player)?.send('titleEarned', { id: title.id });
+      else player.notices.push({ kind: 'title', id: title.id });
+      this.announce(`${player.name} earned the title ${title.name}.`, 'title');
+      player.saveDirty = true;
+      this.markDirty();
+    }
   }
 
   grantXp(player, amount) {
@@ -470,6 +507,8 @@ export class WorldRoom extends Room {
       shiny: Boolean(shiny),
       starUp: stars > starsFor(before) ? stars : 0,
     });
+    this.bump(player, 'harvests');
+    if (shiny) this.bump(player, 'shinies');
     if (shiny) this.announce(`${player.name} grew a shiny ${character.name}!`, 'shiny');
     else if (rank(characterId) >= 2) this.announce(`${player.name} grew a ${rarity.label} ${character.name}!`, character.rarity);
     this.grantXp(player, xp);
@@ -504,6 +543,7 @@ export class WorldRoom extends Room {
     this.clientOf(player)?.send('tendDone', { scraps: TEND_SCRAPS, xp: XP.tend, owner: plot.ownerName });
     this.grantXp(player, XP.tend);
     this.progress(player, 'tend');
+    this.bump(player, 'squeezes');
     this.sendMe(player);
     this.markDirty();
   }
@@ -528,6 +568,7 @@ export class WorldRoom extends Room {
     if (this.chatLog.length > CHAT_LOG) this.chatLog.shift();
     this.broadcast('chat', line);
     this.progress(player, 'chat');
+    this.bump(player, 'chats');
     this.sendMe(player);
   }
 
@@ -550,6 +591,13 @@ export class WorldRoom extends Room {
     this.sendMe(player);
   }
 
+  handleSetTitle(player, { id }) {
+    if (id !== null && !player.titles.includes(id)) return;
+    player.title = id;
+    this.sendMe(player);
+    this.markDirty();
+  }
+
   handleGrab(player, { id }) {
     if (!Number.isInteger(id) || !this.arrived(player)) return;
     const scraps = this.rain.grab(player, id);
@@ -558,10 +606,12 @@ export class WorldRoom extends Room {
     this.clientOf(player)?.send('gotGlob', { scraps, gold: scraps > 2 });
     this.grantXp(player, XP.grab);
     this.progress(player, 'grab');
+    this.bump(player, 'globs');
     this.sendMe(player);
   }
 
   rewardBoss(player, reward) {
+    if (reward.top) this.bump(player, 'bossTops');
     player.currency += reward.scraps;
     player.inventory.boil += reward.seeds;
     this.clientOf(player)?.send('bossReward', reward);
@@ -616,6 +666,7 @@ export class WorldRoom extends Room {
         level: p.level,
         album: album.length,
         shinies: Object.keys(p.shinies).length,
+        title: TITLE_BY_ID[p.title]?.name ?? null,
         best,
         away: p.away,
       };

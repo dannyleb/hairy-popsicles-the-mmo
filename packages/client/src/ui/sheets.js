@@ -1,4 +1,4 @@
-import { CHARACTERS, CHARACTER_BY_ID, RARITIES } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, RARITIES, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
 import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
@@ -38,6 +38,7 @@ export function createSheets(actions) {
 
   let players = {};
   let myId = null;
+  let me = null;  // my private data, for the titles list
   let showing = null;  // which sheet is open, so it can refresh as players change
   const muted = new Set();
 
@@ -67,6 +68,7 @@ export function createSheets(actions) {
       bestImg.style.borderColor = RARITIES[best.rarity].color;
       bestImg.title = best.name;
       const who = el('span', 'rank-name', p.id === myId ? `${p.name} (you)` : p.name);
+      if (p.title) who.append(el('small', 'rank-title', p.title));
       row.append(
         el('span', 'rank-place', String(i + 1)),
         img(spriteUrl(p.avatar), 'rank-avatar'),
@@ -95,6 +97,7 @@ export function createSheets(actions) {
     const facts = el('div', 'inspect-facts');
     facts.append(
       el('p', 'inspect-name', p.name),
+      ...(p.title ? [el('p', 'inspect-title', p.title)] : []),
       el('p', null, `Level ${p.level}${p.away ? ' · away' : ''}`),
       el('p', null, `Playing as ${p.shiny ? 'shiny ' : ''}${avatar.name}${p.stars ? ` ${'★'.repeat(p.stars)}` : ''}`),
       el('p', null, `Album ${p.album}/${CHARACTERS.length}${p.shinies ? ` · ${p.shinies} shiny` : ''}`),
@@ -119,7 +122,39 @@ export function createSheets(actions) {
     } else {
       actionsRow.append(button('sheet-button', 'Change character', () => { close(); actions.openAlbum(); }));
     }
-    open(id === myId ? 'You' : 'Player', top, actionsRow);
+    open(id === myId ? 'You' : 'Player', top, actionsRow, ...(id === myId && me ? [titlesList()] : []));
+  }
+
+  // Every title: earned ones can be worn (tap), the rest show how close you are.
+  function titlesList() {
+    const album = Object.keys(me.collection).length;
+    const list = el('ul', 'titles');
+    for (const title of TITLES) {
+      const earned = me.titles.includes(title.id);
+      const worn = me.title === title.id;
+      const row = button(`title-row${earned ? ' earned' : ''}${worn ? ' worn' : ''}`, null, () => {
+        if (!earned) return;
+        actions.setTitle(worn ? null : title.id);
+      });
+      row.disabled = !earned;
+      const have = Math.min(title.count, titleProgress(title, me.stats, album, me.streak ?? 0));
+      const fill = el('div', 'title-fill');
+      fill.style.width = `${(have / title.count) * 100}%`;
+      const bar = el('div', 'title-bar');
+      bar.append(fill);
+      row.append(
+        el('span', 'title-name', title.name),
+        el('span', 'title-state', worn ? 'showing' : earned ? 'tap to show' : `${have}/${title.count}`),
+        el('span', 'title-goal', title.goal),
+        bar,
+      );
+      const item = el('li');
+      item.append(row);
+      list.append(item);
+    }
+    const section = el('div', 'titles-section');
+    section.append(el('h3', null, 'Titles'), list);
+    return section;
   }
 
   function settingsSheet() {
@@ -151,8 +186,14 @@ export function createSheets(actions) {
     leaderboard: () => { sfx.click(); leaderboard(); },
     settings: () => { sfx.click(); settingsSheet(); },
     inspect: (id) => { sfx.click(); inspect(id); },
+    inspectMe: () => { if (myId) { sfx.click(); inspect(myId); } },
     isOpen: () => !root.hidden,
     isMuted: (id) => muted.has(id),
+
+    setMe(next) {
+      me = next;
+      if (showing?.kind === 'inspect' && showing.id === myId) inspect(myId);
+    },
 
     setPlayers(next, me) {
       players = next;

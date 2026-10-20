@@ -124,6 +124,7 @@ export class WorldScene extends Phaser.Scene {
       goToBoss: () => this.walkToBoss(),
       travel: (x, y) => this.walk(x, y),
       albumOpened: () => { this.coached.albumOpened = true; },
+      setTitle: (id) => this.room.send('setTitle', { id }),
       leave: () => this.leave(),
     });
 
@@ -168,6 +169,7 @@ export class WorldScene extends Phaser.Scene {
     });
     on('save', ({ token }) => storeProfile(token));
     on('notice', this.onNotice);
+    on('titleEarned', ({ id }) => this.hud.titleEarned(id));
     room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
   }
@@ -639,8 +641,10 @@ export class WorldScene extends Phaser.Scene {
           .setOrigin(0.5, 0).setShadow(0, 1, '#000', 4, false, true);
         const level = this.add.text(0, 8, '', textStyle(12, '#f3d27a'))
           .setOrigin(0, 0).setShadow(0, 1, '#000', 4, false, true);
-        const container = this.add.container(p.x, p.y, [shadow, sheen, image, name, level]);
-        avatar = { container, sheen, image, name, level, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false, shiny: false };
+        const title = this.add.text(0, 24, '', textStyle(12, '#e9b9a0'))
+          .setOrigin(0.5, 0).setShadow(0, 1, '#000', 4, false, true).setAlpha(0.85);
+        const container = this.add.container(p.x, p.y, [shadow, sheen, image, name, level, title]);
+        avatar = { container, sheen, image, name, level, title, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false, shiny: false };
         this.avatars.set(p.id, avatar);
         if (mine) {
           this.cameras.main.centerOn(p.x, p.y - lookAhead());
@@ -678,10 +682,11 @@ export class WorldScene extends Phaser.Scene {
           }
         }
       }
-      const label = `${p.name}|${p.level}|${p.stars}`;
+      const label = `${p.name}|${p.level}|${p.stars}|${p.title}`;
       if (avatar.label !== label) {
         avatar.label = label;
         avatar.name.setText(p.name);
+        avatar.title.setText(p.title ? `~ ${p.title} ~` : '');
         avatar.level.setText(p.stars ? `${p.level} ${'★'.repeat(p.stars)}` : `${p.level}`);
         const total = avatar.name.width + 4 + avatar.level.width;
         avatar.name.setX(-total / 2 + avatar.name.width / 2);
@@ -867,6 +872,8 @@ export class WorldScene extends Phaser.Scene {
     if (notice.kind === 'welcome') {
       this.hud.welcome({ ...notice, avatar: this.me()?.avatar });
       sfx.discover();
+    } else if (notice.kind === 'title') {
+      this.hud.titleEarned(notice.id);
     } else if (notice.kind === 'daily') {
       this.hud.daily(notice);
       if (notice.reward.boil) this.hud.selectSeed('boil');

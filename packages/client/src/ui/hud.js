@@ -1,4 +1,4 @@
-import { CHARACTERS, QUEST_KINDS, RARITIES, SEEDS, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { CHARACTERS, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, levelProgress, MAX_LEVEL } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -20,7 +20,8 @@ export function createHud(actions) {
   const root = el('div', 'hud');
 
   // ---- top left: who you are
-  const card = el('div', 'hud-card');
+  // Tap your card for your titles and stats.
+  const card = button('hud-card', null, () => sheets.inspectMe());
   const portrait = img('', 'hud-portrait');
   const name = el('span', 'hud-name');
   const level = el('span', 'hud-level');
@@ -229,6 +230,7 @@ export function createHud(actions) {
       renderQuests();
       renderSeeds();
       album.update(me.collection, me.shinies ?? {}, pub?.avatar);
+      sheets.setMe(me);
       if (firstTime) lastScraps = me.currency;
     },
 
@@ -303,6 +305,10 @@ export function createHud(actions) {
     levelUp: reveal.levelUp,
     welcome: reveal.welcome,
     daily: reveal.daily,
+    titleEarned: (id) => {
+      sfx.fanfare();
+      reveal.title(TITLE_BY_ID[id], () => actions.setTitle(id));
+    },
     chatLine: chat.line,
     chatHistory: chat.history,
     isMuted: sheets.isMuted,

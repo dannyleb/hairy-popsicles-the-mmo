@@ -112,6 +112,28 @@ export function createReveal({ onWear }) {
       });
     },
 
+    title({ name, goal }, onShow) {
+      enqueue(() => {
+        root.classList.add('daily');
+        const card = el('div', 'reveal-card');
+        const actions = el('div', 'reveal-actions');
+        actions.append(
+          button('reveal-button primary', 'Show it off', () => {
+            onShow();
+            next();
+          }),
+          button('reveal-button', 'Nice', () => next()),
+        );
+        card.append(
+          el('p', 'reveal-rarity', 'New title'),
+          el('h2', 'reveal-name', name),
+          el('p', 'reveal-line', `${goal}. Everyone sees it under your name.`),
+          actions,
+        );
+        root.append(card);
+      });
+    },
+
     // The 7-day track, today's reward highlighted.
     daily({ streak }) {
       enqueue(() => {

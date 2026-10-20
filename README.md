@@ -92,6 +92,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
+- **Titles.** Ten lifetime goals (harvest 25 and 150, squeeze 20, top The
+  Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, a 7-day
+  streak, 15 characters, all of them) each earn a title, announced to the
+  world. Wear one under your name; tap your card (top left) to see them all
+  with progress and switch.
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
   track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
   streak starts over.
