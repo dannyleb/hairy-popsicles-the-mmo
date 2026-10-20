@@ -6,13 +6,16 @@ import {
   DAILY_QUEST,
   EMOTE_BY_ID,
   EMOTE_COOLDOWN_MS,
+  FERTILIZER_SPEEDUP,
   GIFT_COOLDOWN_MS,
+  NAME_COLORS,
   PLOT_SIZE,
   QUEST_KINDS,
   RARITIES,
   RARITY_ORDER,
   REACH,
   SEED_BY_ID,
+  SHOP,
   SHINY_CHANCE,
   SHINY_SCRAPS,
   STAT_NAMES,
@@ -97,6 +100,8 @@ export class WorldRoom extends Room {
     on('grab', (p, m) => this.handleGrab(p, m));
     on('setTitle', (p, m) => this.handleSetTitle(p, m));
     on('gift', (p, m) => this.handleGift(p, m));
+    on('buy', (p, m) => this.handleBuy(p, m));
+    on('setColor', (p, m) => this.handleSetColor(p, m));
     on('sync', (p, m, client) => this.sendWorld(p, client, true));
 
     this.clock.setInterval(() => this.flush(), BROADCAST_MS);
@@ -144,7 +149,9 @@ export class WorldRoom extends Room {
       currency: STARTING_CURRENCY,
       collection: { [starter.id]: 1 },
       shinies: {},
-      inventory: { boil: 0 },
+      inventory: { boil: 0, fertilizer: 0 },
+      colors: [],
+      nameColor: null,
       quests: [],
       daily: { last: null, streak: 0 },
       dailyQuest: null,
@@ -172,6 +179,8 @@ export class WorldRoom extends Room {
         currency: save.currency,
         shinies: save.shinies,
         inventory: save.inventory,
+        colors: save.colors,
+        nameColor: save.nameColor,
         quests: restoreQuests(save.quests),
         daily: save.daily,
         dailyQuest: restoreDaily(save.dailyQuest, dayOf(Date.now())),
@@ -194,7 +203,7 @@ export class WorldRoom extends Room {
   restorePlot(player, save) {
     const key = this.freePlotNear(save.plot.key);
     if (!key) return;
-    this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots };
+    this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots, candles: save.plot.candles };
     const [px, py] = key.split(',').map(Number);
     const plotPx = PLOT_SIZE * TILE_SIZE;
     player.x = px * plotPx + plotPx / 2;
@@ -332,9 +341,11 @@ export class WorldRoom extends Room {
   }
 
   sendMe(player) {
-    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title } = player;
+    const { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor } = player;
     const streak = player.daily.streak;
-    this.clientOf(player)?.send('me', { currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, streak });
+    this.clientOf(player)?.send('me', {
+      currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, streak,
+    });
     player.saveDirty = true;
   }
 
@@ -467,12 +478,15 @@ export class WorldRoom extends Room {
     // silhouette of it while it grows.
     const character = rollCharacter(seedDef, Boolean(this.bloodMoon));
     const bonus = wearBonus(player.avatar, player.collection[player.avatar]);
+    // A dose of fertilizer, if there's one left, goes into this crop.
+    const fertilized = player.inventory.fertilizer > 0 ? 1 - FERTILIZER_SPEEDUP : 1;
+    if (fertilized < 1) player.inventory.fertilizer -= 1;
     const now = Date.now();
     plot.slots[slot] = {
       characterId: character.id,
       seed,
       plantedAt: now,
-      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)),
+      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)) * fertilized,
       shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1),
       tendedBy: [],
     };
@@ -619,6 +633,34 @@ export class WorldRoom extends Room {
     this.markDirty();
   }
 
+  handleBuy(player, { item, color }) {
+    const def = Object.hasOwn(SHOP, item) ? SHOP[item] : null;
+    if (!def || player.currency < def.cost) return;
+    if (item === 'fertilizer') {
+      player.inventory.fertilizer += def.doses;
+    } else if (item === 'candle') {
+      const [, plot] = this.plotOf(player);
+      if (!plot || (plot.candles ?? 0) >= def.max) return;
+      plot.candles = (plot.candles ?? 0) + 1;
+      this.markDirty();
+    } else if (item === 'color') {
+      if (!Object.hasOwn(NAME_COLORS, color) || player.colors.includes(color)) return;
+      player.colors.push(color);
+      player.nameColor = color;
+      this.markDirty();
+    }
+    player.currency -= def.cost;
+    this.clientOf(player)?.send('bought', { item, color });
+    this.sendMe(player);
+  }
+
+  handleSetColor(player, { color }) {
+    if (color !== null && !player.colors.includes(color)) return;
+    player.nameColor = color;
+    this.sendMe(player);
+    this.markDirty();
+  }
+
   handleSetTitle(player, { id }) {
     if (id !== null && !player.titles.includes(id)) return;
     player.title = id;
@@ -695,6 +737,7 @@ export class WorldRoom extends Room {
         album: album.length,
         shinies: Object.keys(p.shinies).length,
         title: TITLE_BY_ID[p.title]?.name ?? null,
+        color: NAME_COLORS[p.nameColor] ?? null,
         best,
         away: p.away,
       };

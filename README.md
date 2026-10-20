@@ -102,6 +102,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
+- **Shop.** Somewhere to spend scraps besides seeds (tap your card, then
+  Shop): fertilizer (3 doses for 30; each makes a crop grow twice as fast),
+  candles for the corners of your plot (50 each, up to 4, seen by
+  everyone), and name colors (150 each).
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day
   track: scraps, with Boil Seeds on days 3, 6 and 7. Miss a day and the
   streak starts over.
@@ -235,7 +239,7 @@ npm test -- saves gifts  # just those
 with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them
 with real Colyseus clients. Suites: `game` (planting, levels, quests,
 chat, squeezing, The Boil, Blood Moon), `levels` (high-level growth),
-`reconnect`, `saves` (signing,
+`shop`, `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `titles`, `gifts`, `hardening` (filter, rate limits) and
 `filter`. GitHub Actions runs them on every push and pull request

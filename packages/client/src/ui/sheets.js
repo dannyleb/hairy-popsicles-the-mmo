@@ -1,4 +1,4 @@
-import { CHARACTERS, CHARACTER_BY_ID, RARITIES, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, NAME_COLORS, RARITIES, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
 import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
@@ -68,6 +68,7 @@ export function createSheets(actions) {
       bestImg.style.borderColor = RARITIES[best.rarity].color;
       bestImg.title = best.name;
       const who = el('span', 'rank-name', p.id === myId ? `${p.name} (you)` : p.name);
+      if (p.color) who.style.color = p.color;
       if (p.title) who.append(el('small', 'rank-title', p.title));
       row.append(
         el('span', 'rank-place', String(i + 1)),
@@ -95,8 +96,10 @@ export function createSheets(actions) {
     const avatar = CHARACTER_BY_ID[p.avatar];
     const portrait = img(spriteUrl(p.avatar), 'inspect-portrait');
     const facts = el('div', 'inspect-facts');
+    const nameLine = el('p', 'inspect-name', p.name);
+    if (p.color) nameLine.style.color = p.color;
     facts.append(
-      el('p', 'inspect-name', p.name),
+      nameLine,
       ...(p.title ? [el('p', 'inspect-title', p.title)] : []),
       el('p', null, `Level ${p.level}${p.away ? ' · away' : ''}`),
       el('p', null, `Playing as ${p.shiny ? 'shiny ' : ''}${avatar.name}${p.stars ? ` ${'★'.repeat(p.stars)}` : ''}`),
@@ -121,7 +124,10 @@ export function createSheets(actions) {
         }),
       );
     } else {
-      actionsRow.append(button('sheet-button', 'Change character', () => { close(); actions.openAlbum(); }));
+      actionsRow.append(
+        button('sheet-button', 'Shop', () => shop()),
+        button('sheet-button quiet', 'Change character', () => { close(); actions.openAlbum(); }),
+      );
     }
     open(id === myId ? 'You' : 'Player', top, actionsRow, ...(id === myId && me ? [titlesList()] : []));
   }
@@ -147,6 +153,50 @@ export function createSheets(actions) {
       grid.append(card);
     }
     open(`Give to ${p.name}`, el('p', 'overlay-hint', 'Tap a character to give them one of your spare copies. You keep the rest.'), grid);
+  }
+
+  // Things to spend scraps on: fertilizer, candles for your plot, a name color.
+  function shop() {
+    if (!me) return;
+    showing = { kind: 'shop' };
+    const afford = (cost) => me.currency >= cost;
+    const item = (def, state, buy, enabled = true) => {
+      const row = el('div', 'shop-item');
+      const info = el('div', 'shop-info');
+      info.append(el('span', 'shop-name', def.name), el('span', 'shop-text', def.text), el('span', 'shop-state', state));
+      const buyButton = button('sheet-button shop-buy', `${def.cost} scraps`, buy);
+      buyButton.disabled = !enabled || !afford(def.cost);
+      row.append(info, buyButton);
+      return row;
+    };
+    const plot = actions.myPlot();
+    const candles = plot?.candles ?? 0;
+    const swatches = el('div', 'shop-colors');
+    for (const [color, hex] of Object.entries(NAME_COLORS)) {
+      const owned = me.colors.includes(color);
+      const worn = me.nameColor === color;
+      const swatch = button(`shop-swatch${owned ? ' owned' : ''}${worn ? ' worn' : ''}`, color, () => {
+        if (worn) actions.setColor(null);
+        else if (owned) actions.setColor(color);
+        else if (afford(SHOP.color.cost)) actions.buy('color', color);
+      });
+      swatch.style.color = hex;
+      swatch.disabled = !owned && !afford(SHOP.color.cost);
+      swatches.append(swatch);
+    }
+    const colorRow = el('div', 'shop-item column');
+    const colorInfo = el('div', 'shop-info');
+    colorInfo.append(
+      el('span', 'shop-name', SHOP.color.name),
+      el('span', 'shop-text', `${SHOP.color.text} ${SHOP.color.cost} scraps each; tap one you own to wear it.`),
+    );
+    colorRow.append(colorInfo, swatches);
+    open(
+      `Shop · ${me.currency} scraps`,
+      item(SHOP.fertilizer, me.inventory.fertilizer ? `You have ${me.inventory.fertilizer} doses` : '', () => actions.buy('fertilizer')),
+      item(SHOP.candle, plot ? `${candles}/${SHOP.candle.max} on your plot` : 'Claim a plot first', () => actions.buy('candle'), Boolean(plot) && candles < SHOP.candle.max),
+      colorRow,
+    );
   }
 
   // Every title: earned ones can be worn (tap), the rest show how close you are.
@@ -217,7 +267,10 @@ export function createSheets(actions) {
     setMe(next) {
       me = next;
       if (showing?.kind === 'inspect' && showing.id === myId) inspect(myId);
+      else if (showing?.kind === 'shop') shop();
     },
+
+    shop: () => { sfx.click(); shop(); },
 
     setPlayers(next, me) {
       players = next;

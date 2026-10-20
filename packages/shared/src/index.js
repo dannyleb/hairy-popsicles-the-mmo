@@ -5,3 +5,4 @@ export * from './quests.js';
 export * from './social.js';
 export * from './daily.js';
 export * from './titles.js';
+export * from './shop.js';

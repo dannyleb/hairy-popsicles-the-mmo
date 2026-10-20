@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { CHARACTER_BY_ID, NAME_MAX, PLOT_SIZE, SEED_BY_ID, STAT_NAMES, TITLE_BY_ID, levelFor } from '@hptm/shared';
+import { CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, SEED_BY_ID, SHOP, STAT_NAMES, TITLE_BY_ID, levelFor } from '@hptm/shared';
 import { hasBlocked } from './filter.js';
 
 // Saves live on the player's device, signed by the server so they can't be
@@ -45,8 +45,11 @@ export function saveToken(player, plot, plotKey) {
     stats: player.stats,
     titles: player.titles,
     title: player.title,
+    colors: player.colors,
+    nameColor: player.nameColor,
     plot: plot && {
       key: plotKey,
+      candles: plot.candles ?? 0,
       slots: plot.slots.map((s) => s && { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny }),
     },
     savedAt: Date.now(),
@@ -98,14 +101,16 @@ export function readToken(token) {
     currency: count(p.currency),
     collection,
     shinies,
-    inventory: { boil: count(p.inventory?.boil) },
+    inventory: { boil: count(p.inventory?.boil), fertilizer: count(p.inventory?.fertilizer) },
     quests: Array.isArray(p.quests) ? p.quests : [],
     daily: { last: typeof p.daily?.last === 'string' ? p.daily.last.slice(0, 10) : null, streak: count(p.daily?.streak) },
     dailyQuest: p.dailyQuest ?? null,  // checked against today by restoreDaily
     stats: Object.fromEntries(STAT_NAMES.map((name) => [name, count(p.stats?.[name])])),
     titles: Array.isArray(p.titles) ? p.titles.filter((id) => Object.hasOwn(TITLE_BY_ID, id)) : [],
     title: Object.hasOwn(TITLE_BY_ID, p.title) && p.titles?.includes(p.title) ? p.title : null,
-    plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots } : null,
+    colors: Array.isArray(p.colors) ? p.colors.filter((c) => Object.hasOwn(NAME_COLORS, c)) : [],
+    nameColor: Object.hasOwn(NAME_COLORS, p.nameColor) && p.colors?.includes(p.nameColor) ? p.nameColor : null,
+    plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,
     savedAt: time(p.savedAt),
   };
 }

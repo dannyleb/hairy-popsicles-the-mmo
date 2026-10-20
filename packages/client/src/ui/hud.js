@@ -159,7 +159,8 @@ export function createHud(actions) {
       chip.classList.toggle('broke', !locked && !seed.dropOnly && me.currency < seed.cost);
     }
     const seed = SEEDS.find((s) => s.id === selected());
-    seedName.textContent = seed.dropOnly ? `${seed.name} · free` : `${seed.name} · ${seed.cost} scraps`;
+    const doses = me.inventory.fertilizer ? ` · fertilizer ×${me.inventory.fertilizer}` : '';
+    seedName.textContent = `${seed.name} · ${seed.dropOnly ? 'free' : `${seed.cost} scraps`}${doses}`;
   }
 
   function questRow(text, progress, target, className = 'quest') {
@@ -309,6 +310,7 @@ export function createHud(actions) {
     levelUp: reveal.levelUp,
     welcome: reveal.welcome,
     daily: reveal.daily,
+    shop: () => sheets.shop(),
     titleEarned: (id) => {
       sfx.fanfare();
       reveal.title(TITLE_BY_ID[id], () => actions.setTitle(id));

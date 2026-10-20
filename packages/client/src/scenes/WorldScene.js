@@ -127,6 +127,12 @@ export class WorldScene extends Phaser.Scene {
       albumOpened: () => { this.coached.albumOpened = true; },
       setTitle: (id) => this.room.send('setTitle', { id }),
       gift: (to, characterId) => this.room.send('gift', { to, characterId }),
+      buy: (item, color) => this.room.send('buy', { item, color }),
+      setColor: (color) => this.room.send('setColor', { color }),
+      myPlot: () => {
+        const key = this.state && this.myPlotKey();
+        return key ? this.state.plots[key] : null;
+      },
       leave: () => this.leave(),
     });
 
@@ -176,6 +182,12 @@ export class WorldScene extends Phaser.Scene {
       this.hud.reveal(characterId, { isNew, giftFrom: from });
       sfx.discover();
       if (isNew) this.hud.markNew();
+    });
+    on('bought', ({ item }) => {
+      sfx.quest();
+      if (item === 'fertilizer') this.hud.toast('Fertilizer: your next 3 crops grow twice as fast.');
+      else if (item === 'candle') this.hud.toast('A new candle on your plot.');
+      else this.hud.toast('New name color. Looking good.');
     });
     on('gave', ({ to, characterId }) => {
       this.hud.toast(`You gave ${to} a ${CHARACTER_BY_ID[characterId].name}.`, { characterId });
@@ -272,6 +284,7 @@ export class WorldScene extends Phaser.Scene {
   updateTips() {
     if (this.state.rain) this.hud.tip('rain', 'Pus Rain! Tap the globs to grab them before they soak in. Nearest gets there first.');
     if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
+    if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? Tap your card (top left), then Shop: fertilizer, candles for your plot, a name color.');
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
     for (const crop of this.crops.values()) {
       if (crop.glow.visible && !crop.mine && this.cameras.main.worldView.contains(crop.image.x, crop.image.y)) {
@@ -483,6 +496,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [key, plot] of Object.entries(this.state.plots)) {
       if (!this.plots.has(key)) this.openPlot(key, plot);
       const ownerLevel = this.state.players[plot.ownerId]?.level ?? 1;
+      this.syncCandles(key, plot.candles ?? 0);
       this.syncScabs(key, plot, ownerLevel);
 
       plot.slots.forEach((slotData, i) => {
@@ -553,10 +567,35 @@ export class WorldScene extends Phaser.Scene {
   }
 
   closePlot(key) {
-    const { art, label, scabs } = this.plots.get(key);
-    const parts = [art, label, ...[...scabs.values()].flatMap((s) => [s.image, s.text].filter(Boolean))];
+    const { art, label, scabs, candles = [] } = this.plots.get(key);
+    const parts = [
+      art,
+      label,
+      ...[...scabs.values()].flatMap((s) => [s.image, s.text].filter(Boolean)),
+      ...candles.flatMap((c) => [c.glow, c.candle, c.flame]),
+    ];
     this.tweens.add({ targets: parts, alpha: 0, duration: 800, onComplete: () => parts.forEach((p) => p.destroy()) });
     this.plots.delete(key);
+  }
+
+  // Candles bought in the shop stand at the plot's corners.
+  syncCandles(key, count) {
+    const entry = this.plots.get(key);
+    entry.candles ??= [];
+    const [px, py] = key.split(',').map(Number);
+    const corners = [[0, 0], [1, 0], [0, 1], [1, 1]];
+    while (entry.candles.length < count) {
+      const [cx, cy] = corners[entry.candles.length];
+      const x = px * PLOT_PIXELS + cx * PLOT_PIXELS + (cx ? -6 : 6);
+      const y = py * PLOT_PIXELS + cy * PLOT_PIXELS + (cy ? 4 : 10);
+      const glow = this.add.image(x, y - 18, 'world:glow').setTint(0xffa65c).setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(DEPTH.light).setScale(220 / 256).setAlpha(0.45);
+      const candle = this.add.image(x, y, 'world:candle').setOrigin(0.5, 0.86).setScale(20 / 96).setDepth(y);
+      const flame = this.add.image(x, y - 23, 'world:flame').setOrigin(0.5, 0.85)
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(y + 0.5).setScale(10 / 64);
+      entry.candles.push({ glow, candle, flame, phase: Math.random() * 1000 });
+      if (!entry.fresh) this.fx.ring(x, y - 18, { color: 0xffa65c, size: 160 });
+    }
   }
 
   // Holes the owner hasn't unlocked yet are scabbed over; the scab pops off on level-up.
@@ -706,10 +745,10 @@ export class WorldScene extends Phaser.Scene {
           }
         }
       }
-      const label = `${p.name}|${p.level}|${p.stars}|${p.title}`;
+      const label = `${p.name}|${p.level}|${p.stars}|${p.title}|${p.color}`;
       if (avatar.label !== label) {
         avatar.label = label;
-        avatar.name.setText(p.name);
+        avatar.name.setText(p.name).setColor(p.color ?? (mine ? TEXT : '#d9b8a8'));
         avatar.title.setText(p.title ? `~ ${p.title} ~` : '');
         avatar.level.setText(p.stars ? `${p.level} ${'★'.repeat(p.stars)}` : `${p.level}`);
         const total = avatar.name.width + 4 + avatar.level.width;
@@ -965,6 +1004,13 @@ export class WorldScene extends Phaser.Scene {
     this.updateCrops(time);
     this.bossView.update(time);
     this.drops.update(time);
+    for (const { candles } of this.plots.values()) {
+      for (const c of candles ?? []) {
+        const flicker = 0.88 + 0.08 * Math.sin(time * 0.011 + c.phase) + 0.05 * Math.sin(time * 0.037 + c.phase * 2.3);
+        c.glow.setAlpha(0.42 * flicker);
+        c.flame.setScale((10 / 64) * (0.9 + 0.1 * flicker), (10 / 64) * flicker);
+      }
+    }
     if (this.state.rain && time > this.nextRainDrop) {
       this.nextRainDrop = time + RAIN_DROP_MS;
       this.fx.rainDrop(camera.worldView);
