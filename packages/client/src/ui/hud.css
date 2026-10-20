@@ -1823,3 +1823,40 @@
     max-width: calc(100vw - 186px);
   }
 }
+
+/* ---------- first minute ---------- */
+
+/* Just the essentials while a new player learns the loop. */
+.hud.tutorial .hud-quests,
+.hud.tutorial .hud-events,
+.hud.tutorial .banners,
+.hud.tutorial .boss-arrow {
+  display: none;
+}
+
+.hud-round.nudge {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(243, 210, 122, 0.35);
+  animation: nudge 1.2s ease-in-out infinite;
+}
+
+@keyframes nudge {
+  50% { box-shadow: 0 0 0 8px rgba(243, 210, 122, 0.15), 0 0 18px rgba(243, 210, 122, 0.6); }
+}
+
+.intro-steps {
+  margin: 4px auto 18px;
+  padding: 0 0 0 1.4em;
+  max-width: 290px;
+  text-align: left;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.intro-steps li {
+  margin: 6px 0;
+}
+
+.intro-steps li::marker {
+  color: var(--gold);
+}

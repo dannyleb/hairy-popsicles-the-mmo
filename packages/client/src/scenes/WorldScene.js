@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   CHARACTER_BY_ID,
   EMOTE_BY_ID,
+  HOLE_ORDER,
   MAX_LEVEL,
   PLOT_SIZE,
   RARITY_ORDER,
@@ -25,7 +26,7 @@ import {
 } from '../display.js';
 import { reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
-import { settings } from '../settings.js';
+import { remembered, settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
 import { offerInstallLater } from '../ui/install.js';
@@ -107,6 +108,7 @@ export class WorldScene extends Phaser.Scene {
     this.backdrop = createBackdrop(this);
     this.backdrop.setLite(quality().lite);
     this.frames = { from: 0, deltas: [], told: false };
+    this.pointer = this.makePointer();
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
     this.drops = createDropsView(this, this.fx);
@@ -128,6 +130,13 @@ export class WorldScene extends Phaser.Scene {
     this.lastHarvest = null;
     this.bloodMoon = false;
     this.coached = { harvested: false, albumOpened: false };
+    // A brand-new player gets a guided first minute (see updateCoach). Decided
+    // when their private data first arrives.
+    this.firstSession = null;
+    this.tutorialDone = false;
+    this.introShown = false;
+    this.pendingDaily = null;
+    this.pointerTarget = null;
 
     this.hud = createHud({
       wear: (characterId) => {
@@ -331,6 +340,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   onMe(me) {
+    // Only a real beginner gets the tutorial; someone bringing an existing save
+    // to a new phone doesn't.
+    this.firstSession ??= !remembered('coached') && me.level === 1 && (me.stats?.harvests ?? 0) === 0;
     this.private = me;
     this.hud.setMe(me);
     this.updateCoach();
@@ -338,6 +350,7 @@ export class WorldScene extends Phaser.Scene {
 
   // First-time tips for things that turn up later on.
   updateTips() {
+    if (this.tipsFrom && Date.now() < this.tipsFrom) return;
     if (this.state.rain) this.hud.tip('rain', 'Pus Rain! Tap the globs to grab them before they soak in. Nearest gets there first.');
     if (this.state.season) this.hud.tip(`season-${this.state.season.id}`, `${this.state.season.name} is on! Harvests can drop teeth 🦷 for a limited name color and title. Tap its pill (top right) to see.`);
     if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
@@ -351,16 +364,115 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  // The first-session coach: one step at a time, with an arrow over what to tap.
+  // Until it's done, the HUD keeps to the essentials (no quests, event pills or
+  // world banners) and the daily gift waits.
   updateCoach() {
     if (!this.state || !this.private) return;
+    if (!this.firstSession) {
+      this.hud.coach('done');
+      return;
+    }
+    const step = this.coachStep();
+    this.hud.coach(step);
+    this.pointerTarget = this.pointerFor(step);
+    if (!this.tutorialDone) {
+      this.hud.setTutorial(step !== 'done');
+      if (step === 'done') this.finishTutorial();
+    }
+    if (!this.introShown && step === 'claim') this.showIntro();
+  }
+
+  coachStep() {
     const key = this.myPlotKey();
-    if (!key) return this.hud.coach('claim');
+    if (!key) return 'claim';
     if (!this.coached.harvested) {
       const crops = this.state.plots[key].slots.filter(Boolean);
       const ripe = crops.some((c) => this.now() >= c.readyAt);
-      return this.hud.coach(ripe ? 'harvest' : crops.length ? 'wait' : 'plant');
+      return ripe ? 'harvest' : crops.length ? 'wait' : 'plant';
     }
-    this.hud.coach(this.coached.albumOpened ? 'done' : 'album');
+    return this.coached.albumOpened ? 'done' : 'album';
+  }
+
+  // Where the arrow points: a free spot for a plot, the next empty hole, a ripe crop.
+  pointerFor(step) {
+    if (step === 'claim') {
+      const me = this.me();
+      const spot = me && this.freePlotNear(me.x, me.y);
+      return spot && { x: (spot[0] + 0.5) * PLOT_PIXELS, y: (spot[1] + 0.5) * PLOT_PIXELS };
+    }
+    const key = this.myPlotKey();
+    const plot = key && this.state.plots[key];
+    if (!plot) return null;
+    if (step === 'plant' || step === 'wait') {
+      const slot = HOLE_ORDER.find((s) => holeOpen(s, this.private.level) && !plot.slots[s]);
+      return slot === undefined ? null : holeCenter(key, slot);
+    }
+    if (step === 'harvest') {
+      const slot = plot.slots.findIndex((c) => c && this.now() >= c.readyAt);
+      if (slot < 0) return null;
+      const at = holeCenter(key, slot);
+      return { x: at.x, y: at.y - CROP_SIZE * 0.8 };  // just over its head
+    }
+    return null;
+  }
+
+  // What the game is, before anything else; then straight to a plot of their own.
+  showIntro() {
+    this.introShown = true;
+    this.hud.intro(this.me()?.avatar, () => this.autoClaim());
+  }
+
+  autoClaim() {
+    const me = this.me();
+    if (!me || this.myPlotKey()) return;
+    const spot = this.freePlotNear(me.x, me.y);
+    if (!spot) return;  // the coach's "tap open ground" still works
+    const [plotX, plotY] = spot;
+    this.walk((plotX + 0.5) * PLOT_PIXELS, (plotY + 1) * PLOT_PIXELS + FRONT_OF_PLOT);
+    this.room.send('claimPlot', { plotX, plotY });
+    sfx.claim();
+  }
+
+  // The nearest grid spot with no plot on it, nearest first.
+  freePlotNear(x, y) {
+    const cols = WORLD_W / PLOT_PIXELS;
+    const rows = WORLD_H / PLOT_PIXELS;
+    const cx = Phaser.Math.Clamp(Math.floor(x / PLOT_PIXELS), 0, cols - 1);
+    const cy = Phaser.Math.Clamp(Math.floor(y / PLOT_PIXELS), 0, rows - 1);
+    for (let r = 0; r < Math.max(cols, rows); r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const px = cx + dx;
+          const py = cy + dy;
+          if (px >= 0 && py >= 0 && px < cols && py < rows && !this.state.plots[`${px},${py}`]) return [px, py];
+        }
+      }
+    }
+    return null;
+  }
+
+  finishTutorial() {
+    this.tutorialDone = true;
+    this.tipsFrom = Date.now() + 20_000;  // let the wrap-up and the daily gift land first
+    this.pointerTarget = null;
+    this.hud.setTutorial(false);
+    this.hud.announce("That's the loop: grow them, collect them, play as them. Quests (top left) pay extra.", 'quest');
+    if (this.pendingDaily) {
+      const notice = this.pendingDaily;
+      this.pendingDaily = null;
+      this.time.delayedCall(1200, () => this.onNotice(notice));
+    }
+  }
+
+  // The bouncing arrow over whatever the coach wants tapped.
+  updatePointer(time) {
+    const target = this.pointerTarget;
+    this.pointer.setVisible(Boolean(target) && !this.hud.blocking());
+    if (!target) return;
+    const bob = settings.get('calm') ? 0 : Math.abs(Math.sin(time * 0.006)) * 10;
+    this.pointer.setPosition(target.x, target.y - 14 - bob);
   }
 
   // ---------- tapping the world ----------
@@ -1087,6 +1199,8 @@ export class WorldScene extends Phaser.Scene {
       sfx.discover();
     } else if (notice.kind === 'title') {
       this.hud.titleEarned(notice.id);
+    } else if (notice.kind === 'daily' && this.firstSession && !this.tutorialDone) {
+      this.pendingDaily = notice;  // shown as a reward once the tutorial is done
     } else if (notice.kind === 'daily') {
       this.hud.daily(notice);
       if (notice.reward.boil) this.hud.selectSeed('boil');
@@ -1112,6 +1226,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- frame ----------
+
+  makePointer() {
+    const arrow = this.add.graphics();
+    arrow.fillStyle(0xf3d27a, 1).fillTriangle(-15, -26, 15, -26, 0, 0);
+    arrow.lineStyle(3, 0x1a0a0d, 0.9).strokeTriangle(-15, -26, 15, -26, 0, 0);
+    const glow = this.add.image(0, -12, 'world:glow').setTint(0xf3d27a).setBlendMode(Phaser.BlendModes.ADD).setScale(90 / 256).setAlpha(0.55);
+    return this.add.container(0, 0, [glow, arrow]).setDepth(DEPTH.bubbles - 2).setVisible(false);
+  }
 
   // ---------- keeping it smooth ----------
 
@@ -1209,6 +1331,7 @@ export class WorldScene extends Phaser.Scene {
     const camera = this.cameras.main;
     this.watchFrameRate(time, delta);
     this.backdrop.update(time, delta, camera);
+    this.updatePointer(time);
     if (!this.state) return;
 
     this.updateCrops(time);

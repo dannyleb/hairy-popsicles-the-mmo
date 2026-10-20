@@ -96,9 +96,19 @@ Timers are short on purpose while nothing persists. Rarities live in
   title, and every character (silhouettes for the unfound) with the game's
   link: the phone's share sheet where it can take pictures, a download
   elsewhere.
+- **First minute.** A new player's title screen says what the game is in one
+  line. In the world, a welcome card shows their starter character and the
+  loop (grow, collect, play as them), then they're given a plot of their own
+  on the spot. A bouncing arrow points at exactly what to tap next (a hole,
+  then the ripe crop) while one coach line explains it, and their first crops
+  ripen in 8 seconds whatever they turn out to be. Until they've opened the
+  album (or played as their new character), the screen keeps to the
+  essentials: no quests, event pills, world banners or boss pointer, and the
+  daily-gift calendar waits to arrive as a reward at the end. Someone
+  bringing an existing save to a new device skips all of it.
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
-  a first-session coach (claim → plant → wait → harvest → album), an album
+  a guided first minute (below), an album
   with silhouettes of everyone you haven't found (tap one you have for a
   close-up with its stars, bonus and copies to the next star, and to play
   as it), a minimap you can tap to travel, and an arrow to the boss when

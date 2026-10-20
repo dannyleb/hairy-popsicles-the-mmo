@@ -3,11 +3,11 @@ import { el } from './dom.js';
 
 // First-session hints, one at a time, driven by what the player has done so far.
 const STEPS = {
-  claim: 'Tap open ground to claim your plot.',
-  plant: 'Tap a hole in your plot to plant a seed.',
-  wait: "Its shadow grows in the hole. Rarer characters take longer. Plant the other holes while you wait.",
+  claim: 'Tap the glowing spot to make a plot of your own.',
+  plant: 'This patch of skin is yours. Tap a hole to plant a seed.',
+  wait: "Something's growing in there! Plant the other holes too.",
   harvest: 'Ripe! Tap it to pull it out.',
-  album: 'Open your Album (top right) to play as anyone you grow.',
+  album: "They're in your Album now. Tap the book (top right) to see them, and to play as one.",
 };
 
 const TIP_MS = 7000;

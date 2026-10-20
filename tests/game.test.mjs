@@ -52,6 +52,8 @@ check('locked hole, locked seed, missing seed all refused', a.state.plots[keyA].
 for (const slot of [4, 3, 5]) a.room.send('plant', { plotKey: keyA, slot });
 await sleep(250);
 check('3 open holes planted with pimple seeds', [4, 3, 5].every((s) => a.state.plots[keyA].slots[s]?.seed === 'pimple') && a.me.currency === 20);
+// A brand-new player's first crops ripen fast, whatever they are (8s, or 80ms at GROW_SCALE=0.01).
+check("a new player's first crops ripen fast", [4, 3, 5].every((s) => { const c = a.state.plots[keyA].slots[s]; return c.readyAt - c.plantedAt <= 81; }));
 check('planting gives xp', a.me.xp >= 6, `xp=${a.me.xp}`);
 
 // ---- harvest loop until level 2 (opens hole 1)

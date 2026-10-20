@@ -40,6 +40,7 @@ export function createReveal({ onWear }) {
       return;
     }
     root.className = 'reveal';
+    delete root.dataset.onClose;
     root.replaceChildren();
     show();
     root.hidden = false;
@@ -51,9 +52,12 @@ export function createReveal({ onWear }) {
     if (root.hidden) next();
   }
 
+  let introClose = null;  // closing the intro any way at all starts the tutorial
   root.addEventListener('click', (event) => {
     if (event.target.closest('button')) return;
-    if (performance.now() - openedAt > TAP_GUARD_MS) next();
+    if (performance.now() - openedAt <= TAP_GUARD_MS) return;
+    if (root.dataset.onClose === 'intro') introClose?.();
+    next();
   });
 
   return {
@@ -135,6 +139,42 @@ export function createReveal({ onWear }) {
         );
         root.append(card);
       });
+    },
+
+    // The very first thing a new player sees: what the game is, and who they are.
+    intro(avatar, onGo) {
+      let went = false;
+      const go = () => {
+        if (went) return;
+        went = true;
+        onGo();
+      };
+      enqueue(() => {
+        root.classList.add('welcome');
+        root.dataset.onClose = 'intro';
+        const character = CHARACTER_BY_ID[avatar];
+        const card = el('div', 'reveal-card intro');
+        const art = el('div', 'reveal-art small');
+        if (character) art.append(img(bigSpriteUrl(avatar), 'reveal-image'));
+        const steps = el('ol', 'intro-steps');
+        steps.append(
+          el('li', null, 'Grow characters in a plot of your own.'),
+          el('li', null, 'Collect them all in your album.'),
+          el('li', null, 'Play as any of them, with everyone here.'),
+        );
+        card.append(
+          art,
+          el('p', 'reveal-rarity', 'Welcome to the skin'),
+          el('h2', 'reveal-name', character ? `You're ${character.name}` : 'Welcome'),
+          steps,
+          button('reveal-button primary', 'Show me', () => {
+            next();
+            go();
+          }),
+        );
+        root.append(card);
+      });
+      introClose = go;
     },
 
     // Every character of a rarity grown: the whole row lined up, and its reward.

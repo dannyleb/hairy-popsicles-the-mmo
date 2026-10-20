@@ -75,6 +75,9 @@ const WELCOME_AFTER_MS = 60_000; // away at least this long to get a "welcome ba
 const PLOT_HOLD_MS = Number(process.env.PLOT_HOLD_MS) || 24 * 3600_000;
 const MAX_HELD_PLOTS = 120;     // past this, the longest-held plots go first
 const HOLD_FROM_LEVEL = 2;      // throwaway saves don't get to fill the world with plots
+// A brand-new player's first crops (until their first harvest) ripen this fast,
+// whatever they turn out to be: the first win comes inside the first minute.
+const FIRST_CROPS_MS = 8000;
 
 // There is one world, and it lives as long as the server: a second would split
 // players (and their held plots) between them.
@@ -624,11 +627,13 @@ export class WorldRoom extends Room {
     const fertilized = player.inventory.fertilizer > 0 ? 1 - FERTILIZER_SPEEDUP : 1;
     if (fertilized < 1) player.inventory.fertilizer -= 1;
     const now = Date.now();
+    let growMs = RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)) * fertilized;
+    if (player.level === 1 && player.stats.harvests === 0) growMs = Math.min(growMs, FIRST_CROPS_MS * GROW_SCALE);
     plot.slots[slot] = {
       characterId: character.id,
       seed,
       plantedAt: now,
-      readyAt: now + RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)) * fertilized,
+      readyAt: now + growMs,
       shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1),
       tendedBy: [],
     };

@@ -280,7 +280,16 @@ export function createHud(actions) {
 
     coach(step) {
       coach.show(step);
+      // The album button pulses while the coach is pointing at it.
+      albumButton.classList.toggle('nudge', step === 'album');
     },
+
+    // A brand-new player's first minute: just the essentials on screen.
+    setTutorial(on) {
+      root.classList.toggle('tutorial', on);
+    },
+
+    intro: (avatar, onGo) => reveal.intro(avatar, onGo),
 
     tip(key, text) {
       coach.tip(key, text);
@@ -342,6 +351,8 @@ export function createHud(actions) {
     toast,
 
     announce(text, kind) {
+      // World news waits until a new player has the basics (it's in the chat log meanwhile).
+      if (root.classList.contains('tutorial')) return;
       const node = el('div', `banner banner-${kind ?? 'info'}`);
       node.textContent = text;
       banners.append(node);

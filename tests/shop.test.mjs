@@ -27,7 +27,8 @@ async function join(profile) {
 const rich = saveToken({
   profileId: `rich-${Date.now()}`, name: 'Rich', avatar: 'pimples', xp: 0, currency: 400,
   collection: { pimples: 1 }, shinies: {}, inventory: { boil: 0 }, quests: [],
-  daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
+  // Not brand new (a first harvest behind them), so their crops grow at the usual speed.
+  daily: { last: today, streak: 1 }, dailyQuest: null, stats: { harvests: 1 }, titles: [], title: null,
 }, null, null);
 const a = await join(rich);
 

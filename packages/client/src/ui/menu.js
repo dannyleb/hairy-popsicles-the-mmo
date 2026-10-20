@@ -81,6 +81,8 @@ export function createMenu({ onPlay }) {
   const root = el('div', 'menu');
   const title = el('div', 'menu-title');
   title.append(el('h1', 'logo', 'Hairy Popsicles'), el('p', 'logo-sub', 'the MMO'));
+  // First visit: what this is, in one line.
+  if (!saved) title.append(el('p', 'menu-pitch', 'Grow gross little characters. Collect them all. Play as any of them, together.'));
 
   const stage = el('div', 'menu-stage');
   const bubble = el('p', 'menu-bubble', lines[Math.floor(Math.random() * lines.length)]);
