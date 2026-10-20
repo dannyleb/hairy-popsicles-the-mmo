@@ -5,6 +5,11 @@ same gross, flesh-toned universe — but lightweight, mobile-web, and shared:
 everyone tends their own patch in one persistent world and can see everyone
 else's.
 
+**Play:** https://dannyleb.github.io/hairy-popsicles-the-mmo/ ·
+**Server:** https://hairy-popsicles-mmo-server.onrender.com
+([/stats](https://hairy-popsicles-mmo-server.onrender.com/stats)) ·
+**Tests:** `npm test`, and on every push in GitHub Actions.
+
 ## What it is (v1 target)
 
 Not a true massive-scale MMO — that's not a realistic solo-dev scope. It's
