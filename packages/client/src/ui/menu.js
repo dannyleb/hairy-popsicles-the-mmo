@@ -14,6 +14,7 @@ const PANELS = {
   "What's new": [
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',
     'A featured character every day that sprouts more often. Check the album to see who.',
+    'Tap anyone in your album for a closer look: their stars, bonus, and how many more for the next star.',
     'Finish a row of your album (every Common, every Rare...) for a big one-time reward.',
     'Move your save to another phone: Settings, then Move to another phone.',
     'Your progress saves on this device, and your plot keeps growing while you\'re away.',

@@ -86,8 +86,10 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
   a first-session coach (claim → plant → wait → harvest → album), an album
-  with silhouettes of everyone you haven't found, a minimap you can tap to
-  travel, and an arrow to the boss when it's off screen.
+  with silhouettes of everyone you haven't found (tap one you have for a
+  close-up with its stars, bonus and copies to the next star, and to play
+  as it), a minimap you can tap to travel, and an arrow to the boss when
+  it's off screen.
 - **Phones.** If the app goes to the background and the socket drops, the
   server holds your player and plot for 90 seconds and the client
   reconnects into the same seat.

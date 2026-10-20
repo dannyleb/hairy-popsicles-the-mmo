@@ -1692,3 +1692,49 @@
   filter: brightness(0);
   opacity: 0.6;
 }
+
+/* ---------- album detail ---------- */
+
+.album-detail {
+  z-index: 45;
+}
+
+.album-detail[hidden] {
+  display: none;
+}
+
+.album-detail .reveal-image {
+  animation: none;
+}
+
+.album-detail .reveal-art.shiny .reveal-image {
+  filter: drop-shadow(0 0 10px #ffcf5a) drop-shadow(0 0 22px rgba(255, 207, 90, 0.6));
+}
+
+.album-detail .reveal-line {
+  min-height: 0;
+  margin-bottom: 8px;
+}
+
+.detail-stars {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 4px;
+  color: #f3d27a;
+}
+
+.detail-facts {
+  margin: 2px 0 12px;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.detail-featured {
+  margin: -6px 0 12px;
+  font-size: 15px;
+  color: #f3d27a;
+}
+
+.reveal-button:disabled {
+  opacity: 0.55;
+}
