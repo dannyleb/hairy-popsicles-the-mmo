@@ -60,7 +60,7 @@ export function createReveal({ onWear }) {
     root,
     isOpen: () => !root.hidden,
 
-    character(characterId, { isNew, shiny, bonus }) {
+    character(characterId, { isNew, shiny, bonus, giftFrom }) {
       enqueue(() => {
         const character = CHARACTER_BY_ID[characterId];
         const rarity = RARITIES[character.rarity];
@@ -69,7 +69,7 @@ export function createReveal({ onWear }) {
         root.classList.toggle('shiny', Boolean(shiny));
         root.style.setProperty('--rarity', shiny ? '#ffcf5a' : rarity.color);
         const card = el('div', 'reveal-card');
-        if (shiny || isNew) card.append(el('div', 'reveal-stamp', shiny ? 'Shiny!' : 'New!'));
+        if (giftFrom || shiny || isNew) card.append(el('div', 'reveal-stamp', giftFrom ? 'Gift!' : shiny ? 'Shiny!' : 'New!'));
         const art = el('div', 'reveal-art');
         art.append(el('div', 'reveal-rays'), img(bigSpriteUrl(characterId), 'reveal-image'));
         const actions = el('div', 'reveal-actions');
@@ -82,7 +82,9 @@ export function createReveal({ onWear }) {
         );
         card.append(
           art,
-          el('p', 'reveal-rarity', shiny ? `Shiny ${rarity.label}${isNew ? ' · new' : ''}` : rarity.label),
+          el('p', 'reveal-rarity', giftFrom
+            ? `From ${giftFrom}${isNew ? ' · new' : ''}`
+            : shiny ? `Shiny ${rarity.label}${isNew ? ' · new' : ''}` : rarity.label),
           el('h2', 'reveal-name', character.name),
           el('p', 'reveal-line', `"${lines[Math.floor(Math.random() * lines.length)]}"`),
           ...(bonus ? [el('p', 'reveal-bonus', `Play as them: ${bonus}`)] : []),

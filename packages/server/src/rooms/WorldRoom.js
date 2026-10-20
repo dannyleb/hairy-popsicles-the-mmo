@@ -6,6 +6,7 @@ import {
   DAILY_QUEST,
   EMOTE_BY_ID,
   EMOTE_COOLDOWN_MS,
+  GIFT_COOLDOWN_MS,
   PLOT_SIZE,
   QUEST_KINDS,
   RARITIES,
@@ -94,6 +95,7 @@ export class WorldRoom extends Room {
     on('hitBoss', (p) => this.handleHitBoss(p));
     on('grab', (p, m) => this.handleGrab(p, m));
     on('setTitle', (p, m) => this.handleSetTitle(p, m));
+    on('gift', (p, m) => this.handleGift(p, m));
     on('sync', (p, m, client) => this.sendWorld(p, client, true));
 
     this.clock.setInterval(() => this.flush(), BROADCAST_MS);
@@ -156,6 +158,7 @@ export class WorldRoom extends Room {
       lastChatAt: 0,
       lastEmoteAt: 0,
       lastHitAt: 0,
+      lastGiftAt: 0,
       arrivesAt: 0,
       budget: MESSAGES.burst,
       budgetAt: Date.now(),
@@ -589,6 +592,30 @@ export class WorldRoom extends Room {
     this.grantXp(player, XP.bossHit * damage);
     this.progress(player, 'boss');
     this.sendMe(player);
+  }
+
+  // Give a spare copy of a character to another player who's here.
+  handleGift(player, { to, characterId }) {
+    const now = Date.now();
+    const other = typeof to === 'string' && to !== player.id ? this.players[to] : null;
+    if (!other || other.away || now - player.lastGiftAt < GIFT_COOLDOWN_MS) return;
+    if (typeof characterId !== 'string' || !((player.collection[characterId] ?? 0) >= 2)) return;
+    player.lastGiftAt = now;
+    player.collection[characterId] -= 1;
+    // A shiny can't be given away: keep no more shinies than copies.
+    if (player.shinies[characterId] > player.collection[characterId]) player.shinies[characterId] = player.collection[characterId];
+    const isNew = !other.collection[characterId];
+    other.collection[characterId] = (other.collection[characterId] ?? 0) + 1;
+    const name = CHARACTER_BY_ID[characterId].name;
+    this.clientOf(other)?.send('gifted', { from: player.name, characterId, isNew });
+    this.clientOf(player)?.send('gave', { to: other.name, characterId });
+    this.announce(`${player.name} gave ${other.name} a ${name}.`, 'gift');
+    if (isNew) this.progress(other, 'discover');
+    this.bump(player, 'gifts');
+    this.checkTitles(other);
+    this.sendMe(player);
+    this.sendMe(other);
+    this.markDirty();
   }
 
   handleSetTitle(player, { id }) {

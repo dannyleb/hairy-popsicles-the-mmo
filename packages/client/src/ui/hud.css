@@ -1440,3 +1440,42 @@
   height: 100%;
   background: #e8b04a;
 }
+
+/* ---------- gifts ---------- */
+
+.banner-gift {
+  border-color: #bfe38a;
+}
+
+.gift-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.gift-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px 8px;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--rarity) 20%, #2a161c), #2a161c 70%);
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+
+.gift-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.gift-name {
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.gift-count {
+  font-size: 13px;
+  opacity: 0.7;
+}

@@ -11,3 +11,6 @@ export const EMOTES = [
   { id: 'pick', label: 'Pick', text: '*picks at a scab*' },
 ];
 export const EMOTE_BY_ID = Object.fromEntries(EMOTES.map((e) => [e.id, e]));
+
+// Giving a spare copy of a character (you keep at least one) to another player.
+export const GIFT_COOLDOWN_MS = 10_000;

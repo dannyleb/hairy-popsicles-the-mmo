@@ -67,6 +67,9 @@ Timers are short on purpose while nothing persists. Rarities live in
   "who's here" leaderboard ranked by album size, tap anyone to see their
   card (level, album, best character) and walk over, wave, or mute them.
   Rare and Legendary pulls, boss pops and milestones are announced to all.
+  Give a spare copy of a character (you keep at least one) to anyone who's
+  here, from their card: they get a "Gift!" reveal and everyone sees it
+  (10 gifts earns the Generous title).
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
   a first-session coach (claim → plant → wait → harvest → album), an album
@@ -92,9 +95,9 @@ Timers are short on purpose while nothing persists. Rarities live in
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Ten lifetime goals (harvest 25 and 150, squeeze 20, top The
-  Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, a 7-day
-  streak, 15 characters, all of them) each earn a title, announced to the
+- **Titles.** Eleven lifetime goals (harvest 25 and 150, squeeze 20, top The
+  Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
+  a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
 - **Daily gift.** The first visit each day (UTC) pays a reward on a 7-day

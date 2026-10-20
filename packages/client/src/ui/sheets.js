@@ -113,6 +113,7 @@ export function createSheets(actions) {
       actionsRow.append(
         button('sheet-button', 'Walk over', () => { close(); actions.goTo(id); }),
         button('sheet-button', 'Wave', () => { close(); actions.emote('wave'); }),
+        button('sheet-button', 'Give a character', () => giftPicker(id)),
         button('sheet-button quiet', muted.has(id) ? 'Unmute' : 'Mute', () => {
           if (muted.has(id)) muted.delete(id);
           else muted.add(id);
@@ -123,6 +124,29 @@ export function createSheets(actions) {
       actionsRow.append(button('sheet-button', 'Change character', () => { close(); actions.openAlbum(); }));
     }
     open(id === myId ? 'You' : 'Player', top, actionsRow, ...(id === myId && me ? [titlesList()] : []));
+  }
+
+  // Pick one of your spare characters (you have 2 or more) to give to someone.
+  function giftPicker(id) {
+    const p = players[id];
+    if (!p || !me) return close();
+    showing = { kind: 'gift', id };
+    const spares = CHARACTERS.filter((c) => (me.collection[c.id] ?? 0) >= 2);
+    if (!spares.length) {
+      open(`Give to ${p.name}`, el('p', 'overlay-hint', "You don't have any spares yet: grow a second copy of someone and you can give one away."));
+      return;
+    }
+    const grid = el('div', 'gift-grid');
+    for (const c of spares) {
+      const card = button('gift-card', null, () => {
+        actions.gift(id, c.id);
+        close();
+      });
+      card.style.setProperty('--rarity', RARITIES[c.rarity].color);
+      card.append(img(spriteUrl(c.id)), el('span', 'gift-name', c.name), el('span', 'gift-count', `×${me.collection[c.id]}`));
+      grid.append(card);
+    }
+    open(`Give to ${p.name}`, el('p', 'overlay-hint', 'Tap a character to give them one of your spare copies. You keep the rest.'), grid);
   }
 
   // Every title: earned ones can be worn (tap), the rest show how close you are.

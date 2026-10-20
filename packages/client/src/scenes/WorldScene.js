@@ -125,6 +125,7 @@ export class WorldScene extends Phaser.Scene {
       travel: (x, y) => this.walk(x, y),
       albumOpened: () => { this.coached.albumOpened = true; },
       setTitle: (id) => this.room.send('setTitle', { id }),
+      gift: (to, characterId) => this.room.send('gift', { to, characterId }),
       leave: () => this.leave(),
     });
 
@@ -170,6 +171,15 @@ export class WorldScene extends Phaser.Scene {
     on('save', ({ token }) => storeProfile(token));
     on('notice', this.onNotice);
     on('titleEarned', ({ id }) => this.hud.titleEarned(id));
+    on('gifted', ({ from, characterId, isNew }) => {
+      this.hud.reveal(characterId, { isNew, giftFrom: from });
+      sfx.discover();
+      if (isNew) this.hud.markNew();
+    });
+    on('gave', ({ to, characterId }) => {
+      this.hud.toast(`You gave ${to} a ${CHARACTER_BY_ID[characterId].name}.`, { characterId });
+      sfx.quest();
+    });
     room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
   }
