@@ -31,9 +31,15 @@ other players walking around and tending their own plots nearby.
 
 ## Character art
 
+The renders are 3D versions of the first game's hand-drawn cast, so a
+character's slug is its `id` in that game's `src/roster.js` (`snoot`,
+`mirror`, ...); `-2`, `-3` are alternate renders of the same character.
+Characters with no drawn original keep working names (`spoon-nana`,
+`bat-rat`, `head-bloom`).
+
 Full-size renders stay on Danny's machine; only game sprites are committed,
 to `packages/client/public/characters/<slug>.webp` (768px long edge,
-transparent, ~40-110KB). To add a batch:
+transparent, ~40-180KB). To add a batch:
 
 ```
 pip install -r tools/requirements.txt          # once; model (~180MB) downloads on first run

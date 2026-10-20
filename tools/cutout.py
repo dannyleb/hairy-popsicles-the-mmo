@@ -18,7 +18,9 @@ QUALITY = 82
 # Scenery the model kept, as (left, top, right, bottom) fractions of the
 # trimmed character, erased before a second trim.
 ERASE = {
-    "bubble-toad": [(0.0, 0.0, 0.225, 1.0)],  # floor groove running off the tail tip
+    "toad": [(0.0, 0.0, 0.225, 1.0)],  # floor groove running off the tail tip
+    "snoot-2": [(0.0, 0.0, 0.3, 1.0)],  # moon
+    "snoot-3": [(0.0, 0.0, 0.2, 1.0)],  # moon
 }
 
 
