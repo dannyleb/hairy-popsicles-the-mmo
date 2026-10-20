@@ -23,6 +23,7 @@ import { storeProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
+import { offerInstallLater } from '../ui/install.js';
 import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
@@ -126,6 +127,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer) => this.handleTap(pointer));
     this.bindRoom(this.room);
+    offerInstallLater();
   }
 
   // ---------- connection ----------

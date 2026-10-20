@@ -104,10 +104,16 @@ title menu over the drifting world (name, Play, How to play, Settings,
 Credits) → connecting (with a "waking the server" message after a few
 seconds, and a retry) → the world.
 
+**Phone niceties:** a short buzz with harvests, hits, squeezes, grabs and
+level-ups (Android; iPhones don't allow it), and from the second visit, a
+one-time hint to add the game to the home screen (Chrome's install prompt,
+or the Share → Add to Home Screen steps on iPhone).
+
 **Sound:** the first game's two music tracks, alternating, plus procedural
 Web Audio effects (no files) for steps, planting, harvests by rarity,
-squeezing, boss hits and bursts, quests, level-ups and chat. Sound, music
-and speech bubbles can each be turned off in Settings (remembered per device).
+squeezing, boss hits and bursts, quests, level-ups and chat. Sound, music,
+vibration and speech bubbles can each be turned off in Settings (remembered
+per device).
 
 ## Decisions locked in so far
 

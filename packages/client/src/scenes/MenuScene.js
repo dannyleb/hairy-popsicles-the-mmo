@@ -3,6 +3,7 @@ import { music } from '../audio/music.js';
 import { unlock } from '../audio/sfx.js';
 import { cameraZoom } from '../display.js';
 import { connect } from '../net/connection.js';
+import { countVisit } from '../ui/install.js';
 import { loading } from '../ui/loading.js';
 import { createMenu } from '../ui/menu.js';
 import { createBackdrop } from '../world/backdrop.js';
@@ -37,6 +38,7 @@ export class MenuScene extends Phaser.Scene {
     const slow = setTimeout(() => loading.status('Waking up the server. Free servers nap; this can take up to a minute.'), SLOW_CONNECT_MS);
     try {
       const room = await connect(name);
+      countVisit();
       this.menu.destroy();
       this.scene.start('world', { room });
       loading.hide();

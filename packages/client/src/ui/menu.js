@@ -1,5 +1,6 @@
 import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, levelFor, linesOf } from '@hptm/shared';
 import { forgetProfile, peekProfile } from '../net/profile.js';
+import { hasHaptics } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
@@ -91,7 +92,9 @@ export function createMenu({ onPlay }) {
   link('How to play', () => showPanel('How to play', list(PANELS['How to play'])));
   link('Settings', () => {
     const toggles = el('div', 'menu-settings');
-    for (const [name, label] of [['sound', 'Sound effects'], ['music', 'Music'], ['bubbles', 'Speech bubbles']]) {
+    const options = [['sound', 'Sound effects'], ['music', 'Music'], ['bubbles', 'Speech bubbles']];
+    if (hasHaptics) options.push(['haptics', 'Vibration']);
+    for (const [name, label] of options) {
       const row = el('label', 'menu-setting');
       const box = el('input');
       box.type = 'checkbox';

@@ -1,6 +1,6 @@
 // Per-device preferences, remembered in localStorage when it's available.
 const KEY = 'hptm:settings';
-const DEFAULTS = { sound: true, music: true, bubbles: true };
+const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true };
 
 function load() {
   try {

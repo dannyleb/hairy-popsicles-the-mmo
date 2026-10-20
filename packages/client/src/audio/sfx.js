@@ -161,6 +161,33 @@ const SOUNDS = {
   },
 };
 
+// A buzz to go with some sounds, on phones that can (Android; iPhones can't).
+const BUZZ = {
+  claim: 40,
+  plant: 10,
+  harvest: 18,
+  squeeze: 25,
+  hit: 12,
+  splat: [60, 40, 140],
+  fanfare: [40, 60, 40, 60, 110],
+  bloop: 14,
+  nope: [15, 40, 15],
+};
+const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+export const hasHaptics = canBuzz;
+
+function buzz(name) {
+  if (!canBuzz || !settings.get('haptics') || !BUZZ[name]) return;
+  try {
+    navigator.vibrate(BUZZ[name]);
+  } catch {
+    // Some browsers refuse before the first tap; nothing to do.
+  }
+}
+
 export const sfx = Object.fromEntries(
-  Object.entries(SOUNDS).map(([name, play]) => [name, (...args) => { if (ready()) play(...args); }]),
+  Object.entries(SOUNDS).map(([name, play]) => [name, (...args) => {
+    buzz(name);
+    if (ready()) play(...args);
+  }]),
 );

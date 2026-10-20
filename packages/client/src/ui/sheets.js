@@ -1,5 +1,5 @@
 import { CHARACTERS, CHARACTER_BY_ID, RARITIES } from '@hptm/shared';
-import { sfx } from '../audio/sfx.js';
+import { hasHaptics, sfx } from '../audio/sfx.js';
 import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
@@ -8,6 +8,7 @@ const SETTINGS = [
   { name: 'sound', label: 'Sound effects' },
   { name: 'music', label: 'Music' },
   { name: 'bubbles', label: 'Speech bubbles' },
+  ...(hasHaptics ? [{ name: 'haptics', label: 'Vibration' }] : []),
 ];
 
 // The share sheet on phones; a copied link elsewhere.

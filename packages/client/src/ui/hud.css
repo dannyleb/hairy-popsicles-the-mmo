@@ -1294,3 +1294,47 @@
     max-height: 92vh;
   }
 }
+
+/* ---------- add to home screen ---------- */
+
+.install-hint {
+  position: fixed;
+  top: calc(max(10px, env(safe-area-inset-top)) + 60px);
+  left: 50%;
+  z-index: 35;
+  box-sizing: border-box;
+  width: min(330px, calc(100vw - 24px));
+  padding: 12px 14px;
+  font: 18px/1.25 "Patrick Hand", system-ui, sans-serif;
+  color: #ffe8d6;
+  text-align: center;
+  background: #24111a;
+  border: 1px solid #8a4a5c;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  transform: translateX(-50%);
+  animation: banner-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.install-hint p {
+  margin: 0 0 10px;
+}
+
+.install-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.install-button {
+  padding: 7px 18px;
+  font: inherit;
+  color: inherit;
+  background: #3a1d24;
+  border: 0;
+  border-radius: 999px;
+}
+
+.install-button.primary {
+  background: #8e2b2f;
+}
