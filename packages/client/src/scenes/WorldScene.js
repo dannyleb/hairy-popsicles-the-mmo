@@ -20,7 +20,7 @@ import {
   wearBonus,
 } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
-import { cameraZoom, lookAhead, textResolution } from '../display.js';
+import { DPR, cameraZoom, lookAhead, textResolution } from '../display.js';
 import { reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
 import { settings } from '../settings.js';
@@ -55,6 +55,8 @@ const BOSS_STANDOFF = 105;        // where to stand when walking up to The Boil
 const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
 const REPLACED = 4001;            // close code: this save was opened somewhere else
+const ZOOM_RANGE = [0.55, 1.6];   // how far a pinch (or the mouse wheel) zooms the world, around the usual view
+const TAP_SLOP = 12;              // px a finger can drift and still count as a tap
 const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint
 // Walking as a Rare or better leaves a trail everyone sees: how often, and in what color.
 const TRAILS = { rare: { every: 120, tint: 0x7fb2e5, size: 11 }, legendary: { every: 70, tint: 0xffc95a, size: 15 } };
@@ -90,9 +92,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor('#0e0608').setZoom(cameraZoom()).setBounds(0, 0, WORLD_W, WORLD_H);
+    this.userZoom = Phaser.Math.Clamp(Number(settings.get('zoom')) || 1, ...ZOOM_RANGE);
+    this.cameras.main.setBackgroundColor('#0e0608').setZoom(cameraZoom() * this.userZoom).setBounds(0, 0, WORLD_W, WORLD_H);
     // Turning the phone or resizing the window changes the zoom and where the camera looks.
-    const onResize = () => this.cameras.main.setZoom(cameraZoom()).setFollowOffset(0, lookAhead());
+    const onResize = () => this.cameras.main.setZoom(cameraZoom() * this.userZoom).setFollowOffset(0, lookAhead());
     this.scale.on('resize', onResize);
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
@@ -144,7 +147,15 @@ export class WorldScene extends Phaser.Scene {
       },
     });
 
-    this.input.on('pointerdown', (pointer) => this.handleTap(pointer));
+    // A tap acts when the finger lifts, so a second finger landing turns it into a pinch instead.
+    this.input.addPointer(1);
+    this.input.on('pointerdown', (pointer) => this.onPointerDown(pointer));
+    this.input.on('pointermove', () => this.onPinchMove());
+    this.input.on('pointerup', (pointer) => this.onPointerUp(pointer));
+    this.input.on('wheel', (pointer, objects, dx, dy) => {
+      this.setUserZoom(this.userZoom * (dy > 0 ? 0.9 : 1.1));
+      settings.set('zoom', this.userZoom);
+    });
     this.bindRoom(this.room);
     offerInstallLater();
   }
@@ -340,6 +351,53 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- tapping the world ----------
+
+  // ---------- taps and pinches ----------
+
+  fingersDown() {
+    return [this.input.pointer1, this.input.pointer2].filter((p) => p?.isDown);
+  }
+
+  onPointerDown(pointer) {
+    const fingers = this.fingersDown();
+    if (fingers.length >= 2) {
+      const [a, b] = fingers;
+      this.pinch = { from: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.userZoom };
+      this.pendingTap = null;
+      return;
+    }
+    if (!this.pinch) this.pendingTap = { id: pointer.id, x: pointer.x, y: pointer.y };
+  }
+
+  onPinchMove() {
+    if (!this.pinch) return;
+    const fingers = this.fingersDown();
+    if (fingers.length < 2) return;
+    const [a, b] = fingers;
+    const distance = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+    if (this.pinch.from > 0) this.setUserZoom(this.pinch.zoom * (distance / this.pinch.from));
+  }
+
+  onPointerUp(pointer) {
+    if (this.pinch) {
+      // The pinch ends when the last finger lifts; remember how far out they like it.
+      if (!this.fingersDown().length) {
+        this.pinch = null;
+        settings.set('zoom', this.userZoom);
+      }
+      return;
+    }
+    const tap = this.pendingTap;
+    this.pendingTap = null;
+    if (!tap || tap.id !== pointer.id) return;
+    if (Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * DPR) return;
+    this.handleTap(pointer);
+  }
+
+  setUserZoom(zoom) {
+    this.userZoom = Phaser.Math.Clamp(zoom, ...ZOOM_RANGE);
+    this.cameras.main.setZoom(cameraZoom() * this.userZoom);
+  }
 
   handleTap(pointer) {
     if (!this.state || !this.private || this.hud.blocking()) return;

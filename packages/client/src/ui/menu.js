@@ -12,6 +12,7 @@ const VERSION = 'v0.6';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'Pinch to zoom the world out (or in). It remembers.',
     "The title screen shows what's waiting: your daily gift, ripe crops, today's featured character.",
     'Reduce motion in Settings: no screen shake or flashes. On already if your phone asks for less motion.',
     'Share my album: tap your card for a picture of your collection to post anywhere.',

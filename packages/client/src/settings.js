@@ -2,7 +2,7 @@
 const KEY = 'hptm:settings';
 // Calm starts on for anyone whose phone already asks apps for less motion.
 const prefersCalm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm: prefersCalm };
+const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm: prefersCalm, zoom: 1 };
 
 function load() {
   try {

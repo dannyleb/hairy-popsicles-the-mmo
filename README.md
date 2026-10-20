@@ -99,7 +99,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   it's off screen.
 - **Phones.** If the app goes to the background and the socket drops, the
   server holds your player and plot for 90 seconds and the client
-  reconnects into the same seat. Settings has sound, music, speech
+  reconnects into the same seat. Pinch (or the mouse wheel) zooms the
+  world out to see more or in to see detail, and it's remembered; taps act
+  when the finger lifts, so a second finger turns one into a pinch.
+  Settings has sound, music, speech
   bubbles, vibration and Reduce motion (no screen shake or flashes, nothing
   pulsing forever), which starts on if the phone already asks for less
   motion.
