@@ -7,29 +7,21 @@ import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.6';
+const VERSION = 'v0.7';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
-    "Players' plots stay in the world while they're away. Squeeze them, and they'll hear about it.",
-    'Pinch to zoom the world out (or in). It remembers.',
-    "The title screen shows what's waiting: your daily gift, ripe crops, today's featured character.",
-    'Reduce motion in Settings: no screen shake or flashes. On already if your phone asks for less motion.',
-    'Share my album: tap your card for a picture of your collection to post anywhere.',
-    'Pals: tap anyone, then Make pal. You\'ll hear when they turn up.',
     'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',
-    'A featured character every day that sprouts more often. Check the album to see who.',
-    'Tap anyone in your album for a closer look: their stars, bonus, and how many more for the next star.',
-    'Finish a row of your album (every Common, every Rare...) for a big one-time reward.',
-    'Move your save to another phone: Settings, then Move to another phone.',
-    'Your progress saves on this device, and your plot keeps growing while you\'re away.',
-    'A daily gift for coming back, and a bigger daily quest.',
-    'Shiny crops, stars for duplicates, and bonuses for who you play as.',
-    'Pus Rain: globs fall from the sky. Nearest gets them.',
-    'Titles to earn, characters to give away, and a shop for your scraps.',
+    "Players' plots stay in the world while they're away. Squeeze them, and they'll hear about it.",
+    'Pals: tap anyone, then Make pal. You\'ll hear when they turn up.',
+    'A featured character every day, and a big reward for finishing a row of your album.',
+    'Tap anyone in your album for a close-up, or tap your card to share a picture of your album.',
+    'Pinch to zoom. Reduce motion in Settings. Move your save to another phone from Settings.',
+    'Earlier: saves, daily gifts and quests, shinies and stars, Pus Rain, titles, gifts and the shop.',
   ],
+
   Credits: ['Characters and art: dannyleb.', 'From the world of Hairy Popsicles.', 'Music from the first game.', 'Built with Phaser and Colyseus.'],
 };
 
