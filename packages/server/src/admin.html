@@ -329,12 +329,12 @@
       row.append(el('span', null, label), bar, value);
       return row;
     }));
-    const yesterday = f.yesterdayNew == null ? '' : ` of ${f.yesterdayNew}`;
+    const yesterday = f.yesterdayNew == null ? '' : ` (${f.fromYesterdayNew} of the ${f.yesterdayNew} this server saw start)`;
     const { count, medianMinutes, meanMinutes } = f.sessions;
     const chips = [
       `${f.invited} came by invite`,
       `${f.returning} back from an earlier day`,
-      `${f.fromYesterday}${yesterday} who started yesterday came back`,
+      `${f.fromYesterday} who started yesterday came back${yesterday}`,
       count ? `${count} sessions ended: median ${medianMinutes} min, average ${meanMinutes} min` : 'No sessions ended yet today',
     ];
     $('funnel-more').replaceChildren(...chips.map((text) => el('span', 'chip', text)));

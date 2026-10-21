@@ -19,8 +19,8 @@ const SETTINGS = [
 
 // The share sheet on phones; a copied link elsewhere. The link is this
 // player's own invite: whoever comes by it starts next to them.
-async function shareLink(button, pid) {
-  const url = inviteLink(pid);
+async function shareLink(button, code) {
+  const url = inviteLink(code);
   try {
     if (navigator.share) {
       await navigator.share({ title: 'Hairy Popsicles: The MMO', text: `Come grow gross little characters with me. Get to level ${INVITE.level} and we both get a Boil Seed.`, url });
@@ -93,7 +93,7 @@ export function createSheets(actions) {
       item.append(row);
       list.append(item);
     });
-    const invite = button('sheet-button', 'Invite a friend', () => shareLink(invite, players[myId]?.pid));
+    const invite = button('sheet-button', 'Invite a friend', () => shareLink(invite, me?.inviteCode));
     const actionsRow = el('div', 'sheet-actions');
     actionsRow.append(invite);
     open(
@@ -154,7 +154,7 @@ export function createSheets(actions) {
         share.textContent = 'Making it...';
         const result = await shareAlbum({
           name: p.name, title: p.title, level: me.level, avatar: p.avatar,
-          collection: me.collection, shinies: me.shinies ?? {}, nameColor: p.color, pid: p.pid,
+          collection: me.collection, shinies: me.shinies ?? {}, nameColor: p.color, inviteCode: me.inviteCode,
         });
         share.disabled = false;
         share.textContent = result === 'downloaded' ? 'Saved the picture' : 'Share my album';

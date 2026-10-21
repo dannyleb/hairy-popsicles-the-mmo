@@ -27,11 +27,12 @@ export function earnToday(pid, day) {
   return true;
 }
 
-// A friend reached the level while the inviter was away: paid when they're back.
-export function owe(pid, friendName) {
+// A friend ({ name, pid }) reached the level while the inviter was away: paid
+// when they're back.
+export function owe(pid, friend) {
   const now = Date.now();
   const waiting = (owed.get(pid) ?? []).filter((o) => now - o.at <= OWED_MS);
-  keep(owed, pid, [...waiting, { name: friendName, at: now }]);
+  keep(owed, pid, [...waiting, { ...friend, at: now }]);
 }
 
 export function collectOwed(pid) {

@@ -97,12 +97,15 @@ Timers are short on purpose while nothing persists. Rarities live in
   link: the phone's share sheet where it can take pictures, a download
   elsewhere.
 - **Invites.** "Invite a friend" (on the who's-here screen) shares the
-  player's own link (`?with=<public id>`). The friend's title screen says who
+  player's own link (`?with=<invite code>`: their public id, signed by the
+  server, so nobody can make up a link for someone else). The friend's title screen says who
   invited them and whether they're on now; a brand-new player who joins by it
   starts right next to the inviter, and both become pals. When the friend
   reaches level 3 both get 50 scraps and a Boil Seed (the inviter at most 3
-  times a day, paid on their return if they're away), and 3 friends earn the
-  Ringleader title. The title screen also shows how many are playing now; that
+  times a day, paid on their return if they're away; the count and the
+  friends already paid for are kept in the inviter's own save, so a restart or
+  a replayed old save doesn't pay twice), and 3 friends earn the Ringleader
+  title. The title screen also shows how many are playing now; that
   request goes out the moment the page opens, so a napping free server starts
   waking while the menu is read.
 - **First minute.** A new player's title screen says what the game is in one

@@ -12,7 +12,7 @@ const MAX_SESSIONS = 1000;
 const fresh = () => ({
   joins: 0, players: new Set(), peak: 0,
   newPlayers: new Set(), invited: new Set(), stages: Object.fromEntries(STAGES.map((s) => [s, new Set()])),
-  returning: new Set(), fromYesterday: new Set(), sessions: [],
+  returning: new Set(), fromYesterday: new Set(), fromYesterdayNew: new Set(), sessions: [],
 });
 const stats = { day: day(), online: 0, yesterdayNew: null, ...fresh() };
 
@@ -36,6 +36,8 @@ export function recordArrival(profileId, { isNew, invited, savedAt, startedAt })
   stats.returning.add(profileId);
   const startedYesterday = startedAt && dayOf(startedAt) === dayOf(Date.now() - DAY_MS);
   if (startedYesterday || stats.yesterdayNew?.has(profileId)) stats.fromYesterday.add(profileId);
+  // Of the new players this server saw yesterday (it may have been down for some).
+  if (stats.yesterdayNew?.has(profileId)) stats.fromYesterdayNew.add(profileId);
 }
 
 // A new player got this far today.
@@ -62,6 +64,7 @@ export function funnelReport() {
     stages: Object.fromEntries(STAGES.map((s) => [s, stats.stages[s].size])),
     returning: stats.returning.size,
     fromYesterday: stats.fromYesterday.size,
+    fromYesterdayNew: stats.fromYesterdayNew.size,
     yesterdayNew: stats.yesterdayNew?.size ?? null,
     sessions: { count: minutes.length, medianMinutes: Math.round(median * 10) / 10, meanMinutes: Math.round(mean * 10) / 10 },
   };

@@ -121,7 +121,7 @@ export async function shareAlbum(player) {
   const text = `I've grown ${CHARACTERS.filter((c) => player.collection[c.id]).length} of ${CHARACTERS.length} in Hairy Popsicles. Come grow some with me.`;
   try {
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], text, url: inviteLink(player.pid) });
+      await navigator.share({ files: [file], text, url: inviteLink(player.inviteCode) });
       return 'shared';
     }
   } catch (error) {

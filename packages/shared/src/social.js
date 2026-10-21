@@ -19,5 +19,8 @@ export const GIFT_COOLDOWN_MS = 10_000;
 // next to them, and once they reach `level` both get the reward. An inviter is
 // paid for at most `perDay` friends a day (so a pile of alts isn't a seed farm).
 export const INVITE = { level: 3, reward: { scraps: 50, boil: 1 }, perDay: 3 };
-// A public id, as an invite link carries it.
+export const INVITE_PAID_KEPT = 50;  // friends an inviter's save remembers being paid for
+// A public id (who someone is to other players), and an invite code: the
+// inviter's public id plus the server's signature, so links can't be made up.
 export const isPublicId = (value) => typeof value === 'string' && /^[\w-]{12}$/.test(value);
+export const isInviteCode = (value) => typeof value === 'string' && /^[\w-]{12}\.[\w-]{8}$/.test(value);

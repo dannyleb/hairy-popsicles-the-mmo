@@ -326,9 +326,7 @@ export class WorldScene extends Phaser.Scene {
     for (const p of Object.values(after)) {
       if (before[p.id] || p.id === this.myId()) continue;
       if (this.invitedArrivals.delete(p.pid)) {
-        this.hud.chatLine({ text: `♥ ${p.name} came from your invite, and they're your pal now.`, kind: 'system' });
-        this.hud.toast(`${p.name} came from your invite! They're right next to you.`, { characterId: p.avatar, color: '#f0a8bc' });
-        sfx.discover();
+        this.welcomeInvited(p);
       } else if (isPal(p.pid)) {
         this.hud.chatLine({ text: `♥ Your pal ${p.name} arrived.`, kind: 'system' });
         this.hud.toast(`Your pal ${p.name} is here.`, { characterId: p.avatar, color: '#f0a8bc' });
@@ -1224,15 +1222,24 @@ export class WorldScene extends Phaser.Scene {
       const who = notice.name ? `${notice.name} invited you, and they're your pal now ♥` : 'A friend invited you';
       this.hud.chatLine({ text: `${who}. Reach level ${notice.level} and you both get a Boil Seed.`, kind: 'system' });
     } else if (notice.kind === 'inviteJoined') {
-      // Their arrival is announced as it happens (just after this), as coming from the invite.
+      // Announced as they arrive (usually just after this), as coming from the invite.
       this.befriend(notice.pid, notice.name);
-      this.invitedArrivals.add(notice.pid);
+      const here = Object.values(this.state?.players ?? {}).find((p) => p.pid === notice.pid);
+      if (here) this.welcomeInvited(here);
+      else this.invitedArrivals.add(notice.pid);
     } else if (notice.kind === 'invite') {
       const text = notice.role === 'inviter' ? `${notice.name} got to level ${INVITE.level} from your invite!` : `Level ${INVITE.level}, thanks to ${notice.name ?? 'your friend'}'s invite!`;
       this.hud.announce(`${text} +${notice.scraps} scraps · +${notice.boil} Boil Seed`, 'gift');
+      this.hud.chatLine({ text: `♥ ${text} +${notice.scraps} scraps, +${notice.boil} Boil Seed.`, kind: 'system' });  // banners wait out the tutorial
       this.hud.selectSeed('boil');
       sfx.fanfare();
     }
+  }
+
+  welcomeInvited(p) {
+    this.hud.chatLine({ text: `♥ ${p.name} came from your invite, and they're your pal now.`, kind: 'system' });
+    this.hud.toast(`${p.name} came from your invite! They're right next to you.`, { characterId: p.avatar, color: '#f0a8bc' });
+    sfx.discover();
   }
 
   // Pals made by an invite, on both sides.

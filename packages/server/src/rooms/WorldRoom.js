@@ -10,6 +10,7 @@ import {
   FERTILIZER_SPEEDUP,
   GIFT_COOLDOWN_MS,
   INVITE,
+  INVITE_PAID_KEPT,
   ITCH,
   NAME_COLORS,
   PLOT_SIZE,
@@ -38,7 +39,6 @@ import {
   XP,
   greenThumb,
   holeOpen,
-  isPublicId,
   featuredFor,
   levelFor,
   rowComplete,
@@ -54,7 +54,7 @@ import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.j
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
 import { maskText, plainText } from '../game/filter.js';
-import { cleanName, newProfileId, publicIdOf, readToken, saveToken } from '../game/profile.js';
+import { cleanName, inviteCode, newProfileId, publicIdOf, readInviteCode, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
 import { clientAddress } from '../net.js';
@@ -200,7 +200,8 @@ export class WorldRoom extends Room {
     if (name) this.rename(player, name);
     noteName(player.pid, player.name);
     // Brand new, from a friend's invite link: start next to them.
-    if (!save && !existing && isPublicId(options?.invitedBy) && options.invitedBy !== player.pid) this.arriveInvited(player, options.invitedBy);
+    const inviterPid = !save && !existing ? readInviteCode(options?.invitedBy) : null;
+    if (inviterPid && inviterPid !== player.pid) this.arriveInvited(player, inviterPid);
     this.payOwedInvites(player);
 
     const daily = checkIn(player.daily, Date.now());
@@ -250,6 +251,7 @@ export class WorldRoom extends Room {
       title: null,
       rows: [],            // album rows (rarities) completed and paid for
       invitedBy: null,     // public id of whoever's invite brought them, until it pays out
+      inviteLog: { day: null, count: 0, paid: [] },  // as an inviter: see creditInvite
       startedAt: Date.now(),  // when this save was first made (null for saves from before it was kept)
       notices: [],         // shown once the client is listening ('sync')
       synced: false,
@@ -283,6 +285,7 @@ export class WorldRoom extends Room {
         title: save.title,
         rows: save.rows,
         invitedBy: save.invitedBy,
+        inviteLog: save.inviteLog,
         startedAt: save.startedAt,
       });
       if (Object.keys(save.collection).length) {
@@ -291,6 +294,7 @@ export class WorldRoom extends Room {
       }
     }
     player.pid = publicIdOf(player.profileId);
+    player.inviteCode = inviteCode(player.pid);
     this.players[player.id] = player;
     if (save?.plot || this.heldPlots.has(player.profileId)) this.restorePlot(player, save);
     return player;
@@ -378,7 +382,7 @@ export class WorldRoom extends Room {
     player.reconnection?.reject?.();
     this.clients.getById(oldId)?.leave(REPLACED);
     delete this.players[oldId];
-    Object.assign(player, { id: newId, away: false, reconnection: null, synced: false });
+    Object.assign(player, { id: newId, away: false, awaySince: null, reconnection: null, synced: false });
     this.players[newId] = player;
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
@@ -393,8 +397,9 @@ export class WorldRoom extends Room {
     player.invitedBy = pid;
     const inviter = Object.values(this.players).find((p) => p.pid === pid && !p.away);
     if (inviter) {
-      player.x = inviter.x + (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 40);
-      player.y = inviter.y + 20 + Math.random() * 40;
+      const near = (at, offset) => Math.min(WORLD_PX - 1, Math.max(0, at + offset));
+      player.x = near(inviter.x, (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 40));
+      player.y = near(inviter.y, 20 + Math.random() * 40);
       this.notify(inviter, { kind: 'inviteJoined', name: player.name, pid: player.pid });
     }
     player.notices.push({ kind: 'invited', name: inviter?.name ?? nameOf(pid), pid, here: Boolean(inviter), level: INVITE.level, ...INVITE.reward });
@@ -405,16 +410,36 @@ export class WorldRoom extends Room {
     player.invitedBy = null;
     const inviter = Object.values(this.players).find((p) => p.pid === pid);
     this.payInviteReward(player, inviter?.name ?? nameOf(pid), 'invitee');
-    // The inviter's share counts toward their day even if they're away now.
-    if (!earnToday(pid, today())) return;
-    if (inviter) this.payInviteReward(inviter, player.name, 'inviter');
-    else owe(pid, player.name);
+    // The inviter's share: checked against their own save if they're here, or
+    // kept for when they're back (and checked then).
+    if (inviter) {
+      if (!this.creditInvite(inviter, player.pid)) return;
+      this.payInviteReward(inviter, player.name, 'inviter');
+    } else {
+      if (!earnToday(pid, dayOf(Date.now()))) return;
+      owe(pid, { name: player.name, pid: player.pid });
+    }
     this.announce(`${player.name} reached level ${INVITE.level}${inviter ? ` and ${inviter.name}` : ''}: a Boil Seed each for playing together.`, 'gift');
   }
 
   // Rewards that came in while this player was away.
   payOwedInvites(player) {
-    for (const { name } of collectOwed(player.pid)) this.payInviteReward(player, name, 'inviter');
+    for (const friend of collectOwed(player.pid)) {
+      if (this.creditInvite(player, friend.pid)) this.payInviteReward(player, friend.name, 'inviter');
+    }
+  }
+
+  // Counts a friend toward this inviter's day, in the inviter's own save: false
+  // if they've had their share today, or were already paid for this friend (an
+  // old save of the friend's, replayed after a restart).
+  creditInvite(inviter, friendPid) {
+    const log = inviter.inviteLog;
+    const today = dayOf(Date.now());
+    if (log.day !== today) Object.assign(log, { day: today, count: 0 });
+    if (log.count >= INVITE.perDay || log.paid.includes(friendPid)) return false;
+    log.count += 1;
+    log.paid = [...log.paid, friendPid].slice(-INVITE_PAID_KEPT);
+    return true;
   }
 
   payInviteReward(player, friend, role) {
@@ -452,6 +477,7 @@ export class WorldRoom extends Room {
     const player = this.players[client.sessionId];
     if (!consented && player) {
       player.away = true;
+      player.awaySince = Date.now();
       // Nothing reaches them while away: anything worth seeing waits as a notice
       // until the returning client asks with 'sync'.
       player.synced = false;
@@ -463,6 +489,7 @@ export class WorldRoom extends Room {
         await player.reconnection;
         player.reconnection = null;
         player.away = false;
+        player.awaySince = null;
         this.markDirty();
         console.log(`back ${player.id} ${player.name}`);
         return;
@@ -476,7 +503,7 @@ export class WorldRoom extends Room {
     const [plotKey, plot] = this.plotOf(player);
     rememberDeparture(player.profileId, saveToken(player, plot, plotKey), player.xp > 0);
     delete this.players[client.sessionId];
-    recordSession(Date.now() - player.joinedAt);
+    recordSession((player.awaySince ?? Date.now()) - player.joinedAt);
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
     // The plot is in their save too, and comes back with them either way.
@@ -539,6 +566,7 @@ export class WorldRoom extends Room {
     this.clientOf(player)?.send('me', {
       profileId: player.profileId,
       currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, rows, streak, itchShare,
+      inviteCode: player.inviteCode,
     });
     player.saveDirty = true;
   }

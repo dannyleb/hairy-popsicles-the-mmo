@@ -1,9 +1,9 @@
 import { createServer } from 'http';
 import colyseus from '@colyseus/core';
 import wsTransport from '@colyseus/ws-transport';
-import { isPublicId } from '@hptm/shared';
 import { handleAdmin } from './admin.js';
 import { nameOf } from './game/invites.js';
+import { readInviteCode } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
 import { WorldRoom, getWorld } from './rooms/WorldRoom.js';
 import { statsReport } from './stats.js';
@@ -35,8 +35,8 @@ httpServer.on('request', (req, res) => {
   // Online: players here now, not ones whose phone dropped and may be back.
   if (url.pathname === '/stats') return json(res, { ...statsReport(), online: getWorld()?.activeCount() ?? 0 });
   if (url.pathname === '/invite') {
-    const pid = url.searchParams.get('with');
-    const known = isPublicId(pid) && lookups.take(clientAddress(req).address);
+    const pid = readInviteCode(url.searchParams.get('with'));
+    const known = pid && lookups.take(clientAddress(req).address);
     return json(res, known ? { name: nameOf(pid), here: Boolean(getWorld()?.isHere(pid)) } : { name: null, here: false });
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' });

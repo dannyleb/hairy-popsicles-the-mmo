@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
-  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, isPublicId, levelFor,
+  CHARACTER_BY_ID, INVITE_PAID_KEPT, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID,
+  isInviteCode, isPublicId, levelFor,
 } from '@hptm/shared';
 import { hasBlocked, plainText } from './filter.js';
 
@@ -52,6 +53,7 @@ export function saveToken(player, plot, plotKey) {
     colors: player.colors,
     nameColor: player.nameColor,
     invitedBy: player.invitedBy ?? null,  // whose invite brought them, until it pays out
+    inviteLog: player.inviteLog,  // as an inviter: today's count and the friends already paid for
     startedAt: player.startedAt ?? null,  // when the save was first made
     plot: plot && {
       key: plotKey,
@@ -125,10 +127,27 @@ export function readToken(token) {
     colors: Array.isArray(p.colors) ? p.colors.filter((c) => Object.hasOwn(NAME_COLORS, c)) : [],
     nameColor: Object.hasOwn(NAME_COLORS, p.nameColor) && p.colors?.includes(p.nameColor) ? p.nameColor : null,
     invitedBy: isPublicId(p.invitedBy) ? p.invitedBy : null,
+    inviteLog: {
+      day: typeof p.inviteLog?.day === 'string' ? p.inviteLog.day.slice(0, 10) : null,
+      count: count(p.inviteLog?.count),
+      paid: Array.isArray(p.inviteLog?.paid) ? p.inviteLog.paid.filter(isPublicId).slice(-INVITE_PAID_KEPT) : [],
+    },
     startedAt: time(p.startedAt) || null,
     plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,
     savedAt: time(p.savedAt),
   };
+}
+
+// The code in a player's invite link: their public id, signed, so a link
+// can't be made up for someone else (or for no one, to claim the reward).
+const INVITE_SIGNATURE = 8;
+export const inviteCode = (pid) => `${pid}.${sign(`invite:${pid}`).slice(0, INVITE_SIGNATURE)}`;
+
+// The inviter's public id, or null if the code isn't one this server signed.
+export function readInviteCode(code) {
+  if (!isInviteCode(code)) return null;
+  const [pid] = code.split('.');
+  return timingSafeEqual(Buffer.from(inviteCode(pid)), Buffer.from(code)) ? pid : null;
 }
 
 // A stable public handle for a save, so others can recognise a player across
