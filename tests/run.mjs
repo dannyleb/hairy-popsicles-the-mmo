@@ -31,6 +31,7 @@ const SUITES = {
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
   invites: [{ PORT: 2586, GROW_SCALE: 0.01 }, { PORT: 2587, GROW_SCALE: 0.01 }],
   life: [{ PORT: 2593, GROW_SCALE: 0.05 }],
+  events: [{ PORT: 2594, EVENT_SCALE: 0.1, GROW_SCALE: 20, WORLD_EVENTS: 'scab,gash,tick' }],
   database: [],  // starts its own servers (2590-2592), against TEST_DATABASE_URL
   limits: [{ PORT: 2585, JOINS_PER_MINUTE: 16, SEATS_PER_ADDRESS: 3, NEWCOMERS_KEPT: 3, ADMIN_KEY: 'test-admin-key' }],
 };

@@ -64,7 +64,8 @@ export function createReveal({ onWear }) {
     root,
     isOpen: () => !root.hidden,
 
-    character(characterId, { isNew, shiny, bonus, giftFrom, caught }) {
+    // `found`: where it turned up (as in "Under The Scab"), if not grown.
+    character(characterId, { isNew, shiny, bonus, giftFrom, caught, found }) {
       enqueue(() => {
         const character = CHARACTER_BY_ID[characterId];
         const rarity = RARITIES[character.rarity];
@@ -73,7 +74,9 @@ export function createReveal({ onWear }) {
         root.classList.toggle('shiny', Boolean(shiny));
         root.style.setProperty('--rarity', shiny ? '#ffcf5a' : rarity.color);
         const card = el('div', 'reveal-card');
-        if (giftFrom || caught || shiny || isNew) card.append(el('div', 'reveal-stamp', giftFrom ? 'Gift!' : caught ? 'Caught!' : shiny ? 'Shiny!' : 'New!'));
+        if (giftFrom || caught || found || shiny || isNew) {
+          card.append(el('div', 'reveal-stamp', giftFrom ? 'Gift!' : caught ? 'Caught!' : found ? 'Found!' : shiny ? 'Shiny!' : 'New!'));
+        }
         const art = el('div', 'reveal-art');
         art.append(el('div', 'reveal-rays'), img(bigSpriteUrl(characterId), 'reveal-image'));
         const actions = el('div', 'reveal-actions');
@@ -89,6 +92,7 @@ export function createReveal({ onWear }) {
           el('p', 'reveal-rarity', giftFrom
             ? `From ${giftFrom}${isNew ? ' · new' : ''}`
             : caught ? `Today's stray, ${rarity.label}${isNew ? ' · new' : ''}`
+            : found ? `${found}, ${rarity.label}${isNew ? ' · new' : ''}`
             : shiny ? `Shiny ${rarity.label}${isNew ? ' · new' : ''}` : rarity.label),
           el('h2', 'reveal-name', character.name),
           el('p', 'reveal-line', `"${lines[Math.floor(Math.random() * lines.length)]}"`),

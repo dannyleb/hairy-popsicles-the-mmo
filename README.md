@@ -64,11 +64,37 @@ Timers are short on purpose while nothing persists. Rarities live in
   come back, head start included: "Neighbors squeezed your crops 3 times
   while you were gone." The world room is never disposed, so this holds
   even when everyone has left.
-- **The Boil (world boss).** Every 4 minutes a giant boil swells up near
-  someone. Everyone taps it; it gets redder and fatter until it bursts.
-  Everyone who hit it gets scraps and XP; anyone with 3+ hits gets a Boil
-  Seed (the top squeezer gets 2), which only grows Rare or Legendary.
-  It sinks back after 2.5 minutes if nobody pops it.
+- **World events.** One at a time, 4 minutes apart, taking turns: The Boil,
+  The Scab, The Gash, The Tick (`packages/shared/src/worldEvents.js`; each
+  is its own module in `packages/server/src/game/`, run by `worldEvents.js`).
+  Each shows in the event pill (tap it to walk over), the minimap and an
+  edge-of-screen arrow, and everything done at one counts for the "Help at
+  world events" quests.
+- **The Boil.** A giant boil swells up near someone. Everyone taps it; it
+  gets redder and fatter until it bursts. Everyone who hit it gets scraps
+  and XP; anyone with 3+ hits gets a Boil Seed (the top squeezer gets 2),
+  which only grows Rare or Legendary. It sinks back after 2.5 minutes if
+  nobody pops it.
+- **The Scab.** A big crusty scab, wet at first and drying over 40 seconds.
+  Hold a finger on it to peel a piece (a ring fills; keep holding for the
+  next). Peeled dry, a piece pays 5 scraps; torn off early it pays 1 and
+  bleeds three globs anyone can grab. Whoever peels the last of its ten
+  pieces finds a character underneath (Uncommon or better), and everyone
+  who peeled gets a bit more. Scab Picker title for 30 pieces.
+- **The Gash.** A wound tears open with crumbs of crust along it (10, plus
+  4 a player, up to 26). Tap one to pick it out. With two or more players
+  around, every fifth is deep: one player's tap loosens it for 2.5 seconds
+  and a second player's tap gets it out, paying both. Picked clean, it zips
+  shut; everyone who picked gets paid, the top picker a Boil Seed. Wound
+  Dresser title for 40 crumbs.
+- **The Tick.** Latches on beside the plot with the most growing crops of
+  anyone online, and the crops within reach stop growing while it feeds (red
+  threads show which; their wait grows by however long it was on). Tap to
+  pry: each pry counts once for every player who's pried in the last 2.5
+  seconds, so a crowd gets it off fast. Pried off by one player while
+  others were around, its head stays in and it's back in 90 seconds. If
+  nobody gets it, it drops off full after 2 minutes. Tick Twister title
+  for 5.
 - **Pus Rain (event).** Every 5 minutes, for 45 seconds, globs of pus rain
   down around everyone online; tap one to run over and grab it (2 scraps, or
   10 for a rare gold one). Walking takes time (the same on every screen and
@@ -182,9 +208,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Fifteen goals (harvest 25 and 150, squeeze 20, top The
+- **Titles.** Eighteen goals (harvest 25 and 150, squeeze 20, top The
   Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
-  scratch The Itch 5 times, bring 3 friends, catch 7 strays, 31 teeth in the
+  scratch The Itch 5 times, bring 3 friends, catch 7 strays, peel 30 pieces
+  of scab, pick 40 crumbs, pry 5 ticks, 31 teeth in the
   Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
@@ -310,6 +337,8 @@ Placeholder, generated procedurally by `tools/world.py` into
 three plot-sore variants, pimples, a pustule, moles, hairs, slime and pus
 puddles, a candle, its flame, soft glow/spore sprites, and for the MMO layer
 The Boil, the scab over locked holes, goo droplets and the four seed icons,
+the other world events (The Scab in ten peelable pieces over raw skin, The
+Gash, its crumbs of crust, The Tick; `python tools/world.py gross`),
 plus the world's wildlife and landmarks (mites, a flea, the worm, the smear
 trail, freckles, warts, the Navel, the Eye, veins and a plinth).
 Each is a height map + color + gloss shaded with one warm key light from the

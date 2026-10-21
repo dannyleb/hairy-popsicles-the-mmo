@@ -9,11 +9,12 @@ import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.9';
+const VERSION = 'v0.10';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'New world events, taking turns with The Boil: The Scab (hold to peel; the last piece hides a character), The Gash (pick the crust out) and The Tick (pry it off before it drains your crops).',
     "Strays wander the world. The day's featured one glows gold: walk up and tap it to catch it, once a day. Catch 7 for the Dogcatcher title.",
     'The skin is alive: mites (squish them), fleas, a giant worm now and then, footprints, swaying hairs, and players napping by their plots while they\'re away.',
     'Regions: the Scalp, the Armpit, Freckle Flats and Wart Hills around the Navel. Find the giant Eye, and the statue of whoever has collected the most characters.',

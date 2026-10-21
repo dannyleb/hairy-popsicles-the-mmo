@@ -311,6 +311,13 @@
   animation: throb 1.2s ease-in-out infinite;
 }
 
+.event-pill.boss[data-kind="scab"] { background: rgba(78, 34, 18, 0.92); border-color: #b8784a; }
+.event-pill.boss[data-kind="scab"] .event-hp-fill { background: linear-gradient(90deg, #e0a070, #8a4422); }
+.event-pill.boss[data-kind="gash"] { background: rgba(96, 14, 28, 0.92); border-color: #e06a7a; }
+.event-pill.boss[data-kind="gash"] .event-hp-fill { background: linear-gradient(90deg, #f0d080, #c05040); }
+.event-pill.boss[data-kind="tick"] { background: rgba(52, 30, 72, 0.92); border-color: #b48cd8; }
+.event-pill.boss[data-kind="tick"] .event-hp-fill { background: linear-gradient(90deg, #d8c0f0, #8a5ab8); }
+
 .event-pill.moon {
   background: rgba(80, 6, 16, 0.9);
   border: 1px solid #c0182a;

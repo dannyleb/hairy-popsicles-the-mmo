@@ -211,6 +211,36 @@ const SOUNDS = {
     burst(1200, 3, 0.07, 0.3, 'bandpass');
     tone('sawtooth', 140, 90, 0.35, 0.07, 0.05);
   },
+  // ---- world events
+  // A piece of scab coming away: a dry, crackling rip.
+  peel() {
+    for (let i = 0; i < 5; i++) burst(1800 + Math.random() * 2400, 2, 0.03, 0.22, 'bandpass', i * 0.035);
+    burst(900, 1, 0.12, 0.1, 'bandpass', 0.02);
+  },
+  // Torn off too soon: the rip, and a wet splat.
+  tear() {
+    for (let i = 0; i < 4; i++) burst(1500 + Math.random() * 2000, 2, 0.03, 0.2, 'bandpass', i * 0.03);
+    burst(400, 1, 0.18, 0.3, 'lowpass', 0.1);
+  },
+  // A crumb of crust flicked out.
+  crunch() {
+    burst(3000, 3, 0.025, 0.25, 'bandpass');
+    tone('triangle', 1400, 900, 0.04, 0.08, 0.01);
+  },
+  // Working at The Tick: a creak.
+  pry() {
+    tone('sawtooth', 120 + Math.random() * 40, 90, 0.09, 0.06);
+    burst(700, 4, 0.05, 0.08, 'bandpass');
+  },
+  // The Tick coming off: a pop and a squelch.
+  pop() {
+    tone('sine', 300, 900, 0.06, 0.3);
+    burst(500, 1, 0.2, 0.3, 'lowpass', 0.05);
+  },
+  // The Gash zipping shut.
+  zip() {
+    for (let i = 0; i < 12; i++) burst(2500 + i * 150, 6, 0.02, 0.12, 'bandpass', i * 0.04);
+  },
   // A stray, poked: a little squeak, pitched by who it is.
   squeak(pitch = 1) {
     tone('triangle', 700 * pitch, 1100 * pitch, 0.07, 0.16);
@@ -232,6 +262,11 @@ const BUZZ = {
   nope: [15, 40, 15],
   squish: 12,
   poke: 25,
+  peel: 15,
+  tear: [20, 40, 30],
+  crunch: 8,
+  pry: 10,
+  pop: [30, 50, 60],
 };
 const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 export const hasHaptics = canBuzz;

@@ -8,6 +8,9 @@ export const TITLES = [
   { id: 'pus-farmer', name: 'Pus Farmer', goal: 'Harvest 150 characters', stat: 'harvests', count: 150 },
   { id: 'good-neighbor', name: 'Good Neighbor', goal: "Squeeze 20 of your neighbors' crops", stat: 'squeezes', count: 20 },
   { id: 'boil-buster', name: 'Boil Buster', goal: 'Be the top squeezer of The Boil 3 times', stat: 'bossTops', count: 3 },
+  { id: 'scab-picker', name: 'Scab Picker', goal: 'Peel 30 pieces of scab', stat: 'peels', count: 30 },
+  { id: 'wound-dresser', name: 'Wound Dresser', goal: 'Pick 40 crumbs of crust out of The Gash', stat: 'crumbs', count: 40 },
+  { id: 'tick-twister', name: 'Tick Twister', goal: 'Help pry 5 Ticks off', stat: 'ticks', count: 5 },
   { id: 'glob-goblin', name: 'Glob Goblin', goal: 'Grab 50 globs in Pus Rains', stat: 'globs', count: 50 },
   { id: 'shiny-hunter', name: 'Shiny Hunter', goal: 'Grow 3 shinies', stat: 'shinies', count: 3 },
   { id: 'chatterbox', name: 'Chatterbox', goal: 'Say 50 things in chat', stat: 'chats', count: 50 },
@@ -21,7 +24,7 @@ export const TITLES = [
   { id: 'completionist', name: 'Completionist', goal: 'Have every character in your album', stat: 'album', count: CHARACTERS.length },
 ];
 export const TITLE_BY_ID = Object.fromEntries(TITLES.map((t) => [t.id, t]));
-export const STAT_NAMES = ['harvests', 'squeezes', 'bossTops', 'globs', 'shinies', 'chats', 'gifts', 'itches', 'teeth', 'invites', 'strays'];
+export const STAT_NAMES = ['harvests', 'squeezes', 'bossTops', 'globs', 'shinies', 'chats', 'gifts', 'itches', 'teeth', 'invites', 'strays', 'peels', 'crumbs', 'ticks'];
 
 // Where a player stands on a title's goal.
 export function titleProgress(title, stats, albumSize, streak) {

@@ -9,6 +9,7 @@ import {
   PLOT_SIZE,
   RARITY_ORDER,
   REACH,
+  SCAB,
   SEEDS,
   SEED_BY_ID,
   TEND_MAX,
@@ -44,6 +45,7 @@ import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
 import { createCritters } from '../world/critters.js';
 import { createDropsView } from '../world/drops.js';
+import { createEventViews } from '../world/worldEvents.js';
 import { createFx } from '../world/fx.js';
 import { createLandmarks } from '../world/landmarks.js';
 import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W } from '../world/layout.js';
@@ -135,6 +137,8 @@ export class WorldScene extends Phaser.Scene {
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
     this.drops = createDropsView(this, this.fx);
+    this.eventViews = createEventViews(this, this.fx);
+    this.hold = null;  // a finger held on The Scab: { id, x, y, sx, sy, since, peeled }
     this.trails = createTrails(this);
     this.critters = createCritters(this);
     this.sleepers = createSleepers(this);
@@ -177,7 +181,7 @@ export class WorldScene extends Phaser.Scene {
       chat: (text) => this.room.send('chat', { text }),
       emote: (emote) => this.room.send('emote', { emote }),
       goTo: (id) => this.walkToPlayer(id),
-      goToBoss: () => this.walkToBoss(),
+      goToBoss: () => this.walkToEvent(),
       travel: (x, y) => this.walk(x, y),
       albumOpened: () => { this.coached.albumOpened = true; },
       setTitle: (id) => this.room.send('setTitle', { id }),
@@ -234,6 +238,26 @@ export class WorldScene extends Phaser.Scene {
       if (this.state) this.state.boss = null;
     });
     on('bossReward', this.onBossReward);
+    on('peeled', ({ torn }) => {
+      if (torn) {
+        sfx.tear();
+        this.hud.tip('scab-torn', "That piece tore: it wasn't dry yet. Torn pieces pay less, and the blood spills out as globs anyone can grab.");
+      } else sfx.peel();
+    });
+    on('crumbPicked', ({ id }) => this.eventViews.picked(id));
+    on('eventOver', (over) => {
+      this.eventViews.over(over);
+      if (this.state) this.state.event = null;
+      if (over.kind === 'gash') sfx.zip();
+      else if (over.kind === 'tick') (over.pried ? sfx.pop : sfx.splat)();
+    });
+    on('eventReward', this.onEventReward);
+    on('eventPrize', ({ characterId, isNew }) => {
+      const copies = (this.private?.collection[characterId] ?? 0) + 1;  // the 'me' with it follows
+      this.hud.reveal(characterId, { isNew, found: 'Under The Scab', bonus: describeBonus(wearBonus(characterId, copies)) });
+      sfx.discover();
+      if (isNew) this.hud.markNew();
+    });
     on('grabbed', ({ id, by }) => {
       const avatar = this.avatars.get(by);
       if (avatar) this.drops.grabbed(id, avatar.container);
@@ -328,6 +352,11 @@ export class WorldScene extends Phaser.Scene {
     this.seenFirstState = true;
     this.bossView.sync(state.boss);
     this.drops.sync(state.drops);
+    this.eventViews.sync(state.event ?? null, state, this.now());
+    const eventKey = state.event && `${state.event.kind}@${state.event.x},${state.event.y}`;
+    if (eventKey && eventKey !== this.eventKey && this.seenEvents) sfx.rumble();
+    this.eventKey = eventKey;
+    this.seenEvents = true;
     this.sleepers.sync(state.plots);
     this.strays.sync(state.strays, this.caughtStrayToday());
     this.landmarks.setStatue(state.statue ?? null, state.players[this.myId()]?.pid);
@@ -404,6 +433,10 @@ export class WorldScene extends Phaser.Scene {
     if (this.state.rain) this.hud.tip('rain', 'Pus Rain! Tap the globs to grab them before they soak in. Nearest gets there first.');
     if (this.state.season) this.hud.tip(`season-${this.state.season.id}`, `${this.state.season.name} is on! Harvests can drop teeth 🦷 for a limited name color and title. Tap its pill (top right) to see.`);
     if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
+    const kind = this.state.event?.kind;
+    if (kind === 'scab') this.hud.tip('scab', 'The Scab: let it dry, then hold your finger on it to peel a piece. Whoever peels the last piece finds a character under it.');
+    if (kind === 'gash') this.hud.tip('gash', 'The Gash: tap the crumbs of crust to pick them out. The dark ones need two players tapping at once.');
+    if (kind === 'tick') this.hud.tip('tick', 'The Tick: the crops near it stop growing while it feeds. Tap it to pry it off; the more of you at once, the faster.');
     if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? The bag (top right) is the shop: fertilizer, candles for your plot, a name color.');
     if (this.private.level >= 2 && Object.keys(this.state.players).length <= 3) {
       this.hud.tip('invite', `Quiet in here? The trophy (top right) has Invite a friend: they start next to you, and at level ${INVITE.level} you both get a Boil Seed.`);
@@ -546,6 +579,9 @@ export class WorldScene extends Phaser.Scene {
   onPointerDown(pointer) {
     this.pendingTaps ??= new Map();
     this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y });
+    if (!this.hold && this.state && this.private && !this.hud.blocking() && this.eventViews.at(pointer.worldX, pointer.worldY)?.kind === 'scab') {
+      this.hold = { id: pointer.id, x: pointer.worldX, y: pointer.worldY, sx: pointer.x, sy: pointer.y, since: null, peeled: 0 };
+    }
     const fingers = this.fingersDown();
     if (fingers.length >= 2 && !this.pinch) {
       const [a, b] = fingers;
@@ -567,6 +603,12 @@ export class WorldScene extends Phaser.Scene {
   }
 
   onPointerUp(pointer) {
+    // A hold on The Scab ends here; the tap it also makes knows whether it peeled anything.
+    this.heldPeels = this.hold?.id === pointer.id ? this.hold.peeled : 0;
+    if (this.hold?.id === pointer.id) {
+      this.hold = null;
+      this.eventViews.holding(null);
+    }
     const tap = this.pendingTaps?.get(pointer.id);
     this.pendingTaps?.delete(pointer.id);
     if (this.pinch && this.fingersDown().length < 2) {
@@ -591,6 +633,8 @@ export class WorldScene extends Phaser.Scene {
     if (this.bossView.contains(x, y)) return this.hitBoss();
     const glob = this.drops.at(x, y);
     if (glob) return this.grab(glob);
+    const happening = this.eventViews.at(x, y);
+    if (happening) return this.tapEvent(happening);
     // A crop's head pokes up into the tile above its hole, so hit-test crops before tiles.
     // Your own plot comes before other players, who may well be standing on it; a
     // crop comes before anything lying or crawling over it (a napper, a mite).
@@ -629,6 +673,65 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.walk(x, y);
+  }
+
+  // The Scab is peeled by holding a finger on it (see updateHold); a crumb of The
+  // Gash is picked, and The Tick pried at, a tap at a time.
+  tapEvent(hit) {
+    const at = hit.crumb ?? this.eventViews.position();
+    const me = this.myTarget();
+    if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 30) this.walkNear(at, hit.crumb ? 30 : 85);
+    if (hit.kind === 'scab') {
+      if (!this.heldPeels) this.hud.toast('Hold your finger on The Scab to peel a piece off.');
+      return;
+    }
+    this.eventViews.nudge(hit);
+    if (hit.kind === 'gash') {
+      sfx.crunch();
+      this.whenThere(() => this.room.send('pick', { id: hit.crumb.id }));
+    } else {
+      sfx.pry();
+      this.whenThere(() => this.room.send('pry'));
+    }
+  }
+
+  // A finger held still on The Scab: once you're beside it, a ring fills, and
+  // each time it does a piece comes off.
+  updateHold(time) {
+    const hold = this.hold;
+    if (!hold) return;
+    const pointer = [this.input.pointer1, this.input.pointer2, this.input.mousePointer].find((p) => p?.id === hold.id);
+    const moved = pointer && Phaser.Math.Distance.Between(pointer.x, pointer.y, hold.sx, hold.sy) > TAP_SLOP * renderScale();
+    if (!pointer?.isDown || moved || this.pinch || this.eventViews.kind() !== 'scab' || this.hud.blocking()) {
+      this.hold = null;
+      this.eventViews.holding(null);
+      return;
+    }
+    const at = this.eventViews.position();
+    const me = this.myTarget();
+    if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 15) {
+      this.walkNear(at, 85);
+      hold.since = null;
+    }
+    if (Date.now() < this.arrivesAt) {
+      this.eventViews.holding(null);
+      return;
+    }
+    hold.since ??= time;
+    const k = (time - hold.since) / SCAB.holdMs;
+    this.eventViews.holding({ x: hold.x, y: hold.y }, k);
+    if (k >= 1) {
+      this.room.send('peel');
+      hold.peeled++;
+      hold.since = time;
+    }
+  }
+
+  // Stand a little way off something, on my side of it.
+  walkNear(at, standoff) {
+    const me = this.me() ?? at;
+    const angle = Math.atan2(me.y - at.y, me.x - at.x);
+    this.walk(at.x + Math.cos(angle) * standoff, at.y + Math.sin(angle) * standoff * 0.6 + 20);
   }
 
   // The day's featured stray is caught by walking up and tapping it; the rest
@@ -794,6 +897,16 @@ export class WorldScene extends Phaser.Scene {
   walkToPlayer(id) {
     const p = this.state?.players[id];
     if (p) this.walk(p.x + 40, p.y + 8);
+  }
+
+  // The Boil, or whichever world event is on.
+  walkToEvent() {
+    if (!this.state?.boss) {
+      const at = this.eventViews.position();
+      if (at) this.walkNear(at, 85);
+      return;
+    }
+    this.walkToBoss();
   }
 
   walkToBoss() {
@@ -1396,6 +1509,16 @@ export class WorldScene extends Phaser.Scene {
     this.syncAvatars();
   }
 
+  onEventReward({ text, scraps, xp, seeds }) {
+    const parts = [`+${scraps} scraps`, `+${xp} xp`];
+    if (seeds) parts.push(`+${seeds} Boil Seed`);
+    this.hud.announce(`${text} ${parts.join(' · ')}`, seeds ? 'legendary' : 'quest');
+    if (seeds) {
+      this.hud.selectSeed('boil');
+      sfx.discover();
+    }
+  }
+
   onBossReward({ damage, top, scraps, xp, seeds }) {
     const parts = [`+${scraps} scraps`, `+${xp} xp`];
     if (seeds) parts.push(`+${seeds} Boil Seed${seeds > 1 ? 's' : ''}`);
@@ -1489,7 +1612,7 @@ export class WorldScene extends Phaser.Scene {
 
   // While The Boil is off screen, an arrow at the screen edge points the way.
   pointAtBoss() {
-    const boss = this.bossView.position();
+    const boss = this.bossView.position() ?? this.eventViews.position();
     const view = this.cameras.main.worldView;
     if (!boss || (boss.x > view.x + 20 && boss.x < view.right - 20 && boss.y > view.y + 40 && boss.y < view.bottom + 20)) {
       this.hud.pointAtBoss(null);
@@ -1533,6 +1656,8 @@ export class WorldScene extends Phaser.Scene {
 
     this.updateCrops(time);
     this.bossView.update(time);
+    this.eventViews.update(time, now, calm);
+    this.updateHold(time);
     this.drops.update(time);
     for (const { candles } of this.plots.values()) {
       for (const c of candles ?? []) {

@@ -1,4 +1,4 @@
-import { CHARACTERS, ITCH, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { CHARACTERS, ITCH, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, WORLD_EVENT, levelProgress, MAX_LEVEL } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -300,12 +300,22 @@ export function createHud(actions) {
       albumBadge.hidden = false;
     },
 
-    // Live events: the boss, the blood moon and the pus rain, with countdowns.
-    setEvents({ boss, bloodMoon: moon, rain, itch, season: nextSeason }, now) {
-      bossPill.hidden = !boss;
-      if (boss) {
-        bossTime.textContent = formatClock(boss.expiresAt - now);
-        bossHpFill.style.width = `${(boss.hp / boss.maxHp) * 100}%`;
+    // Live events: the world event (The Boil, The Scab...), the blood moon and
+    // the pus rain, with countdowns. The world event's bar is how much is left of it.
+    setEvents({ boss, event, bloodMoon: moon, rain, itch, season: nextSeason }, now) {
+      const going = boss ? { kind: 'boil', left: boss.hp / boss.maxHp, endsAt: boss.expiresAt } : event && {
+        kind: event.kind,
+        endsAt: event.expiresAt,
+        left: event.kind === 'scab' ? event.pieces.filter((p) => !p).length / event.pieces.length
+          : event.kind === 'gash' ? event.crumbs.length / event.total
+          : 1 - event.progress,
+      };
+      bossPill.hidden = !going;
+      if (going) {
+        bossPill.dataset.kind = going.kind;
+        bossLabel.textContent = WORLD_EVENT.names[going.kind];
+        bossTime.textContent = formatClock(going.endsAt - now);
+        bossHpFill.style.width = `${going.left * 100}%`;
       }
       moonPill.hidden = !moon;
       bloodMoon.hidden = !moon;

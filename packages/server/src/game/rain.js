@@ -48,7 +48,23 @@ export function createRain(room, scale) {
     },
 
     drops() {
-      return [...drops.values()].map(({ id, x, y, gold }) => ({ id, x, y, gold }));
+      return [...drops.values()].map(({ id, x, y, gold, blood }) => ({ id, x, y, gold, blood }));
+    },
+
+    // Globs of blood spilled from something torn open (a scab peeled too soon), for anyone to grab.
+    spill(x, y, count) {
+      const now = Date.now();
+      const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
+      for (let i = 0; i < count && drops.size < RAIN.maxDrops; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 50 + Math.random() * 90;
+        const id = nextId++;
+        drops.set(id, {
+          id, x: Math.round(clamp(x + Math.cos(angle) * dist)), y: Math.round(clamp(y + Math.sin(angle) * dist)),
+          gold: false, blood: true, expiresAt: now + RAIN.lifeMs,
+        });
+      }
+      room.markDirty();
     },
 
     tick(now) {

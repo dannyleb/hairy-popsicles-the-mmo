@@ -3,6 +3,7 @@ import { el } from './dom.js';
 
 const SIZE = 92;  // CSS px
 const PLOT_PX = PLOT_SIZE * TILE_SIZE;
+const EVENT_COLORS = { scab: '#d08a50', gash: '#ff6a7a', tick: '#c8a0f0' };
 const REGION_COLORS = { navel: [74, 34, 38], scalp: [34, 22, 28], armpit: [48, 44, 26], freckles: [58, 32, 22], warts: [46, 24, 38] };
 
 // The regions, drawn once: each pixel the color of where it is.
@@ -81,6 +82,14 @@ export function createMinimap({ onTravel }) {
 
       g.fillStyle = '#e8e070';
       for (const d of state.drops ?? []) g.fillRect(d.x * k - 0.75, d.y * k - 0.75, 1.5, 1.5);
+
+      if (state.event) {
+        const pulse = 3 + Math.sin(time / 180) * 1.2;
+        g.fillStyle = EVENT_COLORS[state.event.kind] ?? '#ff5a4a';
+        g.beginPath();
+        g.arc(state.event.x * k, state.event.y * k, pulse, 0, Math.PI * 2);
+        g.fill();
+      }
 
       if (state.boss) {
         const pulse = 3 + Math.sin(time / 180) * 1.2;

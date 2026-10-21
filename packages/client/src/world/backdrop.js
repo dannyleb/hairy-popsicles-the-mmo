@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { LANDMARKS, REGIONS, regionAt } from '@hptm/shared';
+import { LANDMARKS, REGIONS, SCAB, regionAt } from '@hptm/shared';
 import { DEPTH, NIGHT_TINT, PLOT_PIXELS, WORLD_H, WORLD_W, seededRandom } from './layout.js';
 
 // Art from tools/world.py, all lit from the upper left like the character renders.
@@ -28,6 +28,7 @@ export const WORLD_TEXTURES = [
   'boil', 'scab', 'drop-pus', 'drop-blood',
   'mite-0', 'mite-1', 'flea', 'worm-head', 'worm-body', 'smear',
   'freckle-0', 'freckle-1', 'freckle-2', 'wart-0', 'wart-1', 'navel', 'eye-socket', 'eye-ball', 'eye-iris', 'eye-lid', 'vein', 'plinth',
+  'scab-bed', ...Array.from({ length: SCAB.pieces }, (_, i) => `scab-${i}`), 'gash', 'crust-0', 'crust-1', 'crust-2', 'crust-deep', 'tick',
   ...PROPS.flatMap((p) => p.keys),
 ];
 

@@ -39,6 +39,9 @@ import {
   XP,
   greenThumb,
   holeOpen,
+  GASH,
+  SCAB,
+  TICK,
   featuredFor,
   isReservedPlot,
   levelFor,
@@ -49,6 +52,10 @@ import {
   wearBonus,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
+import { createGash } from '../game/gash.js';
+import { createScab } from '../game/scab.js';
+import { createTick } from '../game/tick.js';
+import { createWorldEvents } from '../game/worldEvents.js';
 import { loadSave, recentSaves, storeSave } from '../db.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
@@ -125,7 +132,14 @@ export class WorldRoom extends Room {
     this.heldPlots = new Map();  // profile id → key of their plot, while they're gone (oldest first)
     this.chatLog = [];
     this.dirty = false;
-    this.boss = createBoss(this, EVENT_SCALE);
+    // The Boil, The Scab, The Gash and The Tick take turns.
+    this.worldEvents = createWorldEvents(EVENT_SCALE, {
+      boil: (done) => createBoss(this, EVENT_SCALE, done),
+      scab: (done) => createScab(this, EVENT_SCALE, done),
+      gash: (done) => createGash(this, EVENT_SCALE, done),
+      tick: (done) => createTick(this, EVENT_SCALE, done),
+    });
+    this.boss = this.worldEvents.events.boil;
     this.rain = createRain(this, EVENT_SCALE);
     this.itch = createItch(this, EVENT_SCALE);
     this.strays = createStrays(this);
@@ -154,6 +168,9 @@ export class WorldRoom extends Room {
     on('chat', (p, m) => this.handleChat(p, m));
     on('emote', (p, m) => this.handleEmote(p, m));
     on('hitBoss', (p) => this.handleHitBoss(p));
+    on('peel', (p) => this.handlePeel(p));
+    on('pick', (p, m) => this.handlePick(p, m));
+    on('pry', (p) => this.handlePry(p));
     on('grab', (p, m) => this.handleGrab(p, m));
     on('setTitle', (p, m) => this.handleSetTitle(p, m));
     on('gift', (p, m) => this.handleGift(p, m));
@@ -477,7 +494,7 @@ export class WorldRoom extends Room {
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
     }
-    this.boss.renameHitter(oldId, newId);
+    this.worldEvents.renamePlayer(oldId, newId);
     return player;
   }
 
@@ -1089,6 +1106,106 @@ export class WorldRoom extends Room {
     this.sendMe(player);
   }
 
+  // ---------- world events: The Scab, The Gash, The Tick ----------
+
+  handlePeel(player) {
+    if (this.arrived(player)) this.worldEvents.events.scab.peel(player, Date.now());
+  }
+
+  // A piece of The Scab, peeled: a little for a torn one (and its blood spills for anyone to grab).
+  peeledScab(player, { torn, at }) {
+    const pay = torn ? SCAB.torn : SCAB.ripe;
+    player.currency += pay.scraps;
+    this.bump(player, 'peels');
+    this.progress(player, 'boss');
+    if (torn) this.rain.spill(at.x, at.y, SCAB.torn.globs);
+    this.clientOf(player)?.send('peeled', { torn, scraps: pay.scraps });
+    this.grantXp(player, pay.xp);
+    this.sendMe(player);
+  }
+
+  // All of it off: whoever peeled the last piece finds a character underneath.
+  finishScab({ x, y, last, peelers }) {
+    const character = rollCharacter({ weights: SCAB.prize }, Boolean(this.bloodMoon), featuredFor(dayOf(Date.now())));
+    const isNew = !last.collection[character.id];
+    last.collection[character.id] = (last.collection[character.id] ?? 0) + 1;
+    if (isNew) this.progress(last, 'discover');
+    this.checkTitles(last);
+    this.checkRows(last);
+    this.clientOf(last)?.send('eventPrize', { kind: 'scab', characterId: character.id, isNew });
+    this.broadcast('eventOver', { kind: 'scab', x, y });
+    this.announce(`${last.name} peeled the last of The Scab and found ${character.name} underneath!`, character.rarity);
+    for (const [id, pieces] of peelers) {
+      const player = this.players[id];
+      if (player) this.rewardEvent(player, { kind: 'scab', ...SCAB.done, text: `The Scab is off. You peeled ${pieces} of it.` });
+    }
+  }
+
+  handlePick(player, { id }) {
+    if (Number.isInteger(id) && this.arrived(player)) this.worldEvents.events.gash.pick(player, id, Date.now());
+  }
+
+  // A crumb of crust out of The Gash (a deep one pays both hands).
+  pickedCrumb(player, { id, deep, helper }) {
+    const pay = deep ? GASH.deep : GASH.crumb;
+    for (const hand of [player, helper].filter(Boolean)) {
+      hand.currency += pay.scraps;
+      this.bump(hand, 'crumbs');
+      this.progress(hand, 'boss');
+      this.grantXp(hand, pay.xp);
+      this.sendMe(hand);
+    }
+    this.broadcast('crumbPicked', { id, by: player.id, deep });
+  }
+
+  finishGash({ x, y, angle, pickers }) {
+    const [topId] = [...pickers.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+    this.broadcast('eventOver', { kind: 'gash', x, y, angle });
+    this.announce(`The Gash is clean and closing up! ${this.players[topId]?.name ?? 'Someone'} picked the most.`, 'boss');
+    for (const [id, picked] of pickers) {
+      const player = this.players[id];
+      if (!player) continue;
+      const top = id === topId;
+      this.rewardEvent(player, {
+        kind: 'gash', ...GASH.done, seeds: top && picked >= 3 ? 1 : 0,
+        text: `The Gash is clean. You picked ${picked}${top ? ', the most' : ''}.`,
+      });
+    }
+  }
+
+  handlePry(player) {
+    if (!this.arrived(player)) return;
+    if (!this.worldEvents.events.tick.pry(player, Date.now())) return;
+    this.grantXp(player, XP.bossHit);
+    this.progress(player, 'boss');
+    this.sendMe(player);
+  }
+
+  // Off (pried, or full and dropped): everyone who pried gets paid by how much they did.
+  finishTick({ x, y, pries, pried }) {
+    this.broadcast('eventOver', { kind: 'tick', x, y, pried });
+    if (!pried) return;
+    const [topId] = [...pries.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+    const { scraps, xp, perPry, max } = TICK.reward;
+    for (const [id, n] of pries) {
+      const player = this.players[id];
+      if (!player) continue;
+      this.bump(player, 'ticks');
+      this.rewardEvent(player, {
+        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: xp + perPry * n, seeds: id === topId && n >= 5 ? 1 : 0,
+        text: `The Tick is off. You pried ${n}×${id === topId && pries.size > 1 ? ', the most' : ''}.`,
+      });
+    }
+  }
+
+  rewardEvent(player, { kind, scraps, xp, seeds = 0, text }) {
+    player.currency += scraps;
+    player.inventory.boil += seeds;
+    this.clientOf(player)?.send('eventReward', { kind, scraps, xp, seeds, text });
+    this.grantXp(player, xp);
+    this.sendMe(player);
+  }
+
   rewardBoss(player, reward) {
     if (reward.top) this.bump(player, 'bossTops');
     player.currency += reward.scraps;
@@ -1106,7 +1223,7 @@ export class WorldRoom extends Room {
       const plot = this.plots[key];
       if (!plot?.away || now - plot.leftAt > PLOT_HOLD_MS) this.dropHeldPlot(profileId);
     }
-    this.boss.tick(now);
+    this.worldEvents.tick(now);
     this.rain.tick(now);
     this.itch.tick(now);
     this.strays.tick(now, featuredFor(dayOf(now)));
@@ -1179,6 +1296,7 @@ export class WorldRoom extends Room {
       }),
       events: {
         boss: this.boss.view(),
+        event: this.worldEvents.view(),
         itch: this.itch.view(),
         bloodMoon: this.bloodMoon,
         rain: this.rain.view(),
@@ -1230,6 +1348,7 @@ export class WorldRoom extends Room {
       season: this.seasonView(),
       drops: this.rain.drops(),
       strays: this.strays.view(),
+      event: this.worldEvents.view(),
       statue: this.statue,
       serverNow: Date.now(),
     };

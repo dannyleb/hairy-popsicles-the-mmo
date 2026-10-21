@@ -807,6 +807,134 @@ def life():
     plinth("plinth", 87)
 
 
+# ---------- gross world events: The Scab, The Gash, The Tick ----------
+
+SCAB_PIECES = 10
+
+
+def scab_bed(name, seed, n=384):
+    """Under the big scab: raw, wet, pink new skin, beaded with blood."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.1) ** 2) / 0.78
+    edge = 1 + 0.08 * spectral(n, rng, 3.0, fmax=5 / n)
+    body = np.clip((1 - r * edge) * 5, 0, 1)
+    f1, _, _, _ = cells(n, rng, 70, periodic=False)
+    beads = np.clip(1 - f1 / (n * 0.018), 0, 1) ** 1.5 * np.clip((0.85 - r) * 4, 0, 1)
+    beads *= np.clip(spectral(n, rng, 2.0, fmax=8 / n) + 0.3, 0, 1)
+    h = 4 * body + 1.5 * spectral(n, rng, 2.8, fmax=40 / n) * body + 5 * beads
+    albedo = mix(np.broadcast_to(np.array([0.95, 0.52, 0.50]), (n, n, 3)), np.array([0.78, 0.20, 0.22]), np.clip((r - 0.45) * 2, 0, 1))
+    albedo = mix(albedo, np.array([0.55, 0.03, 0.05]), np.clip(beads * 1.5, 0, 1))
+    color = shade(h, albedo, 0.9 + 0.9 * body + 1.2 * beads, bump=0.6, shine=110, ao=0.1, sss=1.0)
+    alpha = np.clip((1.06 - r) * 4, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def scab_pieces(prefix, seed, count=SCAB_PIECES, n=384):
+    """A big crusty scab in `count` wedges that peel off one by one; laid over each other they make the whole."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.1) ** 2) / 0.72
+    edge = 1 + 0.1 * spectral(n, rng, 3.0, fmax=6 / n)
+    body = np.clip((1 - r * edge) * 7, 0, 1)
+    f1, f2, _, _ = cells(n, rng, 70, periodic=False)
+    cracks = np.exp(-(((f2 - f1) / 2.2) ** 2)) * body
+    lip = np.clip((r * edge - 0.72) * 5, 0, 1) * body                  # the edge lifts and curls, paler
+    h = 10 * body + 2.5 * spectral(n, rng, 2.6, fmax=24 / n) * body - 3 * cracks + 5 * lip
+    albedo = mix(np.broadcast_to(np.array([0.30, 0.09, 0.06]), (n, n, 3)), np.array([0.52, 0.22, 0.12]), np.clip(0.5 + 0.45 * spectral(n, rng, 2.4, fmax=14 / n), 0, 1))
+    albedo = mix(albedo, np.array([0.72, 0.55, 0.32]), lip * 0.7)
+    albedo = mix(albedo, np.array([0.10, 0.02, 0.02]), cracks * 0.8)
+    color = tone(shade(h, albedo, 0.12 + 0.12 * body + 0.2 * lip, bump=1.0, shine=30, ao=0.35))
+    ang = (np.arctan2(y, x) + 0.35 * r + 0.12 * spectral(n, rng, 3.0, fmax=5 / n)) % (2 * np.pi)
+    bounds = np.sort((2 * np.pi * (np.arange(count) + rng.uniform(-0.25, 0.25, count)) / count) % (2 * np.pi))
+    r_px = np.sqrt(x * x + y * y) * n / 2
+    for k in range(count):
+        lo, hi = bounds[k], bounds[(k + 1) % count]
+        span = (hi - lo) % (2 * np.pi)
+        into = (ang - lo) % (2 * np.pi)
+        inside = into < span
+        # A hairline gap between pieces (none at the very middle, where they all meet).
+        seam = np.minimum(into, span - into) * np.maximum(r_px, 8)
+        alpha = body * inside * np.clip(seam / 1.6, 0, 1)
+        save(color, f"{prefix}-{k}", alpha)
+
+
+def gash(name, seed, w=640, h=160):
+    """A long open wound: swollen pink lips around a deep, wet red split, tapering to points."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    u = xx / w
+    v = (yy - h / 2) / (h / 2)
+    taper = np.sin(np.pi * np.clip(u, 0, 1)) ** 0.6
+    wander = 0.1 * np.sin(u * np.pi * 2.3 + rng.uniform(0, 6)) + 0.04 * np.sin(u * np.pi * 7 + rng.uniform(0, 6))
+    d = (v - wander) / (0.5 * taper + 0.02)
+    noise = np.asarray(Image.fromarray((rng.random((h // 8, w // 8)) * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC), float) / 255 - 0.5
+    split = np.exp(-((d / 0.42) ** 2)) * taper
+    lips = np.exp(-(((np.abs(d) - 0.75) / 0.32) ** 2)) * taper
+    fibrin = np.clip(noise * 3, 0, 1) * split
+    height = 16 * lips - 24 * split + 4 * noise * lips
+    albedo = mix(np.broadcast_to(SKIN, (h, w, 3)), np.array([0.88, 0.40, 0.40]), np.clip(lips * 1.4, 0, 1))
+    albedo = mix(albedo, np.array([0.48, 0.03, 0.05]), np.clip(split * 1.6, 0, 1))
+    albedo = mix(albedo, np.array([0.18, 0.0, 0.02]), np.clip((split - 0.7) * 3, 0, 1))
+    albedo = mix(albedo, np.array([0.86, 0.72, 0.36]), fibrin * 0.8)
+    color = shade(height, albedo, 0.5 + 1.6 * split + 0.6 * lips, bump=0.7, shine=120, ao=0.15, sss=0.8)
+    alpha = np.clip((1.45 - np.abs(d)) * 3, 0, 1) * np.clip(taper * 5, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def crust(name, seed, tint, dark, n=64):
+    """A crumb of dried crust: faceted, cracked, glinting a little."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y) / 0.62
+    edge = 1 + 0.22 * spectral(n, rng, 2.4, fmax=5 / n)
+    body = np.clip((1 - r * edge) * 6, 0, 1)
+    f1, f2, _, _ = cells(n, rng, 9, periodic=False)
+    facets = (f2 - f1) / n
+    h = 9 * body + 30 * facets * body
+    albedo = mix(np.broadcast_to(np.array(tint), (n, n, 3)), np.array(dark), np.clip(0.5 + 0.5 * spectral(n, rng, 2.2, fmax=10 / n), 0, 1))
+    color = shade(h, albedo, 0.5 + 0.5 * body, bump=1.2, shine=90, ao=0.2)
+    shadow = shadow_of(body, n, 2, 3, 2, 0.45) * (1 - body)
+    rgb, a = composite(tone(color), body, shadow)
+    return save(rgb, name, a)
+
+
+def tick(name, seed, n=256):
+    """A tick from above, head down in the skin: a swollen, taut grey-violet sack on eight short legs."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    bx, by = x / 0.46, (y - 0.12) / 0.56
+    rb = np.sqrt(bx * bx + by * by)
+    dome = np.clip(1 - rb ** 2, 0, 1) ** 0.55
+    wrinkles = np.exp(-((np.sin(bx * 9 + 0.6 * spectral(n, rng, 3.0, fmax=6 / n)) / 0.25) ** 2)) * np.clip((rb - 0.3) * 2, 0, 1) * dome
+    scutum = np.clip(1 - np.sqrt((x / 0.26) ** 2 + ((y + 0.32) / 0.2) ** 2), 0, 1) ** 0.5
+    head = np.clip(1 - np.sqrt((x / 0.1) ** 2 + ((y + 0.55) / 0.1) ** 2), 0, 1) ** 0.6
+    legs = legs_mask(n, 3, 4, 0.07 * n, 0.5, 0.26 * n, 7, 0, rng, cy=(1 - 0.30) * n * 3 / 2)
+    legs *= 1 - np.clip(dome * 3, 0, 1)
+    h = 40 * dome + 6 * scutum + 6 * head + 4 * legs - 2 * wrinkles
+    albedo = mix(np.broadcast_to(np.array([0.60, 0.54, 0.66]), (n, n, 3)), np.array([0.42, 0.36, 0.50]), np.clip(rb, 0, 1))
+    albedo = mix(albedo, np.array([0.34, 0.28, 0.40]), wrinkles * 0.6)
+    albedo = mix(albedo, np.array([0.30, 0.16, 0.10]), np.clip(scutum * 2, 0, 1))
+    albedo = mix(albedo, np.array([0.22, 0.10, 0.08]), np.clip(head * 2, 0, 1))
+    albedo = np.where((legs > 0.02)[..., None] & (dome < 0.05)[..., None], np.array([0.32, 0.14, 0.10]), albedo)
+    color = shade(h, albedo, 0.3 + 1.4 * dome, bump=0.8, shine=120, ao=0.2)
+    alpha = np.maximum(np.clip(dome * 8, 0, 1), np.maximum(np.clip(scutum * 6, 0, 1), np.maximum(np.clip(head * 6, 0, 1), legs)))
+    shadow = shadow_of(alpha, n, 6, 9, 6, 0.5) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def gross():
+    scab_bed("scab-bed", 91)
+    scab_pieces("scab", 92)
+    gash("gash", 93)
+    crust("crust-0", 94, [0.88, 0.72, 0.34], [0.58, 0.36, 0.14])
+    crust("crust-1", 95, [0.82, 0.62, 0.28], [0.50, 0.28, 0.12])
+    crust("crust-2", 96, [0.90, 0.80, 0.46], [0.62, 0.44, 0.20])
+    crust("crust-deep", 97, [0.52, 0.16, 0.10], [0.28, 0.05, 0.04])
+    tick("tick", 98)
+
+
 def main():
     if sys.argv[1:] == ["ground"]:
         return ground()
@@ -814,6 +942,8 @@ def main():
         return events()
     if sys.argv[1:] == ["life"]:
         return life()
+    if sys.argv[1:] == ["gross"]:
+        return gross()
     ground()
     macro()
     for i, seed in enumerate([101, 102, 103]):
@@ -835,6 +965,7 @@ def main():
     glow("spore", n=32, falloff=1.6)
     events()
     life()
+    gross()
 
 
 def events():

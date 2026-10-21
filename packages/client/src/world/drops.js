@@ -26,9 +26,10 @@ export function createDropsView(scene, fx) {
       for (const d of drops) {
         seen.add(d.id);
         if (globs.has(d.id)) continue;
-        const glow = scene.add.image(d.x, d.y, 'world:glow').setTint(d.gold ? 0xffcf5a : 0xd8ff70)
+        // Gold ones are worth more; blood ones spilled from a scab torn off too soon.
+        const glow = scene.add.image(d.x, d.y, 'world:glow').setTint(d.gold ? 0xffcf5a : d.blood ? 0xff5a4a : 0xd8ff70)
           .setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.light).setScale((d.gold ? 100 : 64) / 256).setAlpha(0);
-        const image = scene.add.image(d.x, d.y - FALL, 'world:drop-pus').setOrigin(0.5, 0.8).setDepth(d.y);
+        const image = scene.add.image(d.x, d.y - FALL, d.blood ? 'world:drop-blood' : 'world:drop-pus').setOrigin(0.5, 0.8).setDepth(d.y);
         const scale = (d.gold ? GOLD_SIZE : SIZE) / image.width;
         image.setScale(scale * 0.8, scale * 1.3);
         if (d.gold) image.preFX?.addGlow(0xffcf5a, 4, 0, false, 0.1, 10);
