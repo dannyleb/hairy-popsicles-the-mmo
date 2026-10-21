@@ -197,6 +197,29 @@
   display: none;
 }
 
+/* Folded, it's just its header: no wider than it needs to be. */
+.hud-quests.collapsed {
+  width: auto;
+  padding: 4px 12px;
+}
+
+/* The Itch is on: a pulsing dot on the folded header, so it isn't missed. */
+.hud-quests.collapsed.itching .hud-quests-header::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background: #c8e06a;
+  border-radius: 50%;
+  animation: itch-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes itch-dot {
+  50% { opacity: 0.35; }
+}
+
 .hud-quest-list {
   margin: 0;
   padding: 0;
@@ -282,6 +305,59 @@
   display: block;
   width: 92px;
   height: 92px;
+}
+
+.minimap {
+  position: relative;
+  cursor: pointer;
+}
+
+.minimap-expand {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 13px;
+  line-height: 1;
+  color: rgba(255, 232, 214, 0.8);
+  pointer-events: none;
+}
+
+/* The big map, over everything, from the minimap. */
+.world-map {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  font-family: "Patrick Hand", system-ui, sans-serif;
+  color: #ffe8d6;
+  background: rgba(14, 6, 8, 0.82);
+}
+
+.world-map[hidden] {
+  display: none;
+}
+
+.world-map-panel {
+  padding: 10px 12px 12px;
+  background: rgba(30, 12, 16, 0.96);
+  border: 1px solid var(--edge, #8a4a5c);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.world-map-canvas {
+  display: block;
+  border-radius: 10px;
+  cursor: crosshair;
+}
+
+.world-map-hint {
+  margin: 8px 0 0;
+  font-size: 15px;
+  text-align: center;
+  opacity: 0.75;
 }
 
 .hud-events {

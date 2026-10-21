@@ -444,6 +444,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.strays.featured() && !this.caughtStrayToday()) {
       this.hud.tip('stray', "Today's featured character is loose! Find the stray glowing gold (gold dot on your map) and tap it to catch it.");
     }
+    if (this.private.level >= 2) this.hud.tip('map', 'Tap the little map (top right) for the big one, with every place named. Tap anywhere on it to walk there.');
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
     for (const crop of this.crops.values()) {
       if (crop.glow.visible && !crop.mine && this.cameras.main.worldView.contains(crop.image.x, crop.image.y)) {

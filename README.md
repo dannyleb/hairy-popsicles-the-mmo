@@ -50,11 +50,13 @@ Timers are short on purpose while nothing persists. Rarities live in
   level makes your crops grow 3% faster (24% at level 15). Every 5th level
   is announced to the world.
 - **Quests.** Three at a time, dealt from ten kinds (harvest, rarity,
-  plant, discover something new, squeeze a neighbor, chat, emote, hit the
-  boss, change character). Finishing one pays scraps and XP and deals the
-  next. Squeeze quests only show up while there's a neighbor to squeeze.
-  On top of those, one bigger daily quest (pinned in gold) pays 60 scraps,
-  120 XP and a Boil Seed.
+  plant, discover something new, squeeze a neighbor, chat, emote, help at
+  world events, change character). Finishing one pays scraps and XP and
+  deals the next. Squeeze quests only show up while there's a neighbor to
+  squeeze. On top of those, one bigger daily quest (pinned in gold) pays 60
+  scraps, 120 XP and a Boil Seed. On a phone (700px wide or less) the quest
+  list starts folded to one line ("Quests · 4", with a pulsing dot while The
+  Itch is on); tapped open, it folds away again after 10 seconds.
 - **Squeezing.** Tap a neighbor's growing crop: it ripens 25% sooner and
   you get 3 scraps. Up to 3 different people per crop. Squeezable crops
   glow green. This is the main reason to care that other people exist.
@@ -149,8 +151,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   a guided first minute (below), an album
   with silhouettes of everyone you haven't found (tap one you have for a
   close-up with its stars, bonus and copies to the next star, and to play
-  as it), a minimap you can tap to travel, and an arrow to the boss when
-  it's off screen.
+  as it), a minimap, and an arrow to the world event when it's off screen.
+  Tap the minimap for the big map: every region and landmark by name, the
+  statue's subject, your plot, everyone here, the world event and today's
+  stray, with labels that keep out of each other's way. Tap anywhere on it
+  to walk there.
 - **Phones.** If the app goes to the background and the socket drops, the
   server holds your player and plot for 90 seconds and the client
   reconnects into the same seat. Pinch (or the mouse wheel) zooms the

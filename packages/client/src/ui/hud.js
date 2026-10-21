@@ -12,6 +12,7 @@ import './hud.css';
 const TOAST_MS = 2600;
 const MAX_TOASTS = 3;
 const PLACE_MS = 2600;   // how long a place's name stays up
+const QUESTS_OPEN_MS = 10_000;  // on a phone, quests tapped open fold away again after this
 const BANNER_MS = 3800;
 const MAX_BANNERS = 2;
 
@@ -42,8 +43,18 @@ export function createHud(actions) {
   card.append(portrait, cardBody);
 
   // ---- quests under the card
+  // On a phone they start folded away (they crowd a small screen); tapped open,
+  // they fold away again on their own after a while.
   const quests = el('div', 'hud-quests');
-  const questsHeader = button('hud-quests-header', 'Quests', () => quests.classList.toggle('collapsed'));
+  const questsHeader = button('hud-quests-header', 'Quests', () => foldQuests(!quests.classList.contains('collapsed')));
+  const phone = window.matchMedia('(max-width: 700px)');
+  let foldTimer = null;
+  function foldQuests(folded) {
+    quests.classList.toggle('collapsed', folded);
+    clearTimeout(foldTimer);
+    if (!folded && phone.matches) foldTimer = setTimeout(() => foldQuests(true), QUESTS_OPEN_MS);
+  }
+  foldQuests(phone.matches);
   const questList = el('ul', 'hud-quest-list');
   quests.append(questsHeader, questList);
 
@@ -211,6 +222,9 @@ export function createHud(actions) {
       rows.unshift(row);
     }
     questList.replaceChildren(itchRow, ...rows);
+    // Folded, the header says how many, and when The Itch is on.
+    questsHeader.textContent = `Quests · ${rows.length}`;
+    quests.classList.toggle('itching', !itchRow.hidden);
   }
 
   function renderCard() {
@@ -343,6 +357,7 @@ export function createHud(actions) {
 
     setItch(itch, now) {
       itchRow.hidden = !itch;
+      quests.classList.toggle('itching', Boolean(itch));
       if (!itch) return;
       itchText.textContent = `The Itch: ${ITCH.kinds[itch.kind].text(itch.target)}`;
       itchCount.textContent = `${itch.progress}/${itch.target}`;
@@ -418,7 +433,7 @@ export function createHud(actions) {
 
     // True while a panel covers the world, so taps don't fall through to it.
     blocking() {
-      return album.isOpen() || sheets.isOpen() || reveal.isOpen() || chat.isTyping();
+      return album.isOpen() || sheets.isOpen() || reveal.isOpen() || minimap.isOpen() || chat.isTyping();
     },
   };
 }
