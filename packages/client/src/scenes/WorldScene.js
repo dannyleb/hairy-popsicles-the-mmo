@@ -5,6 +5,7 @@ import {
   HOLE_ORDER,
   INVITE,
   MAX_LEVEL,
+  REGIONS,
   PLOT_SIZE,
   RARITY_ORDER,
   REACH,
@@ -15,9 +16,11 @@ import {
   greenThumb,
   holeOpen,
   holesFor,
+  isReservedPlot,
   levelForHole,
   describeBonus,
   linesOf,
+  regionAt,
   travelMs,
   wearBonus,
 } from '@hptm/shared';
@@ -38,6 +41,7 @@ import { createBossView } from '../world/boss.js';
 import { createCritters } from '../world/critters.js';
 import { createDropsView } from '../world/drops.js';
 import { createFx } from '../world/fx.js';
+import { createLandmarks } from '../world/landmarks.js';
 import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W } from '../world/layout.js';
 import { createSleepers } from '../world/sleepers.js';
 import { createStraysView } from '../world/strays.js';
@@ -75,6 +79,13 @@ const TRAILS = { rare: { every: 120, tint: 0x7fb2e5, size: 11 }, legendary: { ev
 const SHINY_TRAIL = { every: 80, tint: 0xffe08a, size: 13 };
 const RAIN_DROP_MS = 60;          // how often a drop falls on screen during a Pus Rain
 const SHEEN = 0xffcf5a;
+const PLACE_SETTLE_MS = 700;      // in a new region this long before its name comes up
+const NAVEL_LINES = [
+  'The Navel. It goes down further than you would think.',
+  'Something gurgles, deep down in there.',
+  'There is lint in here older than the world.',
+];
+const EYE_LINES = ['The Eye screws itself shut. It will remember that.', 'Ow.', 'It blinks the sting away, and keeps watching.'];
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
 const textStyle = (size, color = TEXT) => ({ fontFamily: FONT, fontSize: `${size}px`, color, resolution: textResolution() });
@@ -112,6 +123,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
     this.backdrop.setLite(quality().lite);
+    this.landmarks = createLandmarks(this);
     this.frames = { from: 0, deltas: [], told: false };
     this.pointer = this.makePointer();
     this.fx = createFx(this);
@@ -310,6 +322,7 @@ export class WorldScene extends Phaser.Scene {
     this.drops.sync(state.drops);
     this.sleepers.sync(state.plots);
     this.strays.sync(state.strays, this.caughtStrayToday());
+    this.landmarks.setStatue(state.statue ?? null, state.players[this.myId()]?.pid);
     if (!this.lastTarget && state.players[this.myId()]) {
       const me = state.players[this.myId()];
       this.lastTarget = { x: me.x, y: me.y };
@@ -321,6 +334,7 @@ export class WorldScene extends Phaser.Scene {
     if (Boolean(state.bloodMoon) !== this.bloodMoon) {
       this.bloodMoon = Boolean(state.bloodMoon);
       this.backdrop.setBloodMoon(this.bloodMoon);
+      this.landmarks.setBloodMoon(this.bloodMoon);
     }
     const me = this.me();
     if (me) this.hud.setPublic(me);
@@ -480,7 +494,8 @@ export class WorldScene extends Phaser.Scene {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           const px = cx + dx;
           const py = cy + dy;
-          if (px >= 0 && py >= 0 && px < cols && py < rows && !this.state.plots[`${px},${py}`]) return [px, py];
+          const key = `${px},${py}`;
+          if (px >= 0 && py >= 0 && px < cols && py < rows && !this.state.plots[key] && !isReservedPlot(key)) return [px, py];
         }
       }
     }
@@ -591,9 +606,11 @@ export class WorldScene extends Phaser.Scene {
       this.hud.toast('A worm, crawling across the world. It comes through every few minutes.');
       return;
     }
+    const landmark = this.landmarks.at(x, y);
+    if (landmark) return this.tapLandmark(landmark, x, y);
     if (plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
 
-    if (!this.myPlotKey()) {
+    if (!this.myPlotKey() && !isReservedPlot(hit.plotKey)) {
       const [plotX, plotY] = hit.plotKey.split(',').map(Number);
       // Stand at the new plot's front edge, not on top of the holes.
       this.walk(x, (plotY + 1) * PLOT_PIXELS + FRONT_OF_PLOT);
@@ -619,6 +636,42 @@ export class WorldScene extends Phaser.Scene {
     sfx.squeak(0.8 + (stray.id % 5) * 0.12);
     const lines = linesOf(stray.characterId);
     if (settings.get('bubbles')) this.bubble(view.container, lines[Math.floor(Math.random() * lines.length)], 'mutter', 54);
+  }
+
+  tapLandmark(landmark, x, y) {
+    const pick = (lines) => lines[Math.floor(Math.random() * lines.length)];
+    if (landmark !== 'statue') this.walk(x, y + 30);
+    if (landmark === 'navel') {
+      sfx.gurgle();
+      this.fx.droplets(x, y, { count: 5, key: 'drop-pus', speed: [30, 80], size: [3, 6] });
+      this.hud.toast(pick(NAVEL_LINES));
+    } else if (landmark === 'eye') {
+      const at = this.landmarks.poke(this.time.now);
+      sfx.poke();
+      this.fx.droplets(at.x + 30, at.y + 20, { count: 3, key: 'drop-pus', speed: [20, 50], size: [3, 5] });
+      this.hud.toast(pick(EYE_LINES));
+    } else {
+      const statue = this.landmarks.statue();
+      sfx.click();
+      if (!statue?.name) this.hud.toast('Whoever has collected the most characters gets a statue here. Nobody yet.');
+      else if (statue.mine) this.hud.toast(`That's you: ${statue.album} characters, more than anyone. Keep collecting to stay up there.`, { characterId: statue.avatar });
+      else this.hud.toast(`${statue.name} has collected ${statue.album} characters, more than anyone. Beat that and this statue is yours.`, { characterId: statue.avatar });
+    }
+  }
+
+  // The name of a region, as you walk into it (once you've been in it a moment).
+  updateRegion(time) {
+    const mine = this.avatars.get(this.myId());
+    if (!mine || this.hud.blocking()) return;
+    const region = regionAt(mine.container.x, mine.container.y);
+    if (region !== this.regionHere) {
+      this.regionHere = region;
+      this.regionSince = time;
+    }
+    if (region !== this.regionShown && time - this.regionSince > PLACE_SETTLE_MS) {
+      this.regionShown = region;
+      this.hud.place(REGIONS[region].name, REGIONS[region].line);
+    }
   }
 
   tapSleeper(plot) {
@@ -1449,6 +1502,7 @@ export class WorldScene extends Phaser.Scene {
     this.trails.update(time, this.walkers, camera.worldView, !quality().lite);
     this.critters.update(time, delta, now, camera.worldView, this.walkers, calm);
     this.sleepers.update(time, camera.worldView, calm);
+    this.landmarks.update(time, this.walkers, calm);
 
     this.updateCrops(time);
     this.bossView.update(time);
@@ -1495,6 +1549,7 @@ export class WorldScene extends Phaser.Scene {
       this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time, this.caughtStrayToday() ? null : this.strays.featured());
       this.hud.setEvents(this.state, this.now());
       this.updateCoach();
+      this.updateRegion(time);
       if (this.private) this.updateTips();
     }
   }

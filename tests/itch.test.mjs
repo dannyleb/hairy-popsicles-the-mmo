@@ -89,7 +89,7 @@ check('nobody is paid for one that fades', a.scratched.length === 1 && b.scratch
 // Help with the next one, drop out, and be paid when you're back.
 await b.room.leave(true);
 const c = await join({ profile: farmer('Finisher') });
-c.room.send('claimPlot', { plotX: 9, plotY: 9 });
+c.room.send('claimPlot', { plotX: 8, plotY: 9 });
 waited = 0;
 while (!a.state.itch && waited < 120) { await sleep(250); waited++; }
 const third = a.state.itch;
@@ -108,7 +108,7 @@ const helped = a.shares.filter((s) => s.id === third.id).at(-1)?.count ?? 0;
 const reconnectionToken = a.room.reconnectionToken;
 a.room.connection.close();
 await sleep(300);
-await farm(c, '9,9', () => c.scratched.length > 0);
+await farm(c, '8,9', () => c.scratched.length > 0);
 const back = listen(await new Client(URL).reconnect(reconnectionToken));
 await sleep(500);
 const owed = back.notices.find((n) => n.kind === 'itch');

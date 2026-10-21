@@ -7,6 +7,7 @@ import { countVisit } from '../ui/install.js';
 import { loading } from '../ui/loading.js';
 import { createMenu } from '../ui/menu.js';
 import { createBackdrop } from '../world/backdrop.js';
+import { createLandmarks } from '../world/landmarks.js';
 import { WORLD_H, WORLD_W } from '../world/layout.js';
 
 // The free Render server sleeps when idle; waking it takes up to a minute.
@@ -24,6 +25,7 @@ export class MenuScene extends Phaser.Scene {
     this.scale.on('resize', onResize);
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
+    this.landmarks = createLandmarks(this);
     this.drift = Math.random() * Math.PI * 2;
     this.menu = createMenu({ onPlay: (name) => this.play(name) });
     loading.hide();
@@ -56,5 +58,6 @@ export class MenuScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.centerOn(WORLD_W / 2 + Math.cos(this.drift) * 700, WORLD_H / 2 + Math.sin(this.drift * 1.3) * 500);
     this.backdrop.update(time, delta, camera);
+    this.landmarks.update(time, [], false);
   }
 }

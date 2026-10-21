@@ -11,6 +11,7 @@ import './hud.css';
 
 const TOAST_MS = 2600;
 const MAX_TOASTS = 3;
+const PLACE_MS = 2600;   // how long a place's name stays up
 const BANNER_MS = 3800;
 const MAX_BANNERS = 2;
 
@@ -349,6 +350,16 @@ export function createHud(actions) {
 
     minimap,
     toast,
+
+    // The name of the place you've just walked into, big, for a moment.
+    place(name, line) {
+      root.querySelector('.place')?.remove();
+      const node = el('div', 'place');
+      node.append(el('div', 'place-name', name), el('div', 'place-line', line));
+      root.append(node);
+      setTimeout(() => node.classList.add('out'), PLACE_MS);
+      setTimeout(() => node.remove(), PLACE_MS + 900);
+    },
 
     announce(text, kind) {
       // World news waits until a new player has the basics (it's in the chat log meanwhile).

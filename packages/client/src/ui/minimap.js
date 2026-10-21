@@ -1,10 +1,31 @@
-import { WORLD_PX, PLOT_SIZE, TILE_SIZE } from '@hptm/shared';
+import { LANDMARKS, WORLD_PX, PLOT_SIZE, TILE_SIZE, regionAt } from '@hptm/shared';
 import { el } from './dom.js';
 
 const SIZE = 92;  // CSS px
 const PLOT_PX = PLOT_SIZE * TILE_SIZE;
+const REGION_COLORS = { navel: [74, 34, 38], scalp: [34, 22, 28], armpit: [48, 44, 26], freckles: [58, 32, 22], warts: [46, 24, 38] };
 
-// The whole world at a glance: plots, players, the boss, today's stray. Tap it to walk there.
+// The regions, drawn once: each pixel the color of where it is.
+function regionMap(dpr) {
+  const size = Math.round(SIZE * dpr);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const g = canvas.getContext('2d');
+  const image = g.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const [r, gr, b] = REGION_COLORS[regionAt(((x + 0.5) / size) * WORLD_PX, ((y + 0.5) / size) * WORLD_PX)];
+      const i = (y * size + x) * 4;
+      image.data.set([r, gr, b, 215], i);
+    }
+  }
+  g.putImageData(image, 0, 0);
+  return canvas;
+}
+
+// The whole world at a glance: its regions and landmarks, plots, players, the
+// boss, today's stray. Tap it to walk there.
 export function createMinimap({ onTravel }) {
   const root = el('div', 'minimap');
   const canvas = el('canvas');
@@ -15,6 +36,7 @@ export function createMinimap({ onTravel }) {
   const g = canvas.getContext('2d');
   g.scale(dpr, dpr);
   const k = SIZE / WORLD_PX;
+  const regions = regionMap(dpr);
 
   canvas.addEventListener('click', (event) => {
     const box = canvas.getBoundingClientRect();
@@ -26,8 +48,26 @@ export function createMinimap({ onTravel }) {
     // `stray`: where today's featured stray is, while it's still to be caught.
     draw(state, myId, view, time, stray = null) {
       g.clearRect(0, 0, SIZE, SIZE);
-      g.fillStyle = state.bloodMoon ? 'rgba(70, 8, 14, 0.85)' : 'rgba(40, 18, 22, 0.8)';
-      g.fillRect(0, 0, SIZE, SIZE);
+      g.drawImage(regions, 0, 0, SIZE, SIZE);
+      if (state.bloodMoon) {
+        g.fillStyle = 'rgba(110, 6, 16, 0.5)';
+        g.fillRect(0, 0, SIZE, SIZE);
+      }
+
+      // Landmarks: the Navel, the Eye, the statue.
+      g.strokeStyle = 'rgba(233, 185, 160, 0.9)';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.arc(LANDMARKS.navel.x * k, LANDMARKS.navel.y * k, 3, 0, Math.PI * 2);
+      g.stroke();
+      g.fillStyle = '#f2ece4';
+      g.beginPath();
+      g.ellipse(LANDMARKS.eye.x * k, LANDMARKS.eye.y * k, 3.4, 1.8, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#3a6a30';
+      g.fillRect(LANDMARKS.eye.x * k - 0.8, LANDMARKS.eye.y * k - 0.8, 1.6, 1.6);
+      g.fillStyle = '#d9cfbc';
+      g.fillRect(LANDMARKS.statue.x * k - 1.2, LANDMARKS.statue.y * k - 1, 2.4, 3.4);
 
       for (const [key, plot] of Object.entries(state.plots)) {
         const [px, py] = key.split(',').map(Number);

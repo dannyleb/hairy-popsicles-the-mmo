@@ -211,7 +211,23 @@ sit and then spring away, and every 5 minutes a great pale worm crawls across
 the world, in the same place on every screen. Players who are away nap beside
 the plot the world is keeping for them, with a z drifting up now and then.
 All of it is cheap (well under a millisecond a frame together), and trails
-are off on the lite quality setting. Characters on screen mutter their lines from the first
+are off on the lite quality setting.
+
+**Regions and landmarks** (`packages/shared/src/regions.js`): the Navel is
+the middle of the world, and each quarter around it is its own place, with
+its own cast of color and props: the Scalp (a forest of long hairs), the
+Armpit (sweat pools, steaming), Freckle Flats and Wart Hills. Borders wander
+so they don't look ruled; your region's name comes up as you walk into it,
+and the minimap is shaded by region. Purple veins run under the skin from the
+Navel out to each region and to the Eye. Three landmarks stand on blocks of
+plots nobody can claim (a plot saved where one now stands comes back next to
+it): the Navel (tap it: it gurgles), a giant Eye that watches whoever's
+nearest and blinks (poke it and it screws itself shut), and a stone statue of
+whoever has collected the most characters, with their name and count. The
+server picks the statue from everyone in the database seen in the last 90
+days at startup, then hands it over whenever someone passes the record.
+Still ground decor is only drawn near the view (in 320px cells), which keeps
+the scene cheaper to draw than before all this was added. Characters on screen mutter their lines from the first
 game's `src/roster.js` (characters without lines fall back to its grunts).
 
 **Flow:** an HTML loading screen (shows before the JavaScript arrives) → a

@@ -14,6 +14,7 @@ if (!DB) {
 process.env.PROFILE_SECRET = 'test';
 const { default: pg } = await import('pg');
 const { saveToken } = await import('../packages/server/src/game/profile.js');
+const { CHARACTERS, LANDMARKS, isReservedPlot } = await import('@hptm/shared');
 const { Client } = await import('colyseus.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0;
@@ -66,10 +67,10 @@ async function join(port, options) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const player = (id, name) => saveToken({
-  profileId: id, name, avatar: 'pimples', xp: 400, currency: 100, collection: { pimples: 1 }, shinies: {},
+const player = (id, name, collection = { pimples: 1 }, plot = null, key = null) => saveToken({
+  profileId: id, name, avatar: 'pimples', xp: 400, currency: 100, collection, shinies: {},
   inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
-}, null, null);
+}, plot, key);
 
 // ---- server A: saves go into the database
 let a = await startServer(2590);
@@ -111,6 +112,15 @@ check('a stopping server exits cleanly', code === 0, `exit ${code}`);
 check('and stores everyone still playing first', (await stored(late))?.currency === beforeStop, `${(await stored(late))?.currency} vs ${beforeStop}`);
 if (code === 'still running') a.kill('SIGKILL');
 
+// Someone who left before the Navel went up, with a plot where it is now, and
+// more characters than anyone.
+const [nx, ny] = LANDMARKS.navel.plots;
+const growing = { characterId: 'pimples', seed: 'pimple', plantedAt: Date.now(), readyAt: Date.now() + 3600_000, shiny: false, tendedBy: [] };
+const navelPlot = { candles: 0, slots: Array.from({ length: 9 }, (_, i) => (i === 4 ? growing : null)) };
+const big = Object.fromEntries(CHARACTERS.slice(0, 20).map((c) => [c.id, 1]));
+const settlerId = `db-settler-${Date.now()}`;
+await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2, now())', [settlerId, player(settlerId, 'Settler', big, navelPlot, `${nx},${ny}`)]);
+
 // ---- server B: the same database after a restart
 const b = await startServer(2591);
 await sleep(300);
@@ -118,6 +128,9 @@ const watcher = await join(2591, { name: 'Watcher' });
 const held = watcher.state.plots['4,4'];
 check("an absent player's plot is back in the world after a restart", held?.away === true && held.ownerName === 'Keeper' && held.slots.some(Boolean), b.log.match(/restored \d+ held plots/)?.[0] ?? 'no restore logged');
 const back = await join(2591, { profile: original });  // the old copy, from before they spent anything
+const settled = Object.entries(watcher.state.plots).find(([, plot]) => plot.ownerName === 'Settler');
+check('a held plot from before a landmark comes back next to it', settled && settled[1].away && !isReservedPlot(settled[0]), settled?.[0]);
+check('the statue is of the biggest collector in the database', watcher.state.statue?.name === 'Settler' && watcher.state.statue.album === 20, JSON.stringify(watcher.state.statue));
 check('coming back with an old save after a restart gets the newest one', back.me.currency === spent, `${back.me.currency} vs ${spent}`);
 check('and their plot', back.state.plots['4,4']?.ownerId === back.room.sessionId);
 const status = await (await fetch('http://localhost:2591/admin/data', { headers: { Authorization: 'Bearer test-admin-key' } })).json();

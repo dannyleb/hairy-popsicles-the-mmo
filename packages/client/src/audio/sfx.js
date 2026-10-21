@@ -177,6 +177,18 @@ const SOUNDS = {
     burst(220, 3, 0.45, 0.22, 'bandpass');
     tone('sawtooth', 70, 55, 0.4, 0.06);
   },
+  // Something deep in the Navel: three wet bubbles, each lower.
+  gurgle() {
+    for (let i = 0; i < 3; i++) {
+      tone('sine', 260 - i * 50, 120 - i * 25, 0.1, 0.16, i * 0.11);
+      burst(500 - i * 90, 6, 0.08, 0.08, 'bandpass', i * 0.11);
+    }
+  },
+  // A finger in the Eye: a wet squelch and an offended low groan.
+  poke() {
+    burst(1200, 3, 0.07, 0.3, 'bandpass');
+    tone('sawtooth', 140, 90, 0.35, 0.07, 0.05);
+  },
   // A stray, poked: a little squeak, pitched by who it is.
   squeak(pitch = 1) {
     tone('triangle', 700 * pitch, 1100 * pitch, 0.07, 0.16);
@@ -197,6 +209,7 @@ const BUZZ = {
   scratch: [20, 60, 20, 60, 20],
   nope: [15, 40, 15],
   squish: 12,
+  poke: 25,
 };
 const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 export const hasHaptics = canBuzz;

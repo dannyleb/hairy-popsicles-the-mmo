@@ -21,6 +21,9 @@ export const DEPTH = {
   bubbles: 70_000,
 };
 
+// Darkens the ground and what lies on it, so candlelight and the characters stand out.
+export const NIGHT_TINT = 0x9a8c90;
+
 export const FONT = '"Patrick Hand", system-ui, sans-serif';
 
 // Same scatter of props for every player.

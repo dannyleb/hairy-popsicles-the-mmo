@@ -40,6 +40,7 @@ import {
   greenThumb,
   holeOpen,
   featuredFor,
+  isReservedPlot,
   levelFor,
   rowComplete,
   seasonOn,
@@ -85,6 +86,10 @@ const HOLD_FROM_LEVEL = 2;      // throwaway saves don't get to fill the world w
 // A brand-new player's first crops (until their first harvest) ripen this fast,
 // whatever they turn out to be: the first win comes inside the first minute.
 const FIRST_CROPS_MS = 8000;
+// The statue by the Navel is of whoever has the most characters, out of
+// everyone seen this long ago or since (from the database, after a restart).
+const STATUE_LOOKBACK_MS = 90 * 86_400_000;
+const STATUE_SAVES = 2000;
 
 // There is one world, and it lives as long as the server: a second would split
 // players (and their held plots) between them.
@@ -126,6 +131,7 @@ export class WorldRoom extends Room {
     this.strays = createStrays(this);
     this.strays.tick(Date.now(), featuredFor(dayOf(Date.now())));  // out and about from the start
     this.bloodMoon = null;
+    this.statue = null;  // { pid, name, avatar, album, color }
     this.nextBloodMoon = Date.now() + BLOOD_MOON.firstMs * EVENT_SCALE;
 
     // Every message is from a client we don't trust: anything odd in it must
@@ -163,6 +169,7 @@ export class WorldRoom extends Room {
     });
 
     this.restoreHeldPlots().catch((error) => console.error('restoring held plots failed:', error.message));
+    this.loadStatue().catch((error) => console.error('finding the statue failed:', error.message));
     this.clock.setInterval(() => this.guarded('flush', () => this.flush()), BROADCAST_MS);
     this.clock.setInterval(() => this.guarded('tick', () => this.tick()), TICK_MS);
   }
@@ -262,15 +269,38 @@ export class WorldRoom extends Room {
     for (const { token, at } of saves.reverse()) {  // oldest first, as holdPlot keeps them
       const save = readToken(token);
       if (!save?.plot || save.level < HOLD_FROM_LEVEL || !save.plot.slots.some(Boolean)) continue;
-      if (this.plots[save.plot.key] || this.heldPlots.has(save.id)) continue;
+      // Plots from before a landmark went up move next to it.
+      const key = isReservedPlot(save.plot.key) ? this.freePlotNear(save.plot.key) : save.plot.key;
+      if (!key || this.plots[key] || this.heldPlots.has(save.id)) continue;
       if (Object.values(this.players).some((p) => p.profileId === save.id)) continue;
-      this.plots[save.plot.key] = {
+      this.plots[key] = {
         ownerId: null, ownerName: save.name, slots: save.plot.slots, candles: save.plot.candles,
         away: true, leftAt: at, ownerLevel: save.level, ownerAvatar: save.avatar, ownerPid: publicIdOf(save.id), squeezedAway: 0,
       };
-      this.heldPlots.set(save.id, save.plot.key);
+      this.heldPlots.set(save.id, key);
     }
     if (saves.length) console.log(`restored ${this.heldPlots.size} held plots from the database`);
+    this.markDirty();
+  }
+
+  // Who the statue is of, from everyone's stored saves.
+  async loadStatue() {
+    const saves = await recentSaves(Date.now() - STATUE_LOOKBACK_MS, STATUE_SAVES);
+    for (const { token } of saves) {
+      const save = readToken(token);
+      if (save) this.offerStatue({ pid: publicIdOf(save.id), name: save.name, avatar: save.avatar, collection: save.collection, nameColor: save.nameColor });
+    }
+  }
+
+  // The statue goes to whoever has more characters than its current subject,
+  // and follows its subject's name and look.
+  offerStatue({ pid, name, avatar, collection, nameColor }) {
+    const album = Object.keys(collection).length;
+    const mine = this.statue?.pid === pid;
+    if (!avatar || (!mine && album <= (this.statue?.album ?? 0))) return;
+    const next = { pid, name, avatar, album, color: NAME_COLORS[nameColor] ?? null };
+    if (mine && Object.keys(next).every((k) => next[k] === this.statue[k])) return;
+    this.statue = next;
     this.markDirty();
   }
 
@@ -428,7 +458,7 @@ export class WorldRoom extends Room {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           const x = x0 + dx;
           const y = y0 + dy;
-          if (inside(x, y) && !this.plots[`${x},${y}`]) return `${x},${y}`;
+          if (inside(x, y) && !this.plots[`${x},${y}`] && !isReservedPlot(`${x},${y}`)) return `${x},${y}`;
         }
       }
     }
@@ -642,6 +672,7 @@ export class WorldRoom extends Room {
     if (!client) return;
     const [key, plot] = this.plotOf(player);
     client.send('save', { token: saveToken(player, plot, key) });
+    this.offerStatue(player);
     player.saveDirty = false;
     player.lastSaveAt = Date.now();
     player.unstored = true;
@@ -792,7 +823,7 @@ export class WorldRoom extends Room {
     if (!Number.isInteger(plotX) || !Number.isInteger(plotY)) return;
     if (plotX < 0 || plotY < 0 || plotX >= WORLD_WIDTH_PLOTS || plotY >= WORLD_HEIGHT_PLOTS) return;
     const key = `${plotX},${plotY}`;
-    if (this.plots[key]) return;
+    if (this.plots[key] || isReservedPlot(key)) return;
     if (Object.values(this.plots).some((p) => p.ownerId === player.id)) return; // one plot per player
 
     this.plots[key] = {
@@ -1196,6 +1227,7 @@ export class WorldRoom extends Room {
       season: this.seasonView(),
       drops: this.rain.drops(),
       strays: this.strays.view(),
+      statue: this.statue,
       serverNow: Date.now(),
     };
   }

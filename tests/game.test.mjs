@@ -40,9 +40,9 @@ await sleep(200);
 check('move clamped to the world', a.pub().x === 0 && a.pub().y === 2880);
 
 // ---- holes and seeds
-a.room.send('claimPlot', { plotX: 9, plotY: 9 });
+a.room.send('claimPlot', { plotX: 8, plotY: 9 });
 await sleep(200);
-const keyA = '9,9';
+const keyA = '8,9';
 a.room.send('plant', { plotKey: keyA, slot: 0 });                  // corner: locked at level 1
 a.room.send('plant', { plotKey: keyA, slot: 4, seed: 'pus' });     // pus seeds need level 3
 a.room.send('plant', { plotKey: keyA, slot: 4, seed: 'boil' });    // no boil seeds yet
@@ -95,7 +95,7 @@ check('emote broadcast, unknown emote ignored', b.ev('emote').length === 1 && b.
   const sa = await join('Sal', SLOW);
   const sb = await join('Bea', SLOW);
   sb.room.send('claimPlot', { plotX: 11, plotY: 9 });
-  sa.room.send('claimPlot', { plotX: 9, plotY: 9 });
+  sa.room.send('claimPlot', { plotX: 8, plotY: 9 });
   await sleep(250);
   const key = '11,9';
   sb.room.send('plant', { plotKey: key, slot: 4 });

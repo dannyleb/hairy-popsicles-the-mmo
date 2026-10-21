@@ -594,6 +594,38 @@
   from { opacity: 0; transform: translateY(12px); }
 }
 
+/* A place's name, when you walk into it: big and quiet, at the left, clear of
+   the event pills down the right. */
+.place {
+  position: absolute;
+  top: 31%;
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 1;
+  width: min(280px, calc(100vw - 180px));
+  pointer-events: none;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 2px #000;
+  animation: place-in 0.9s ease-out;
+  transition: opacity 0.8s;
+}
+
+.place.out { opacity: 0; }
+
+.place-name {
+  font: 400 32px/1.05 "Rubik Wet Paint", "Patrick Hand", cursive;
+  color: #ffe8d6;
+}
+
+.place-line {
+  margin-top: 4px;
+  font-size: 17px;
+  line-height: 1.15;
+  color: #e9b9a0;
+}
+
+@keyframes place-in {
+  from { opacity: 0; transform: translateX(-10px); }
+}
+
 /* Announcements drop in over the top bar for a few seconds; taps go through to it. */
 .banners {
   position: absolute;

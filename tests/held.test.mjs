@@ -18,6 +18,7 @@ async function join(options) {
   room.onMessage('init', (s) => { p.state = s; });
   room.onMessage('state', (s) => {
     p.raw = s;
+    if (s.plots) p.plotSends = (p.plotSends ?? 0) + 1;
     p.state = { ...s, plots: s.plots ?? p.state?.plots };  // plots come only when changed
   });
   room.onMessage('me', (m) => { p.me = m; });
@@ -106,9 +107,11 @@ check('after which the save brings it back as usual', again.state.plots['7,7']?.
 b.room.send('move', { x: 300, y: 300 });
 await sleep(400);
 check("a move that changes no plot doesn't resend the plots", b.raw && !('plots' in b.raw) && Object.keys(b.state.plots).length > 0);
+// (Other things going on, like strays wandering, send the state without plots meanwhile.)
+const sends = b.plotSends ?? 0;
 b.room.send('claimPlot', { plotX: 15, plotY: 15 });
 await sleep(400);
-check('a plot change does', b.raw && 'plots' in b.raw);
+check('a plot change does', (b.plotSends ?? 0) === sends + 1);
 
 await again.room.leave(true);
 await b.room.leave(true);

@@ -1,9 +1,10 @@
 // Life in the world: strays wandering on their own (the day's featured one
-// catchable once a day), and players who are away napping by their plots.
+// catchable once a day), players who are away napping by their plots, and the
+// landmarks: plots kept free for them, and the statue of the top collector.
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const { STRAYS, strayPosition } = await import('@hptm/shared');
+const { CHARACTERS, LANDMARKS, STRAYS, isReservedPlot, strayPosition } = await import('@hptm/shared');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0;
 const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
@@ -26,10 +27,11 @@ async function join(options) {
 }
 const lastSave = (p) => JSON.parse(Buffer.from(p.saves.at(-1).split('.')[0], 'base64url').toString());
 const today = new Date().toISOString().slice(0, 10);
-const veteran = (id, name) => saveToken({
-  profileId: id, name, avatar: 'shiv', xp: 400, currency: 200, collection: { pimples: 1, shiv: 1 }, shinies: {},
+const veteran = (id, name, { collection = { pimples: 1, shiv: 1 }, plot = null, key = null } = {}) => saveToken({
+  profileId: id, name, avatar: 'shiv', xp: 400, currency: 200, collection, shinies: {},
   inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
-}, null, null);
+}, plot, key);
+const album = (n) => Object.fromEntries(CHARACTERS.slice(0, n).map((c) => [c.id, 1]));
 // Walk right up to a stray and wait to arrive (it keeps strolling meanwhile).
 async function walkTo(p, stray) {
   const at = strayPosition(stray, p.state.serverNow + 200);
@@ -107,6 +109,29 @@ const woke = await join({ profile: veteran(sleeperId, 'Napper') });
 await sleep(300);
 const mine = watcher.state.plots['2,2'];
 check('and stops when they wake up', mine && !mine.away && mine.ownerAvatar === undefined && mine.ownerPid === undefined && mine.ownerId === woke.room.sessionId);
+
+// ---- landmarks
+const [nx, ny] = LANDMARKS.navel.plots;
+watcher.room.send('claimPlot', { plotX: nx, plotY: ny });
+await sleep(300);
+check("nobody can farm where a landmark stands", !watcher.state.plots[`${nx},${ny}`]);
+const growing = { characterId: 'pimples', seed: 'pimple', plantedAt: Date.now(), readyAt: Date.now() + 3600_000, shiny: false, tendedBy: [] };
+const oldPlot = { candles: 0, slots: Array.from({ length: 9 }, (_, i) => (i === 4 ? growing : null)) };
+const settler = await join({ profile: veteran(`life-settler-${Date.now()}`, 'Settler', { plot: oldPlot, key: `${nx + 1},${ny + 1}` }) });
+const moved = Object.entries(settler.state.plots).find(([, plot]) => plot.ownerId === settler.room.sessionId);
+check('a plot saved where a landmark now stands comes back next to it', moved && !isReservedPlot(moved[0]) && moved[1].slots[4]?.characterId === 'pimples'
+  && Math.abs(Number(moved[0].split(',')[0]) - nx) <= 2 && Math.abs(Number(moved[0].split(',')[1]) - ny) <= 2, moved?.[0]);
+
+await sleep(2300);  // everyone's first save has gone out
+const first = watcher.state.statue;
+check("there's a statue of the top collector so far", first?.album >= 2 && Boolean(first.name && first.avatar), JSON.stringify(first));
+const collector = await join({ profile: veteran(`life-collector-${Date.now()}`, 'Hoarder', { collection: album(12) }) });
+await sleep(2300);
+check('someone with more takes it over', watcher.state.statue?.name === 'Hoarder' && watcher.state.statue.album === 12 && watcher.state.statue.pid === collector.pub().pid, JSON.stringify(watcher.state.statue));
+const lesser = await join({ profile: veteran(`life-lesser-${Date.now()}`, 'Lesser', { collection: album(5) }) });
+await sleep(2300);
+check('and someone with fewer does not', watcher.state.statue?.name === 'Hoarder');
+await Promise.all([settler, collector, lesser].map((p) => p.room.leave(true)));
 
 await woke.room.leave(true);
 await watcher.room.leave(true);
