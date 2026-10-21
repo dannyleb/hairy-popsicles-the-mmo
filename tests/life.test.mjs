@@ -42,11 +42,12 @@ async function walkTo(p, stray) {
 // ---- the sky, from the clock alone (so every screen agrees)
 const day = Math.floor(Date.now() / SKY.dayMs) * SKY.dayMs;
 check('midday is light and midnight is dark', daylight(day) === 1 && daylight(day + SKY.dayMs / 2) === 0 && daylight(day + SKY.dayMs / 4) > 0 && daylight(day + SKY.dayMs / 4) < 1);
-const windows = Array.from({ length: 600 }, (_, i) => weatherAt(day + i * SKY.weatherMs + SKY.weatherMs / 2));
+const firstWindow = Math.floor(Date.now() / SKY.weatherMs) * SKY.weatherMs;
+const windows = Array.from({ length: 600 }, (_, i) => weatherAt(firstWindow + i * SKY.weatherMs + SKY.weatherMs / 2));
 const kinds = Object.fromEntries(Object.keys(WEATHER).map((k) => [k, windows.filter((w) => w.kind === k).length / windows.length]));
 check('the weather comes in every kind, about as often as meant', Object.entries(WEATHER).every(([k, { share }]) => Math.abs(kinds[k] - share) < 0.08), JSON.stringify(kinds));
 const wet = windows.findIndex((w) => w.kind !== 'clear');
-const start = day + wet * SKY.weatherMs;
+const start = firstWindow + wet * SKY.weatherMs;
 check('weather is the same whenever it is asked for', JSON.stringify(weatherAt(start + 1000)) === JSON.stringify(weatherAt(start + 1000)));
 check('and fades in and out at the edges of its window', weatherAt(start + 1).strength < 0.01 && weatherAt(start + SKY.weatherMs / 2).strength === 1 && weatherAt(start + SKY.weatherMs - 1).strength < 0.01);
 
@@ -86,6 +87,7 @@ const caught = a.caught[0];
 check('walk up to it and it joins your album', caught?.characterId === target().characterId && a.me.collection[caught.characterId] === copies + 1, JSON.stringify(caught));
 check('it says whether it was new to you', caught?.isNew === (copies === 0));
 check('it counts toward the Dogcatcher title', a.me.stats.strays === 1);
+check('and the player is told they have had today\'s (so it stops glowing for them)', a.me.strayDay === today);
 check('everyone hears about it', a.announce.some((m) => m.text.includes("caught today's stray")));
 await walkTo(a, target());
 a.room.send('catchStray', { id: target().id });

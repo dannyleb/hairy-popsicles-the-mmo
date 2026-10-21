@@ -288,7 +288,7 @@ export class WorldRoom extends Room {
     const saves = await recentSaves(Date.now() - STATUE_LOOKBACK_MS, STATUE_SAVES);
     for (const { token } of saves) {
       const save = readToken(token);
-      if (save) this.offerStatue({ pid: publicIdOf(save.id), name: save.name, avatar: save.avatar, collection: save.collection, nameColor: save.nameColor });
+      if (save) this.offerStatue({ pid: publicIdOf(save.id), name: save.name || 'Someone', avatar: save.avatar, collection: save.collection, nameColor: save.nameColor });
     }
   }
 
@@ -659,6 +659,7 @@ export class WorldRoom extends Room {
       profileId: player.profileId,
       currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, rows, streak, itchShare,
       inviteCode: player.inviteCode,
+      strayDay: player.strayDay,
     });
     player.saveDirty = true;
   }
@@ -806,12 +807,14 @@ export class WorldRoom extends Room {
     const today = dayOf(now);
     if (!Number.isInteger(id) || player.strayDay === today || !this.arrived(player)) return;
     const stray = this.strays.featuredNear(id, player, REACH, now);
-    if (!stray) return;
+    // (Just after midnight, yesterday's is still out until the next tick swaps it.)
+    if (!stray || stray.characterId !== featuredFor(today)) return;
     const character = CHARACTER_BY_ID[stray.characterId];
     const isNew = !player.collection[character.id];
     player.strayDay = today;
     player.collection[character.id] = (player.collection[character.id] ?? 0) + 1;
     this.bump(player, 'strays');
+    if (isNew) this.progress(player, 'discover');
     this.checkRows(player);
     this.clientOf(player)?.send('caughtStray', { characterId: character.id, isNew });
     this.announce(`${player.name} caught today's stray, ${character.name}!`, character.rarity);
@@ -1127,7 +1130,7 @@ export class WorldRoom extends Room {
     }
     const hp = this.boss.takeHpUpdate();
     if (hp) this.broadcast('bossHp', hp);
-    if (!this.dirty) return;
+    if (!this.dirty || !this.clients.length) return;  // a join gets the whole world anyway
     this.dirty = false;
     // Plots (every crop of everyone, held ones too) are most of the state and
     // change far less often than people walk about: they go out only when changed.

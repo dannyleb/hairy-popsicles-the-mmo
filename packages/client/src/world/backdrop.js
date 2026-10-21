@@ -221,6 +221,8 @@ export function createBackdrop(scene) {
     .setTint(tint).setBlendMode(mode).setDepth(DEPTH.light - 1).setAlpha(0);
   const shade = sky(NIGHT_SHADE.tint, Phaser.BlendModes.MULTIPLY);
   const lift = sky(DAY_LIFT.tint, Phaser.BlendModes.SCREEN);
+  // The Canvas renderer (no WebGL) can't tint: the layers would be plain white.
+  const tints = scene.sys.game.renderer.type === Phaser.WEBGL;
   let glowLevel = 1;  // how strongly lights show: brighter in the dark
   const wind = { strength: 0, angle: 0 };
 
@@ -236,8 +238,8 @@ export function createBackdrop(scene) {
     // Everything goes red while a Blood Moon is up.
     // 1 at midday, 0 at midnight.
     setDaylight(light) {
-      shade.setAlpha(NIGHT_SHADE.alpha * (1 - light)).setVisible(light < 0.99);
-      lift.setAlpha(DAY_LIFT.alpha * light).setVisible(light > 0.01);
+      shade.setAlpha(NIGHT_SHADE.alpha * (1 - light)).setVisible(tints && light < 0.99);
+      lift.setAlpha(DAY_LIFT.alpha * light).setVisible(tints && light > 0.01);
       glowLevel = 0.55 + 0.75 * (1 - light);
     },
 

@@ -591,16 +591,18 @@ export class WorldScene extends Phaser.Scene {
     if (this.bossView.contains(x, y)) return this.hitBoss();
     const glob = this.drops.at(x, y);
     if (glob) return this.grab(glob);
-    const stray = this.strays.at(x, y);
-    if (stray) return this.tapStray(stray);
-
     // A crop's head pokes up into the tile above its hole, so hit-test crops before tiles.
-    // Your own plot comes before other players, who may well be standing on it.
-    const hit = this.cropAt(x, y) ?? this.holeAt(x, y);
+    // Your own plot comes before other players, who may well be standing on it; a
+    // crop comes before anything lying or crawling over it (a napper, a mite).
+    const crop = this.cropAt(x, y);
+    const hit = crop ?? this.holeAt(x, y);
     const plot = this.state.plots[hit.plotKey];
     if (plot?.ownerId === this.myId()) return this.tapOwnHole(hit.plotKey, plot, hit.slot);
     const other = this.avatarAt(x, y);
     if (other) return this.hud.inspect(other);
+    if (crop && plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
+    const stray = this.strays.at(x, y);
+    if (stray) return this.tapStray(stray);
     const asleep = this.sleepers.at(x, y);
     if (asleep) return this.tapSleeper(this.state.plots[asleep]);
     const squished = this.critters.squishAt(x, y, this.time.now);
