@@ -24,6 +24,16 @@
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
+  container-type: size;
+}
+
+/* Too short for the character (small phones with a lot to say): no name or
+   speech bubble left floating over nothing either. */
+@container (max-height: 130px) {
+  .menu-hero-name,
+  .menu-bubble {
+    display: none;
+  }
 }
 
 .menu-hero-box {
