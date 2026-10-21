@@ -58,7 +58,7 @@ function tone(type, f0, f1, dur, peak = 0.4, delay = 0) {
   osc.stop(t + dur + 0.05);
 }
 
-function burst(freq, q, dur, peak, type = 'lowpass', delay = 0) {
+function burst(freq, q, dur, peak, type = 'lowpass', delay = 0, attack = 0.004) {
   const t = ctx.currentTime + delay;
   const source = noise();
   const filter = ctx.createBiquadFilter();
@@ -66,8 +66,8 @@ function burst(freq, q, dur, peak, type = 'lowpass', delay = 0) {
   filter.frequency.value = freq;
   filter.Q.value = q;
   source.connect(filter);
-  envelope(filter, t, peak, 0.004, dur);
-  const length = Math.min(dur + 0.05, NOISE_SECONDS);
+  envelope(filter, t, peak, attack, dur);
+  const length = Math.min(attack + dur + 0.05, NOISE_SECONDS);
   source.start(t, Math.random() * (NOISE_SECONDS - length), length);
 }
 
@@ -177,12 +177,34 @@ const SOUNDS = {
     burst(220, 3, 0.45, 0.22, 'bandpass');
     tone('sawtooth', 70, 55, 0.4, 0.06);
   },
-  // Something deep in the Navel: three wet bubbles, each lower.
-  gurgle() {
+  // Something deep in the Navel (or the Armpit): three wet bubbles, each lower.
+  gurgle(volume = 1) {
     for (let i = 0; i < 3; i++) {
-      tone('sine', 260 - i * 50, 120 - i * 25, 0.1, 0.16, i * 0.11);
-      burst(500 - i * 90, 6, 0.08, 0.08, 'bandpass', i * 0.11);
+      tone('sine', 260 - i * 50, 120 - i * 25, 0.1, 0.16 * volume, i * 0.11);
+      burst(500 - i * 90, 6, 0.08, 0.08 * volume, 'bandpass', i * 0.11);
     }
+  },
+
+  // ---- ambience (see ambience.js): quiet, and played by where you are
+  // The world's heart, under the Navel: lub-dub.
+  heartbeat(volume = 1) {
+    tone('sine', 70, 42, 0.16, 0.5 * volume);
+    burst(160, 1, 0.1, 0.25 * volume);
+    tone('sine', 60, 38, 0.2, 0.36 * volume, 0.24);
+    burst(140, 1, 0.12, 0.18 * volume, 'lowpass', 0.24);
+  },
+  // A breath of hairs brushing together in the Scalp.
+  rustle(volume = 1) {
+    burst(3200 + Math.random() * 1500, 0.8, 0.9, 0.035 * volume, 'bandpass', 0, 0.5);
+  },
+  // An itchy wind going by.
+  gust(volume = 1) {
+    burst(380 + Math.random() * 300, 0.9, 1.6, 0.09 * volume, 'bandpass', 0, 0.8);
+  },
+  // Something small chirping in the dark.
+  chirp(volume = 1) {
+    const pitch = 3600 + Math.random() * 900;
+    for (let i = 0; i < 3; i++) tone('sine', pitch, pitch * 0.96, 0.03, 0.045 * volume, i * 0.07);
   },
   // A finger in the Eye: a wet squelch and an offended low groan.
   poke() {

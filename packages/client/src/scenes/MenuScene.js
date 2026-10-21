@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
+import { daylight, weatherAt } from '@hptm/shared';
 import { music } from '../audio/music.js';
 import { unlock } from '../audio/sfx.js';
 import { cameraZoom } from '../display.js';
 import { connect } from '../net/connection.js';
 import { countVisit } from '../ui/install.js';
 import { loading } from '../ui/loading.js';
+import { settings } from '../settings.js';
 import { createMenu } from '../ui/menu.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createLandmarks } from '../world/landmarks.js';
+import { createWeather } from '../world/weather.js';
 import { WORLD_H, WORLD_W } from '../world/layout.js';
 
 // The free Render server sleeps when idle; waking it takes up to a minute.
@@ -26,6 +29,7 @@ export class MenuScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.backdrop = createBackdrop(this);
     this.landmarks = createLandmarks(this);
+    this.weather = createWeather(this);
     this.drift = Math.random() * Math.PI * 2;
     this.menu = createMenu({ onPlay: (name) => this.play(name) });
     loading.hide();
@@ -57,7 +61,12 @@ export class MenuScene extends Phaser.Scene {
     this.drift += delta * DRIFT_SPEED;
     const camera = this.cameras.main;
     camera.centerOn(WORLD_W / 2 + Math.cos(this.drift) * 700, WORLD_H / 2 + Math.sin(this.drift * 1.3) * 500);
+    const now = Date.now();
+    const weather = weatherAt(now);
+    this.backdrop.setDaylight(daylight(now));
+    this.backdrop.setWind(weather.kind === 'wind' ? weather.strength : 0, weather.angle);
     this.backdrop.update(time, delta, camera);
     this.landmarks.update(time, [], false);
+    this.weather.update(time, delta, camera.worldView, weather, settings.get('calm'), false);
   }
 }

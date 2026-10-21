@@ -227,7 +227,24 @@ whoever has collected the most characters, with their name and count. The
 server picks the statue from everyone in the database seen in the last 90
 days at startup, then hands it over whenever someone passes the record.
 Still ground decor is only drawn near the view (in 320px cells), which keeps
-the scene cheaper to draw than before all this was added. Characters on screen mutter their lines from the first
+the scene cheaper to draw than before all this was added.
+
+**Day, night and weather** (`packages/shared/src/sky.js`), from the clock
+alone, so every screen agrees with no server traffic. A day lasts 20 minutes:
+about 7 of daylight (a warm lift over the ground), 7 of night (a cool shade,
+with candles and pus-flies glowing brighter), and a dusk and a dawn between.
+A Blood Moon is always as dark as dusk. Every 6 minutes the weather may turn
+(half the time it stays clear): dandruff drifting down, a sweaty fog, or an
+itchy wind that streaks across the screen and swings the hairs round. It
+fades in and out, and the chat log says when night falls, morning comes or
+weather sets in. Reduce motion keeps the fog and slows the dandruff; the wind
+streaks are left out.
+
+**Ambience** (`packages/client/src/audio/ambience.js`): quiet procedural
+sounds of wherever you are, under the music and off with Sound: the world's
+heartbeat, louder the nearer you are to the Navel; gurgles in the Armpit;
+hairs rustling in the Scalp; little things chirping at night; gusts while the
+wind blows. Characters on screen mutter their lines from the first
 game's `src/roster.js` (characters without lines fall back to its grunts).
 
 **Flow:** an HTML loading screen (shows before the JavaScript arrives) → a

@@ -13,6 +13,8 @@ import {
   SEED_BY_ID,
   TEND_MAX,
   TILE_SIZE,
+  WEATHER,
+  daylight,
   greenThumb,
   holeOpen,
   holesFor,
@@ -23,7 +25,9 @@ import {
   regionAt,
   travelMs,
   wearBonus,
+  weatherAt,
 } from '@hptm/shared';
+import { createAmbience } from '../audio/ambience.js';
 import { sfx } from '../audio/sfx.js';
 import {
   applyRenderScale, cameraZoom, drawingInSoftware, lookAhead, lowerQuality, quality, renderScale, textResolution,
@@ -46,6 +50,7 @@ import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W 
 import { createSleepers } from '../world/sleepers.js';
 import { createStraysView } from '../world/strays.js';
 import { createTrails } from '../world/trails.js';
+import { createWeather } from '../world/weather.js';
 
 // Character textures are squares with the character standing on the bottom edge.
 const AVATAR_SIZE = 64;
@@ -79,6 +84,7 @@ const TRAILS = { rare: { every: 120, tint: 0x7fb2e5, size: 11 }, legendary: { ev
 const SHINY_TRAIL = { every: 80, tint: 0xffe08a, size: 13 };
 const RAIN_DROP_MS = 60;          // how often a drop falls on screen during a Pus Rain
 const SHEEN = 0xffcf5a;
+const BLOOD_MOON_LIGHT = 0.3;     // a Blood Moon is up: as dark as dusk, whatever the hour
 const PLACE_SETTLE_MS = 700;      // in a new region this long before its name comes up
 const NAVEL_LINES = [
   'The Navel. It goes down further than you would think.',
@@ -133,6 +139,8 @@ export class WorldScene extends Phaser.Scene {
     this.critters = createCritters(this);
     this.sleepers = createSleepers(this);
     this.strays = createStraysView(this);
+    this.weather = createWeather(this);
+    this.ambience = createAmbience();
     this.walkers = [];  // everything walking about this frame: players and strays
     this.lastTarget = null;   // where I last walked to, which is where the server has me
     this.arrivesAt = 0;
@@ -657,6 +665,18 @@ export class WorldScene extends Phaser.Scene {
       else if (statue.mine) this.hud.toast(`That's you: ${statue.album} characters, more than anyone. Keep collecting to stay up there.`, { characterId: statue.avatar });
       else this.hud.toast(`${statue.name} has collected ${statue.album} characters, more than anyone. Beat that and this statue is yours.`, { characterId: statue.avatar });
     }
+  }
+
+  // A line in the chat log as night falls or the morning comes, and as weather sets in.
+  updateSky(now) {
+    const dark = daylight(now) < 0.5;
+    if (this.skyDark !== undefined && dark !== this.skyDark) {
+      this.hud.chatLine({ text: dark ? 'Night falls. The candles burn brighter.' : 'Morning comes to the skin.', kind: 'system' });
+    }
+    this.skyDark = dark;
+    const { kind } = weatherAt(now);
+    if (this.weatherKind !== undefined && kind !== this.weatherKind && WEATHER[kind].line) this.hud.chatLine({ text: WEATHER[kind].line, kind: 'system' });
+    this.weatherKind = kind;
   }
 
   // The name of a region, as you walk into it (once you've been in it a moment).
@@ -1495,6 +1515,11 @@ export class WorldScene extends Phaser.Scene {
     if (!this.state) return;
 
     const now = this.now();
+    const light = this.bloodMoon ? BLOOD_MOON_LIGHT : daylight(now);
+    const weather = weatherAt(now);
+    this.backdrop.setDaylight(light);
+    this.backdrop.setWind(weather.kind === 'wind' ? weather.strength : 0, weather.angle);
+    this.weather.update(time, delta, camera.worldView, weather, calm, quality().lite);
     this.strays.update(time, now);
     this.walkers.length = 0;
     for (const avatar of this.avatars.values()) this.walkers.push(avatar.container);
@@ -1510,7 +1535,7 @@ export class WorldScene extends Phaser.Scene {
     for (const { candles } of this.plots.values()) {
       for (const c of candles ?? []) {
         const flicker = 0.88 + 0.08 * Math.sin(time * 0.011 + c.phase) + 0.05 * Math.sin(time * 0.037 + c.phase * 2.3);
-        c.glow.setAlpha(0.42 * flicker);
+        c.glow.setAlpha(Math.min(1, 0.42 * flicker * this.backdrop.glowLevel()));
         c.flame.setScale((10 / 64) * (0.9 + 0.1 * flicker), (10 / 64) * flicker);
       }
     }
@@ -1521,6 +1546,7 @@ export class WorldScene extends Phaser.Scene {
     this.pointAtBoss();
 
     const mine = this.avatars.get(this.myId());
+    if (mine) this.ambience.update(time, { at: mine.container, region: this.regionHere, light, weather });
     for (const avatar of this.avatars.values()) {
       avatar.container.setDepth(avatar.container.y + 1);
       // A little hop in each step.
@@ -1550,6 +1576,7 @@ export class WorldScene extends Phaser.Scene {
       this.hud.setEvents(this.state, this.now());
       this.updateCoach();
       this.updateRegion(time);
+      this.updateSky(now);
       if (this.private) this.updateTips();
     }
   }

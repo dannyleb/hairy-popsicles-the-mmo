@@ -17,6 +17,7 @@ const PANELS = {
     "Strays wander the world. The day's featured one glows gold: walk up and tap it to catch it, once a day. Catch 7 for the Dogcatcher title.",
     'The skin is alive: mites (squish them), fleas, a giant worm now and then, footprints, swaying hairs, and players napping by their plots while they\'re away.',
     'Regions: the Scalp, the Armpit, Freckle Flats and Wart Hills around the Navel. Find the giant Eye, and the statue of whoever has collected the most characters.',
+    'Day and night, dandruff, sweaty fog and an itchy wind, and the sounds of wherever you are (a heartbeat by the Navel).',
     'Invite a friend (trophy, top right): they start right next to you, and when they reach level 3 you both get a Boil Seed. Bring 3 for the Ringleader title.',
     'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',

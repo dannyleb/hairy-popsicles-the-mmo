@@ -4,7 +4,7 @@
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const { CHARACTERS, LANDMARKS, STRAYS, isReservedPlot, strayPosition } = await import('@hptm/shared');
+const { CHARACTERS, LANDMARKS, SKY, STRAYS, WEATHER, daylight, isReservedPlot, strayPosition, weatherAt } = await import('@hptm/shared');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failures = 0;
 const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
@@ -38,6 +38,17 @@ async function walkTo(p, stray) {
   p.room.send('move', { x: at.x + 20, y: at.y + 10 });
   await sleep(1600);
 }
+
+// ---- the sky, from the clock alone (so every screen agrees)
+const day = Math.floor(Date.now() / SKY.dayMs) * SKY.dayMs;
+check('midday is light and midnight is dark', daylight(day) === 1 && daylight(day + SKY.dayMs / 2) === 0 && daylight(day + SKY.dayMs / 4) > 0 && daylight(day + SKY.dayMs / 4) < 1);
+const windows = Array.from({ length: 600 }, (_, i) => weatherAt(day + i * SKY.weatherMs + SKY.weatherMs / 2));
+const kinds = Object.fromEntries(Object.keys(WEATHER).map((k) => [k, windows.filter((w) => w.kind === k).length / windows.length]));
+check('the weather comes in every kind, about as often as meant', Object.entries(WEATHER).every(([k, { share }]) => Math.abs(kinds[k] - share) < 0.08), JSON.stringify(kinds));
+const wet = windows.findIndex((w) => w.kind !== 'clear');
+const start = day + wet * SKY.weatherMs;
+check('weather is the same whenever it is asked for', JSON.stringify(weatherAt(start + 1000)) === JSON.stringify(weatherAt(start + 1000)));
+check('and fades in and out at the edges of its window', weatherAt(start + 1).strength < 0.01 && weatherAt(start + SKY.weatherMs / 2).strength === 1 && weatherAt(start + SKY.weatherMs - 1).strength < 0.01);
 
 // ---- strays wander
 const a = await join({ profile: veteran(`life-a-${Date.now()}`, 'Catcher') });

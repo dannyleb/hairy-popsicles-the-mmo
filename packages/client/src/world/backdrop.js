@@ -36,6 +36,11 @@ const CANDLE_LIGHT = 0xffa65c;
 const BLOOD_LIGHT = 0xff3a2a;
 const FLY_GLOW = 0xc8ff60;
 const BLOOD_FLY_GLOW = 0xff6a50;
+// Day and night (see daylight in @hptm/shared) are two layers over the ground
+// and plots, under the lights and everyone standing about: a cool shade that
+// deepens toward midnight, and a warm lift toward midday.
+const NIGHT_SHADE = { tint: 0x524e86, alpha: 0.6 };
+const DAY_LIFT = { tint: 0x74583e, alpha: 0.6 };
 const CANDLE_CHANCE = 0.2;    // share of plot-grid corners with a candle
 const CANDLE_WIDTH = 22;
 const GLOW_SIZE = 340;
@@ -212,6 +217,13 @@ export function createBackdrop(scene) {
   let nextSteam = 0;
   let nextWisp = 0;
 
+  const sky = (tint, mode) => scene.add.image(0, 0, '__WHITE').setOrigin(0).setDisplaySize(WORLD_W, WORLD_H)
+    .setTint(tint).setBlendMode(mode).setDepth(DEPTH.light - 1).setAlpha(0);
+  const shade = sky(NIGHT_SHADE.tint, Phaser.BlendModes.MULTIPLY);
+  const lift = sky(DAY_LIFT.tint, Phaser.BlendModes.SCREEN);
+  let glowLevel = 1;  // how strongly lights show: brighter in the dark
+  const wind = { strength: 0, angle: 0 };
+
   let lite = false;  // ambient glows off, when the device is struggling
 
   return {
@@ -222,6 +234,21 @@ export function createBackdrop(scene) {
     },
 
     // Everything goes red while a Blood Moon is up.
+    // 1 at midday, 0 at midnight.
+    setDaylight(light) {
+      shade.setAlpha(NIGHT_SHADE.alpha * (1 - light)).setVisible(light < 0.99);
+      lift.setAlpha(DAY_LIFT.alpha * light).setVisible(light > 0.01);
+      glowLevel = 0.55 + 0.75 * (1 - light);
+    },
+
+    // How much lights show, for others drawing their own (plots' candles).
+    glowLevel: () => glowLevel,
+
+    setWind(strength, angle) {
+      wind.strength = strength;
+      wind.angle = angle;
+    },
+
     setBloodMoon(on) {
       ground.setTint(on ? BLOOD_TINT : NIGHT_TINT);
       for (const c of candles) {
@@ -261,7 +288,9 @@ export function createBackdrop(scene) {
         if (by) h.push += ((by.x < prop.x ? 0.35 : -0.35) - h.push) * 0.2;
         else h.push *= 0.94;
         const air = calm ? 0 : 0.045 * Math.sin(time * 0.0011 + h.phase) + 0.02 * Math.sin(time * 0.0031 + h.phase * 2);
-        prop.setRotation(h.rest + air + h.push);
+        // In a wind the hairs swing round toward the way it blows, in gusts.
+        const gust = wind.strength && !calm ? wind.strength * (0.35 + 0.15 * Math.sin(time * 0.003 + h.phase)) * Math.sin(wind.angle - h.rest) : 0;
+        prop.setRotation(h.rest + air + h.push + gust);
       }
       for (const c of candles) {
         // Lights well off screen aren't drawn at all.
@@ -269,7 +298,7 @@ export function createBackdrop(scene) {
         c.glow.setVisible(near && !lite);
         if (!near) continue;
         const flicker = 0.88 + 0.08 * Math.sin(time * 0.011 + c.phase) + 0.05 * Math.sin(time * 0.037 + c.phase * 2.3);
-        c.glow.setScale((GLOW_SIZE / 256) * (0.96 + 0.04 * flicker)).setAlpha(0.42 * flicker);
+        c.glow.setScale((GLOW_SIZE / 256) * (0.96 + 0.04 * flicker)).setAlpha(Math.min(1, 0.42 * flicker * glowLevel));
         c.flame.setScale((11 / 64) * (0.9 + 0.1 * flicker), (11 / 64) * flicker);
       }
 
@@ -282,7 +311,7 @@ export function createBackdrop(scene) {
         f.halo.setVisible(near && !lite);
         if (!near) continue;
         const pulse = 0.55 + 0.45 * Math.sin(time * 0.004 + f.phase);
-        f.halo.setPosition(x, y).setAlpha(0.35 + 0.35 * pulse);
+        f.halo.setPosition(x, y).setAlpha(Math.min(1, (0.35 + 0.35 * pulse) * glowLevel));
         f.core.setPosition(x, y).setAlpha(0.6 + 0.4 * pulse);
       }
 
@@ -311,8 +340,9 @@ export function createBackdrop(scene) {
 
       // Spores live in screen-relative coordinates and wrap, so there are always some on screen.
       for (const s of spores) {
-        s.u = (s.u + (s.vu * delta) / 1000 + 1) % 1;
-        s.v = (s.v + (s.vv * delta) / 1000 + 1) % 1;
+        const blow = calm ? 0 : wind.strength * 0.12;
+        s.u = (s.u + ((s.vu + Math.cos(wind.angle) * blow) * delta) / 1000 + 1) % 1;
+        s.v = (s.v + ((s.vv + Math.sin(wind.angle) * blow) * delta) / 1000 + 1) % 1;
         const sway = 0.01 * Math.sin(time * 0.001 + s.phase);
         s.mote.setPosition(view.x + (s.u + sway) * view.width, view.y + s.v * view.height);
       }
