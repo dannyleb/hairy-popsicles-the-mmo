@@ -48,6 +48,7 @@ import {
   wearBonus,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
+import { loadSave, recentSaves, storeSave } from '../db.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
 import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.js';
@@ -73,6 +74,7 @@ const TICK_MS = 1000;
 const CHAT_LOG = 30;
 const RECONNECT_SECONDS = 90;
 const SAVE_MS = 2000;            // a player's save goes out at most this often
+const STORE_MS = Number(process.env.STORE_MS) || 30_000;  // and into the database at most this often
 const WELCOME_AFTER_MS = 60_000; // away at least this long to get a "welcome back"
 // A departed player's plot (if anything's growing in it) stays in the world this
 // long, for others to see and squeeze, and is theirs again when they come back.
@@ -156,6 +158,7 @@ export class WorldRoom extends Room {
       this.sendWorld(p, client, true);
     });
 
+    this.restoreHeldPlots().catch((error) => console.error('restoring held plots failed:', error.message));
     this.clock.setInterval(() => this.guarded('flush', () => this.flush()), BROADCAST_MS);
     this.clock.setInterval(() => this.guarded('tick', () => this.tick()), TICK_MS);
   }
@@ -187,11 +190,14 @@ export class WorldRoom extends Room {
     }
   }
 
-  onJoin(client, options) {
+  async onJoin(client, options) {
     let save = readToken(options?.profile);
-    // If this player left earlier, the server's copy of their save is the newest.
-    const latest = save && takeDeparture(save.id);
+    // If this player left earlier, the server's copy of their save is the
+    // newest: in memory while the server's been up, or else in the database
+    // if that's newer than the one the device sent.
+    const latest = save && (takeDeparture(save.id) ?? await this.storedNewerThan(save));
     if (latest) save = readToken(latest) ?? save;
+    // (Nothing below waits, so two joins with one save can't both get past this.)
     // The same save already in the world (a reload, a second tab, or a dropped
     // phone coming back as a new connection): carry on as that player.
     const existing = save && Object.values(this.players).find((p) => p.profileId === save.id);
@@ -220,6 +226,47 @@ export class WorldRoom extends Room {
     topUp(player, this.othersPresent(player));
     player.saveDirty = true;
     this.sendWorld(player, client);
+    this.markDirty();
+  }
+
+  async storedNewerThan(save) {
+    const token = await loadSave(save.id);
+    const stored = readToken(token);
+    return stored && stored.savedAt > save.savedAt ? token : null;
+  }
+
+  // Into the database (when there is one), for after a restart. Only players
+  // who got somewhere: throwaway ones can't fill it up.
+  store(player) {
+    player.unstored = false;
+    player.storedAt = Date.now();
+    if (player.xp <= 0) return Promise.resolve();
+    const [key, plot] = this.plotOf(player);
+    return storeSave(player.profileId, saveToken(player, plot, key));
+  }
+
+  // Shutting down (a deploy or restart): everyone's latest, into the database.
+  storeEveryone() {
+    return Promise.all(Object.values(this.players).map((player) => this.store(player)));
+  }
+
+  // Just after a restart: plots of players who left in the last PLOT_HOLD_MS
+  // (from their stored saves) go back where they were, held for them as if the
+  // server had never stopped.
+  async restoreHeldPlots() {
+    const saves = await recentSaves(Date.now() - PLOT_HOLD_MS, MAX_HELD_PLOTS);
+    for (const { token, at } of saves.reverse()) {  // oldest first, as holdPlot keeps them
+      const save = readToken(token);
+      if (!save?.plot || save.level < HOLD_FROM_LEVEL || !save.plot.slots.some(Boolean)) continue;
+      if (this.plots[save.plot.key] || this.heldPlots.has(save.id)) continue;
+      if (Object.values(this.players).some((p) => p.profileId === save.id)) continue;
+      this.plots[save.plot.key] = {
+        ownerId: null, ownerName: save.name, slots: save.plot.slots, candles: save.plot.candles,
+        away: true, leftAt: at, ownerLevel: save.level, squeezedAway: 0,
+      };
+      this.heldPlots.set(save.id, save.plot.key);
+    }
+    if (saves.length) console.log(`restored ${this.heldPlots.size} held plots from the database`);
     this.markDirty();
   }
 
@@ -257,6 +304,8 @@ export class WorldRoom extends Room {
       synced: false,
       saveDirty: true,
       lastSaveAt: 0,
+      unstored: false,     // changed since it last went into the database
+      storedAt: Date.now(),
       reconnection: null,  // while away: the pending reconnection, so a takeover can cancel it
       lastChatAt: 0,
       lastEmoteAt: 0,
@@ -501,7 +550,9 @@ export class WorldRoom extends Room {
     if (!player || this.players[client.sessionId] !== player) return;
     // Keep their final state for when they come back (their device may not have the last of it).
     const [plotKey, plot] = this.plotOf(player);
-    rememberDeparture(player.profileId, saveToken(player, plot, plotKey), player.xp > 0);
+    const token = saveToken(player, plot, plotKey);
+    rememberDeparture(player.profileId, token, player.xp > 0);
+    if (player.xp > 0) storeSave(player.profileId, token);
     delete this.players[client.sessionId];
     recordSession((player.awaySince ?? Date.now()) - player.joinedAt);
     recordOnline(Object.keys(this.players).length);
@@ -582,6 +633,7 @@ export class WorldRoom extends Room {
     client.send('save', { token: saveToken(player, plot, key) });
     player.saveDirty = false;
     player.lastSaveAt = Date.now();
+    player.unstored = true;
   }
 
   // Count something toward lifetime stats (and the titles they earn).
@@ -1009,6 +1061,7 @@ export class WorldRoom extends Room {
     const now = Date.now();
     for (const player of Object.values(this.players)) {
       if (player.saveDirty && !player.away && now - player.lastSaveAt >= SAVE_MS) this.sendSave(player);
+      if (player.unstored && now - player.storedAt >= STORE_MS) this.store(player);
     }
     const hp = this.boss.takeHpUpdate();
     if (hp) this.broadcast('bossHp', hp);

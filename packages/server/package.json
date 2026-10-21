@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
+    "dev": "node --env-file-if-exists=../../.env.local --watch src/index.js",
     "start": "node src/index.js"
   },
   "dependencies": {
     "@colyseus/core": "^0.15.57",
     "@colyseus/ws-transport": "^0.15.3",
-    "@hptm/shared": "*"
+    "@hptm/shared": "*",
+    "pg": "^8.23.1"
   }
 }

@@ -16,3 +16,9 @@ services:
       # Opens the admin page at /admin. Find it under the service's Environment tab.
       - key: ADMIN_KEY
         generateValue: true
+      # Neon Postgres, pooled and direct (from `neon env pull`, or the Neon
+      # console's Connect button). Without them, saves live only in memory.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false

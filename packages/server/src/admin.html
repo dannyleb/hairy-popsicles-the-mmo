@@ -284,6 +284,13 @@
     $('you').textContent = data.you ? `The server sees you as ${data.you.address} (from ${data.you.source}). Join limits and wrong-key lockouts go by this address.` : '';
   }
 
+  // Neon Postgres: how many players' saves it holds, or why not.
+  function database(db) {
+    if (!db?.on) return ['off', 'database (DATABASE_URL not set)'];
+    if (db.error) return ['error', `database: ${db.error}`];
+    return [db.saves, 'players saved in the database'];
+  }
+
   function renderTiles() {
     const here = data.players.filter((p) => p.status === 'online').length;
     const away = data.players.filter((p) => p.status === 'away').length;
@@ -297,6 +304,7 @@
       [today.peakOnline, 'peak online today'],
       [data.heldPlots.length, 'plots held for absent players'],
       [up, 'server up'],
+      database(data.database),
     ];
     $('tiles').replaceChildren(...tiles.map(([value, label]) => {
       const tile = el('div', 'tile');

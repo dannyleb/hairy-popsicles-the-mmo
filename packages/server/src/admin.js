@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { CHARACTERS, RARITY_ORDER, TITLE_BY_ID, levelFor } from '@hptm/shared';
+import { databaseStatus } from './db.js';
 import { listDepartures } from './game/departed.js';
 import { readToken } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
@@ -86,7 +87,7 @@ function departedPlayers(liveIds) {
   return players;
 }
 
-function report(you) {
+async function report(you) {
   const world = getWorld()?.adminView() ?? { players: [], heldPlots: [], events: null, chat: [] };
   const liveIds = new Set(world.players.map((p) => p.profileId));
   return {
@@ -94,6 +95,7 @@ function report(you) {
     you,  // the address this server sees for you, and where it got it: the lockout goes by it
     stats: statsReport(),
     funnel: funnelReport(),
+    database: await databaseStatus(),
     players: [...world.players, ...departedPlayers(liveIds)],
     heldPlots: world.heldPlots,
     events: world.events,
@@ -127,6 +129,9 @@ export function handleAdmin(req, res) {
     return true;
   }
   failures.clear(you.address);
-  send(res, 200, 'application/json', JSON.stringify(report(you)));
+  report(you).then(
+    (body) => send(res, 200, 'application/json', JSON.stringify(body)),
+    (error) => send(res, 500, 'application/json', JSON.stringify({ error: error.message })),
+  );
   return true;
 }

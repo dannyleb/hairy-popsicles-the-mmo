@@ -5,3 +5,4 @@ dist-ssr/
 *.log
 .env
 .env.local
+.neon

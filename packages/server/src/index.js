@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import colyseus from '@colyseus/core';
 import wsTransport from '@colyseus/ws-transport';
 import { handleAdmin } from './admin.js';
+import { closeDatabase, hasDatabase, setUpDatabase } from './db.js';
 import { nameOf } from './game/invites.js';
 import { readInviteCode } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
@@ -35,7 +36,9 @@ httpServer.on('request', (req, res) => {
   // Online: players here now, not ones whose phone dropped and may be back.
   // Version: the commit Render deployed, to tell which build is live.
   if (url.pathname === '/stats') {
-    return json(res, { ...statsReport(), online: getWorld()?.activeCount() ?? 0, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null });
+    return json(res, {
+      ...statsReport(), online: getWorld()?.activeCount() ?? 0, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null, database: hasDatabase,
+    });
   }
   if (url.pathname === '/invite') {
     const pid = readInviteCode(url.searchParams.get('with'));
@@ -81,6 +84,19 @@ gameServer.handleMatchMakeRequest = (req, res) => {
   if (!joins.take(clientAddress(req).address)) return refuse(429, 'Too many joins from your network. Wait a minute and try again.');
   return handleMatchMake(req, res);
 };
+
+// A deploy or restart: everyone's latest save goes into the database first.
+gameServer.onBeforeShutdown(() => getWorld()?.storeEveryone());
+gameServer.onShutdown(() => closeDatabase());
+
+// The game runs without its database if that's down (saves then last only
+// while the server's up, as before), so a failure here is logged, not fatal.
+try {
+  await setUpDatabase();
+  if (hasDatabase) console.log('database ready');
+} catch (error) {
+  console.error('database setup failed, running without it for now:', error.message);
+}
 
 httpServer.listen(port, () => {
   console.log(`Hairy Popsicles MMO server listening on ws://localhost:${port}`);

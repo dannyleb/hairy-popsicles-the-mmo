@@ -319,6 +319,7 @@ makes every crop shiny.
 ```
 npm test                 # every server suite (a few minutes)
 npm test -- saves gifts  # just those
+TEST_DATABASE_URL=postgres://... npm test -- database   # with a Postgres it may wipe
 ```
 
 `tests/run.mjs` starts fresh game servers for each suite (timers sped up
@@ -400,15 +401,17 @@ What protects what, and what's still open.
 
 ## What's stubbed / not real yet
 
-- **Saves live on the device, not on the server.** That needed no database, and
-  progress survives the free server sleeping and restarting. The catches:
-  progress only moves to another phone or browser by copying the save code
-  across by hand, clearing site data loses it, and offline players' plots
-  (held 24 hours) and the server's copy of each departed player's latest
-  state (3 days) are kept in memory only, so a server restart or sleep drops
-  them; after that a player could restore an older save of their own. The
-  fix for all of it is server-side storage plus an account; the save format
-  (`packages/server/src/game/profile.js`) is what would move there.
+- **Saves live on the device, with the server's newest copy in Postgres.**
+  The device keeps its signed save as before. With `DATABASE_URL` set (Neon,
+  see Deploy), the server also stores each player's newest save: every 30
+  seconds while they play, when they leave, and on shutdown (a deploy or
+  restart). On join the newer of the stored copy and the device's wins, so an
+  old save can't be replayed after a restart, and at startup the plots of
+  players who left in the last 24 hours go back into the world. Only players
+  with some XP are stored. If the database is down the game carries on from
+  memory and the device's saves (`packages/server/src/db.js`). Still missing:
+  accounts, so progress moves to another phone only by copying the save
+  code, clearing site data loses it, and a leaked code can't be cut off.
 - **The save secret.** Saves are signed with `PROFILE_SECRET`. `render.yaml`
   generates one; if it changes or is missing, every save stops loading (the
   server logs a warning when it's missing).
@@ -438,6 +441,13 @@ What protects what, and what's still open.
   ~30-60s and the live world (who's online, The Boil) resets. Players'
   progress is in their saves and comes back with them. Needs the
   `PROFILE_SECRET` environment variable (see "What's stubbed").
+- **Database:** Neon Postgres, project `fragrant-mountain-51553597`, branch
+  `production` (linked in `.neon`; `neon.ts` is its config). The server
+  reads `DATABASE_URL` (pooled, for queries) and `DATABASE_URL_UNPOOLED`
+  (direct, for creating its table at startup); set both on Render. Locally,
+  `neon env pull` writes them to `.env.local`, which `npm run dev:server`
+  loads. The admin page's tiles say whether it's connected and how many
+  players it holds; `/stats` has `database: true|false`.
 - **Keeping it awake:** `.github/workflows/keepalive.yml` pings the server
   every 10 minutes so it never naps (GitHub's schedules can run a few
   minutes late, so a rare nap can still slip through), and logs which build
