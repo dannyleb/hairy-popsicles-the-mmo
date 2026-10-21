@@ -1,4 +1,5 @@
 import { CHARACTERS, CHARACTER_BY_ID, RARITIES, RARITY_ORDER } from '@hptm/shared';
+import { inviteLink } from '../net/invite.js';
 import { bigSpriteUrl, spriteUrl } from './dom.js';
 
 // A picture of your album to post anywhere: who you play as, your level and
@@ -110,7 +111,8 @@ export async function drawShareCard({ name, title, level, avatar, collection, sh
   return canvas;
 }
 
-// Share sheet with the picture where the phone supports it; otherwise download it.
+// Share sheet with the picture where the phone supports it; otherwise download
+// it. The link is the player's invite, so whoever it brings starts next to them.
 export async function shareAlbum(player) {
   const canvas = await drawShareCard(player);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
@@ -119,7 +121,7 @@ export async function shareAlbum(player) {
   const text = `I've grown ${CHARACTERS.filter((c) => player.collection[c.id]).length} of ${CHARACTERS.length} in Hairy Popsicles. Come grow some with me.`;
   try {
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], text, url: GAME_URL });
+      await navigator.share({ files: [file], text, url: inviteLink(player.pid) });
       return 'shared';
     }
   } catch (error) {

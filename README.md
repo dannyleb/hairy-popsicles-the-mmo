@@ -270,6 +270,11 @@ changes.
 App icons (favicon, home screen, PWA) come from a character render:
 `python tools/icons.py [slug]` (default `snoot`).
 
+The link preview card (`public/og.jpg`, 1200x630, what chat apps show for the
+game's link or an invite link) is a lineup of characters under the logo:
+`python tools/preview.py`. The page's Open Graph tags point at it by full
+address, from `VITE_SITE_URL` in `packages/client/.env.production`.
+
 Fonts (Rubik Wet Paint, Patrick Hand — same as the first game) are
 self-hosted in `packages/client/public/fonts/` under the SIL Open Font License.
 

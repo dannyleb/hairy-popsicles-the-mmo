@@ -33,10 +33,39 @@ function contentSecurityPolicy() {
   };
 }
 
+// What a chat app shows when the link (or an invite link) is pasted in: the
+// card is public/og.jpg, from tools/preview.py. Crawlers need its full address.
+const PITCH = 'Grow gross little characters. Collect them all. Play as any of them, together. Free, on your phone.';
+function linkPreview() {
+  let site = '';
+  return {
+    name: 'link-preview',
+    configResolved(config) {
+      site = config.env.VITE_SITE_URL || config.base;
+    },
+    transformIndexHtml(html) {
+      const tags = [
+        `<meta name="description" content="${PITCH}" />`,
+        '<meta property="og:type" content="website" />',
+        '<meta property="og:site_name" content="Hairy Popsicles: The MMO" />',
+        '<meta property="og:title" content="Hairy Popsicles: The MMO" />',
+        `<meta property="og:description" content="${PITCH}" />`,
+        `<meta property="og:image" content="${site}og.jpg" />`,
+        '<meta property="og:image:width" content="1200" />',
+        '<meta property="og:image:height" content="630" />',
+        '<meta property="og:image:alt" content="Hairy Popsicles: a lineup of gross little characters" />',
+        '<meta name="twitter:card" content="summary_large_image" />',
+      ];
+      return html.replace('</title>', `</title>\n  ${tags.join('\n  ')}`);
+    },
+  };
+}
+
 export default defineConfig({
   server: { port: 5173 },
   plugins: [
     contentSecurityPolicy(),
+    linkPreview(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {

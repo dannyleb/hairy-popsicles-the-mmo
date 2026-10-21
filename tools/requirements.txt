@@ -2,3 +2,5 @@ rembg[cpu]>=2.0.85
 pillow>=12
 numpy>=2
 scipy>=1.14
+fonttools>=4.50
+brotli>=1.1

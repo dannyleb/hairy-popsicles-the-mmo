@@ -154,7 +154,7 @@ export function createSheets(actions) {
         share.textContent = 'Making it...';
         const result = await shareAlbum({
           name: p.name, title: p.title, level: me.level, avatar: p.avatar,
-          collection: me.collection, shinies: me.shinies ?? {}, nameColor: p.color,
+          collection: me.collection, shinies: me.shinies ?? {}, nameColor: p.color, pid: p.pid,
         });
         share.disabled = false;
         share.textContent = result === 'downloaded' ? 'Saved the picture' : 'Share my album';
