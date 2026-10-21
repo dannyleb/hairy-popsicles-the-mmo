@@ -33,7 +33,10 @@ httpServer.on('request', (req, res) => {
   if (handleAdmin(req, res)) return;
   const url = URL.parse(req.url ?? '/', 'http://server') ?? new URL('http://server/');  // a mangled path must not throw
   // Online: players here now, not ones whose phone dropped and may be back.
-  if (url.pathname === '/stats') return json(res, { ...statsReport(), online: getWorld()?.activeCount() ?? 0 });
+  // Version: the commit Render deployed, to tell which build is live.
+  if (url.pathname === '/stats') {
+    return json(res, { ...statsReport(), online: getWorld()?.activeCount() ?? 0, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null });
+  }
   if (url.pathname === '/invite') {
     const pid = readInviteCode(url.searchParams.get('with'));
     const known = pid && lookups.take(clientAddress(req).address);

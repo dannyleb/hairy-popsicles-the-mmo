@@ -1,0 +1,37 @@
+name: Keep the server awake
+
+# Render's free plan puts the game server to sleep after 15 minutes with no
+# visitors, and the first player after that waits up to a minute. A ping every
+# 10 minutes keeps it up. GitHub runs schedules on a best-effort basis (often a
+# few minutes late), so a rare nap can still slip through. One always-on free
+# service uses about 744 of Render's 750 free hours a month.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keepalive
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SERVER: https://hairy-popsicles-mmo-server.onrender.com  # as in packages/client/.env.production
+    steps:
+      # A cold start can take a minute, so wait for it.
+      - name: Ping
+        run: curl -fsS --retry 3 --retry-delay 15 --retry-all-errors --max-time 90 "$SERVER/" -o /dev/null
+
+      - name: Which build is live
+        run: |
+          curl -fsS --max-time 30 "$SERVER/stats" | jq -c '{version, online, upSinceMinutes}'
+          # Builds from before invite links answer /invite with plain "ok".
+          if curl -fsS --max-time 30 "$SERVER/invite?with=x" | jq -e 'has("name")' > /dev/null 2>&1; then
+            echo "invite links: yes"
+          else
+            echo "invite links: no (an older build)"
+          fi

@@ -438,6 +438,12 @@ What protects what, and what's still open.
   ~30-60s and the live world (who's online, The Boil) resets. Players'
   progress is in their saves and comes back with them. Needs the
   `PROFILE_SECRET` environment variable (see "What's stubbed").
+- **Keeping it awake:** `.github/workflows/keepalive.yml` pings the server
+  every 10 minutes so it never naps (GitHub's schedules can run a few
+  minutes late, so a rare nap can still slip through), and logs which build
+  is live: `/stats` includes `version`, the commit Render deployed. One
+  always-on free service uses about 744 of Render's 750 free hours a month.
+  Turn it off under the repo's Actions tab if those hours are needed elsewhere.
 - **Client:** GitHub Pages via `.github/workflows/pages.yml` on every push
   to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`.
   Production builds point at the Render server via
