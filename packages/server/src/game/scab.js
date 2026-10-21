@@ -3,7 +3,7 @@ import { pick } from './roll.js';
 import { clearOfPlots, present, spotNear } from './spots.js';
 
 const CLEARANCE = 110;  // px from its middle to the nearest plot
-const PEEL_GAP_MS = SCAB.holdMs - 150;  // a finger held on it for holdMs, allowing for the network
+const PEEL_GAP_MS = SCAB.holdMs - 80;  // a finger held on it for holdMs, allowing for the network
 
 // The Scab (see SCAB in @hptm/shared). Each piece is 0 while it's on, 1 once
 // peeled when dry, 2 if it was torn off early. `room.peeledScab(player, piece)`
@@ -14,8 +14,8 @@ export function createScab(room, scale, done) {
   function finish(now, last) {
     const { x, y, peelers } = scab;
     scab = null;
-    room.finishScab({ x, y, last, peelers });
     done(now);
+    room.finishScab({ x, y, last, peelers });
     room.markDirty();
   }
 

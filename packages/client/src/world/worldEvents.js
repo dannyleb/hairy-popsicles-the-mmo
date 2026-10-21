@@ -195,8 +195,9 @@ export function createEventViews(scene, fx) {
       if (!view) return null;
       if (view.kind === 'scab') return Math.hypot(x - view.x, y - view.y) < SCAB_SIZE * 0.45 ? { kind: 'scab' } : null;
       if (view.kind === 'tick') {
+        // Its body (origin 0.3 down it), and not much more: it sits right by someone's crops.
         const size = view.body.displayWidth;
-        return Math.abs(x - view.x) < size * 0.6 && y > view.y - size * 0.45 && y < view.y + size * 0.85 ? { kind: 'tick' } : null;
+        return Math.abs(x - view.x) < size * 0.45 && y > view.y - size * 0.3 && y < view.y + size * 0.7 ? { kind: 'tick' } : null;
       }
       let best = null;
       for (const crumb of view.crumbs.values()) {
@@ -235,8 +236,12 @@ export function createEventViews(scene, fx) {
           Phaser.Display.Color.ValueToColor(0xffffff), Phaser.Display.Color.ValueToColor(0xff8a7a), 100, Math.round(wet * 100),
         );
         for (const piece of view.pieces) if (!piece.peeling) piece.setTint(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+        // (Text only redrawn when it changes: setText skips the same text, setColor doesn't.)
         view.label.setText(dry ? 'The Scab · dry: hold to peel' : `The Scab · drying ${Math.ceil((event.ripeAt - now) / 1000)}s`);
-        view.label.setColor(dry ? '#f3d27a' : '#ffd9c0');
+        if (view.dry !== dry) {
+          view.dry = dry;
+          view.label.setColor(dry ? '#f3d27a' : '#ffd9c0');
+        }
       } else if (view.kind === 'gash') {
         const loose = [...view.crumbs.values()].find((c) => !c.flicked && c.loose > now);
         view.loose.setVisible(Boolean(loose));

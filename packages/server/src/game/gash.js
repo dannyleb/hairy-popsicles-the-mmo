@@ -77,7 +77,6 @@ export function createGash(room, scale, done) {
         credit(newId, gash.pickers.get(oldId));
         gash.pickers.delete(oldId);
       }
-      for (const c of gash.crumbs) if (c.loose?.by === oldId) c.loose.by = newId;
     },
 
     // { picked, deep, helper } once it's out; { loosened } for the first hand on a deep one; null for nothing.
@@ -86,21 +85,22 @@ export function createGash(room, scale, done) {
       if (!crumb || crumb.picked || Math.hypot(player.x - crumb.x, player.y - crumb.y) > REACH) return null;
       if (now - (player.lastPickAt ?? 0) < PICK_GAP_MS) return null;
       player.lastPickAt = now;
-      if (crumb.deep && (!crumb.loose || now > crumb.loose.until || crumb.loose.by === player.id)) {
-        crumb.loose = { by: player.id, until: now + GASH.looseMs };
+      // (Hands by save: leaving and coming back as a new connection isn't a second pair.)
+      if (crumb.deep && (!crumb.loose || now > crumb.loose.until || crumb.loose.by === player.profileId)) {
+        crumb.loose = { by: player.profileId, until: now + GASH.looseMs };
         room.markDirty();
         return { loosened: true };
       }
       crumb.picked = true;
-      const helper = crumb.deep ? room.players[crumb.loose.by] : null;
+      const helper = crumb.deep ? Object.values(room.players).find((p) => p.profileId === crumb.loose.by) ?? null : null;
       credit(player.id);
       if (helper) credit(helper.id);
       room.pickedCrumb(player, { id: crumb.id, deep: crumb.deep, helper });
       if (gash.crumbs.every((c) => c.picked)) {
         const { x, y, angle, pickers } = gash;
         gash = null;
-        room.finishGash({ x, y, angle, pickers });
         done(now);
+        room.finishGash({ x, y, angle, pickers });
       }
       room.markDirty();
       return { picked: true, deep: crumb.deep, helper };

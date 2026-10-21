@@ -44,6 +44,10 @@ export function createBoss(room, scale, done) {
   function burst(now) {
     const ranked = [...boss.damage.entries()].sort((a, b) => b[1] - a[1]);
     const [topId] = ranked[0];
+    const { x, y } = boss;
+    // Over before anyone's paid, so a slip in paying can't leave it stuck on.
+    boss = null;
+    done(now);
     for (const [id, damage] of ranked) {
       const player = room.players[id];
       if (!player) continue;
@@ -56,10 +60,8 @@ export function createBoss(room, scale, done) {
       };
       room.rewardBoss(player, reward);
     }
-    room.broadcast('bossPopped', { x: boss.x, y: boss.y });
+    room.broadcast('bossPopped', { x, y });
     room.announce(`The Boil burst! ${room.players[topId]?.name ?? 'Someone'} squeezed hardest.`, 'boss');
-    boss = null;
-    done(now);
     room.markDirty();
   }
 

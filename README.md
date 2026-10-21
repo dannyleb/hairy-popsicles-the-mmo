@@ -80,23 +80,27 @@ Timers are short on purpose while nothing persists. Rarities live in
 - **The Scab.** A big crusty scab, wet at first and drying over 40 seconds.
   Hold a finger on it to peel a piece (a ring fills; keep holding for the
   next). Peeled dry, a piece pays 5 scraps; torn off early it pays 1 and
-  bleeds three globs anyone can grab. Whoever peels the last of its ten
+  bleeds three globs of blood anyone can grab (a scrap each; they don't
+  count as Pus Rain globs), so waiting pays, unless someone else is racing
+  you for the last piece. Whoever peels the last of its ten
   pieces finds a character underneath (Uncommon or better), and everyone
   who peeled gets a bit more. Scab Picker title for 30 pieces.
 - **The Gash.** A wound tears open with crumbs of crust along it (10, plus
   4 a player, up to 26). Tap one to pick it out. With two or more players
   around, every fifth is deep: one player's tap loosens it for 2.5 seconds
   and a second player's tap gets it out, paying both. Picked clean, it zips
-  shut; everyone who picked gets paid, the top picker a Boil Seed. Wound
-  Dresser title for 40 crumbs.
+  shut; everyone who picked gets paid, the top picker (with 3 or more) a
+  Boil Seed. Hands are counted by save, not connection. Wound Dresser title
+  for 40 crumbs.
 - **The Tick.** Latches on beside the plot with the most growing crops of
   anyone online, and the crops within reach stop growing while it feeds (red
-  threads show which; their wait grows by however long it was on). Tap to
-  pry: each pry counts once for every player who's pried in the last 2.5
-  seconds, so a crowd gets it off fast. Pried off by one player while
-  others were around, its head stays in and it's back in 90 seconds. If
-  nobody gets it, it drops off full after 2 minutes. Tick Twister title
-  for 5.
+  threads show which: every second it's on, their wait gets a second
+  longer). Tap to pry: each pry counts once for every player who's pried in
+  the last 2.5 seconds, so a crowd gets it off fast. Pried off by one player
+  alone while someone else was nearby (800px) who could have helped, its
+  head stays in: no Boil Seed or title count, and it's back in 90 seconds,
+  once (then the turns carry on). If nobody gets it, it drops off full after
+  2 minutes. Tick Twister title for 5.
 - **Pus Rain (event).** Every 5 minutes, for 45 seconds, globs of pus rain
   down around everyone online; tap one to run over and grab it (2 scraps, or
   10 for a rare gold one). Walking takes time (the same on every screen and

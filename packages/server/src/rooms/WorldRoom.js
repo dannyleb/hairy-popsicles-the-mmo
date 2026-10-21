@@ -1096,13 +1096,16 @@ export class WorldRoom extends Room {
 
   handleGrab(player, { id }) {
     if (!Number.isInteger(id) || !this.arrived(player)) return;
-    const scraps = this.rain.grab(player, id);
-    if (!scraps) return;
-    player.currency += scraps;
-    this.clientOf(player)?.send('gotGlob', { scraps, gold: scraps > 2 });
+    const glob = this.rain.grab(player, id);
+    if (!glob) return;
+    player.currency += glob.scraps;
+    this.clientOf(player)?.send('gotGlob', { scraps: glob.scraps, gold: glob.gold });
     this.grantXp(player, XP.grab);
-    this.progress(player, 'grab');
-    this.bump(player, 'globs');
+    // (Blood from a torn scab isn't a Pus Rain glob.)
+    if (!glob.blood) {
+      this.progress(player, 'grab');
+      this.bump(player, 'globs');
+    }
     this.sendMe(player);
   }
 
@@ -1181,19 +1184,22 @@ export class WorldRoom extends Room {
     this.sendMe(player);
   }
 
-  // Off (pried, or full and dropped): everyone who pried gets paid by how much they did.
-  finishTick({ x, y, pries, pried }) {
+  // Off (pried, or full and dropped): everyone who pried gets paid by how much
+  // they did. With its head left in, no seed and it doesn't count for the title.
+  finishTick({ x, y, pries, pried, headIn }) {
     this.broadcast('eventOver', { kind: 'tick', x, y, pried });
     if (!pried) return;
     const [topId] = [...pries.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
     const { scraps, xp, perPry, max } = TICK.reward;
-    for (const [id, n] of pries) {
-      const player = this.players[id];
+    for (const [profileId, n] of pries) {
+      const player = Object.values(this.players).find((p) => p.profileId === profileId);
       if (!player) continue;
-      this.bump(player, 'ticks');
+      if (!headIn) this.bump(player, 'ticks');
       this.rewardEvent(player, {
-        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: xp + perPry * n, seeds: id === topId && n >= 5 ? 1 : 0,
-        text: `The Tick is off. You pried ${n}×${id === topId && pries.size > 1 ? ', the most' : ''}.`,
+        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: xp + perPry * n,
+        seeds: !headIn && profileId === topId && n >= 5 ? 1 : 0,
+        text: headIn ? `The Tick is off, but its head stayed in. You pried ${n}×.`
+          : `The Tick is off. You pried ${n}×${profileId === topId && pries.size > 1 ? ', the most' : ''}.`,
       });
     }
   }

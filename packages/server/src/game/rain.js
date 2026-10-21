@@ -16,6 +16,7 @@ const RAIN = {
   goldChance: 0.06,
   value: 2,
   goldValue: 10,
+  bloodValue: 1,
 };
 
 export function createRain(room, scale) {
@@ -97,14 +98,15 @@ export function createRain(room, scale) {
       if (changed) room.markDirty();
     },
 
-    // Returns what the glob was worth, or 0 if it's gone or out of reach.
+    // What the glob was worth ({ scraps, gold, blood }), or null if it's gone or out of reach.
     grab(player, id) {
       const drop = drops.get(id);
-      if (!drop || Math.hypot(player.x - drop.x, player.y - drop.y) > REACH) return 0;
+      if (!drop || Math.hypot(player.x - drop.x, player.y - drop.y) > REACH) return null;
       drops.delete(id);
       room.broadcast('grabbed', { id, by: player.id });
       room.markDirty();
-      return drop.gold ? RAIN.goldValue : RAIN.value;
+      const scraps = drop.gold ? RAIN.goldValue : drop.blood ? RAIN.bloodValue : RAIN.value;
+      return { scraps, gold: drop.gold, blood: Boolean(drop.blood) };
     },
   };
 }

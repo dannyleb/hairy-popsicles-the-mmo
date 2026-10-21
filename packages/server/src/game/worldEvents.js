@@ -5,13 +5,16 @@ import { WORLD_EVENT } from '@hptm/shared';
 // calls done(now, { again }) when it's over. WORLD_EVENTS (e.g. "scab,gash")
 // changes the order, for testing.
 export function createWorldEvents(scale, makers) {
-  const order = (process.env.WORLD_EVENTS || Object.keys(makers).join(',')).split(',').filter((k) => makers[k]);
+  const wanted = (process.env.WORLD_EVENTS ?? '').split(',').filter((k) => makers[k]);
+  const order = wanted.length ? wanted : Object.keys(makers);
   let turn = 0;
   let current = null;
-  let again = null;  // a kind that comes back next, out of turn
+  let again = null;     // a kind that comes back next, out of turn
+  let comeback = false; // the one on now is such a comeback (it gets one, no more)
   let nextAt = Date.now() + WORLD_EVENT.firstMs * scale;
 
   const done = (now, { again: kind = null } = {}) => {
+    if (comeback) kind = null;
     current = null;
     again = kind;
     nextAt = now + (kind ? WORLD_EVENT.soonMs : WORLD_EVENT.everyMs) * scale;
@@ -35,6 +38,7 @@ export function createWorldEvents(scale, makers) {
       const kind = again ?? order[turn % order.length];
       if (events[kind].start(now)) {
         current = kind;
+        comeback = Boolean(again);
         if (!again) turn++;
         again = null;
       } else {

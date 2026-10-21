@@ -5,6 +5,7 @@
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { createTick } = await import('../packages/server/src/game/tick.js');
+const { createWorldEvents } = await import('../packages/server/src/game/worldEvents.js');
 const { Client } = await import('colyseus.js');
 const { GASH, REACH, SCAB, TICK } = await import('@hptm/shared');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -14,7 +15,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'} 
 // ---- The Tick's head, without a server: pried alone with others around, it's back soon
 function tickWorld(players) {
   const room = { players: {}, plots: {}, said: [], over: [], announce(t) { this.said.push(t); }, markDirty() {}, finishTick(r) { this.over.push(r); } };
-  for (const id of players) room.players[id] = { id, x: 0, y: 0 };
+  for (const id of players) room.players[id] = { id, profileId: `save-${id}`, x: 0, y: 0 };
   let ended = null;
   const tick = createTick(room, 1, (now, opts) => { ended = opts ?? {}; });
   let now = Date.now();
@@ -33,6 +34,22 @@ check('pried off together, it comes off cleanly, and much faster', world.ended()
 world = tickWorld(['a']);
 for (let i = 0; i < 200 && !world.ended(); i++) world.pry(['a']);
 check('alone in the world, prying it off alone is fine', world.ended() && !world.ended().again);
+world = tickWorld(['a', 'b']);
+world.room.players.b.x += 2000;
+for (let i = 0; i < 200 && !world.ended(); i++) world.pry(['a']);
+check('and so it is with nobody near enough to have helped', world.ended() && !world.ended().again);
+
+// ---- the turns: a Tick whose head stayed in comes back once, and then the next event's turn
+const ends = {};
+const fake = (kind) => (done) => { ends[kind] = (opts) => done(Date.now(), opts); return { start: () => true, tick() {}, view: () => ({ kind }) }; };
+const turns = createWorldEvents(0.0001, { tick: fake('tick'), scab: fake('scab') });
+const next = () => { turns.tick(Date.now() + 60_000); return turns.view()?.kind; };
+const seen = [next()];
+ends.tick({ again: 'tick' });
+seen.push(next());
+ends.tick({ again: 'tick' });
+seen.push(next());
+check('a Tick back for its head comes back once, not again and again', seen.join(',') === 'tick,tick,scab', seen.join(','));
 
 // ---- on a server: The Scab, then The Gash, then The Tick
 const URL = 'ws://localhost:2594';
@@ -79,6 +96,15 @@ a.room.send('peel');  // a finger can't peel twice without holding on again
 await sleep(300);
 check('peeled before it dries, a piece tears', early && a.ev.peeled.length === 1 && a.ev.peeled[0].torn && a.state.event.pieces.includes(2), `early ${early}`);
 check('and bleeds globs for anyone to grab', (a.state.drops ?? []).some((d) => d.blood));
+const blood = (a.state.drops ?? []).find((d) => d.blood);
+if (blood) {
+  const [scraps, globs] = [a.me.currency, a.me.stats.globs];
+  await walk(a, blood.x, blood.y + 10);
+  a.room.send('grab', { id: blood.id });
+  await sleep(300);
+  check("a blood glob is worth a scrap, and isn't a Pus Rain glob", a.me.currency === scraps + 1 && a.me.stats.globs === globs, `${a.me.currency - scraps} scraps`);
+  await walk(a, scab.x + 40, scab.y + 30);
+}
 await waitFor(() => a.state.serverNow >= scab.ripeAt, 10_000);
 for (let i = 0; i < 30 && a.state.event?.kind === 'scab'; i++) {
   (i % 2 ? a : b).room.send('peel');

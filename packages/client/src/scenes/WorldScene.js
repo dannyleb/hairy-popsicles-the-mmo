@@ -634,8 +634,6 @@ export class WorldScene extends Phaser.Scene {
     if (this.bossView.contains(x, y)) return this.hitBoss();
     const glob = this.drops.at(x, y);
     if (glob) return this.grab(glob);
-    const happening = this.eventViews.at(x, y);
-    if (happening) return this.tapEvent(happening);
     // A crop's head pokes up into the tile above its hole, so hit-test crops before tiles.
     // Your own plot comes before other players, who may well be standing on it; a
     // crop comes before anything lying or crawling over it (a napper, a mite).
@@ -643,6 +641,9 @@ export class WorldScene extends Phaser.Scene {
     const hit = crop ?? this.holeAt(x, y);
     const plot = this.state.plots[hit.plotKey];
     if (plot?.ownerId === this.myId()) return this.tapOwnHole(hit.plotKey, plot, hit.slot);
+    // (After my own plot: The Tick latches on right beside the busiest one.)
+    const happening = this.eventViews.at(x, y);
+    if (happening) return this.tapEvent(happening);
     const other = this.avatarAt(x, y);
     if (other) return this.hud.inspect(other);
     if (crop && plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
