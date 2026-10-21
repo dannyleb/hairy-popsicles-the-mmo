@@ -30,6 +30,7 @@ const SUITES = {
   admin: [{ PORT: 2583, ADMIN_KEY: 'test-admin-key' }, { PORT: 2584 }],
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
   invites: [{ PORT: 2586, GROW_SCALE: 0.01 }, { PORT: 2587, GROW_SCALE: 0.01 }],
+  life: [{ PORT: 2593, GROW_SCALE: 0.05 }],
   database: [],  // starts its own servers (2590-2592), against TEST_DATABASE_URL
   limits: [{ PORT: 2585, JOINS_PER_MINUTE: 16, SEATS_PER_ADDRESS: 3, NEWCOMERS_KEPT: 3, ADMIN_KEY: 'test-admin-key' }],
 };

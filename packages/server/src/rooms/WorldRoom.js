@@ -54,6 +54,7 @@ import { rememberDeparture, takeDeparture } from '../game/departed.js';
 import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
+import { createStrays } from '../game/strays.js';
 import { maskText, plainText } from '../game/filter.js';
 import { cleanName, inviteCode, newProfileId, publicIdOf, readInviteCode, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
@@ -122,6 +123,8 @@ export class WorldRoom extends Room {
     this.boss = createBoss(this, EVENT_SCALE);
     this.rain = createRain(this, EVENT_SCALE);
     this.itch = createItch(this, EVENT_SCALE);
+    this.strays = createStrays(this);
+    this.strays.tick(Date.now(), featuredFor(dayOf(Date.now())));  // out and about from the start
     this.bloodMoon = null;
     this.nextBloodMoon = Date.now() + BLOOD_MOON.firstMs * EVENT_SCALE;
 
@@ -150,6 +153,7 @@ export class WorldRoom extends Room {
     on('gift', (p, m) => this.handleGift(p, m));
     on('buy', (p, m) => this.handleBuy(p, m));
     on('setColor', (p, m) => this.handleSetColor(p, m));
+    on('catchStray', (p, m) => this.handleCatchStray(p, m));
     on('sync', (p, m, client) => {
       // The biggest thing the server sends, so it's not something to ask for on repeat.
       const now = Date.now();
@@ -262,7 +266,7 @@ export class WorldRoom extends Room {
       if (Object.values(this.players).some((p) => p.profileId === save.id)) continue;
       this.plots[save.plot.key] = {
         ownerId: null, ownerName: save.name, slots: save.plot.slots, candles: save.plot.candles,
-        away: true, leftAt: at, ownerLevel: save.level, squeezedAway: 0,
+        away: true, leftAt: at, ownerLevel: save.level, ownerAvatar: save.avatar, ownerPid: publicIdOf(save.id), squeezedAway: 0,
       };
       this.heldPlots.set(save.id, save.plot.key);
     }
@@ -299,6 +303,7 @@ export class WorldRoom extends Room {
       rows: [],            // album rows (rarities) completed and paid for
       invitedBy: null,     // public id of whoever's invite brought them, until it pays out
       inviteLog: { day: null, count: 0, paid: [] },  // as an inviter: see creditInvite
+      strayDay: null,      // the day they last caught the featured stray
       startedAt: Date.now(),  // when this save was first made (null for saves from before it was kept)
       notices: [],         // shown once the client is listening ('sync')
       synced: false,
@@ -335,6 +340,7 @@ export class WorldRoom extends Room {
         rows: save.rows,
         invitedBy: save.invitedBy,
         inviteLog: save.inviteLog,
+        strayDay: save.strayDay,
         startedAt: save.startedAt,
       });
       if (Object.keys(save.collection).length) {
@@ -381,7 +387,10 @@ export class WorldRoom extends Room {
       delete this.plots[key];
       return;
     }
-    Object.assign(plot, { ownerId: null, away: true, leftAt: Date.now(), ownerLevel: player.level, squeezedAway: 0 });
+    // The owner naps beside it (on everyone's screen) until they're back.
+    Object.assign(plot, {
+      ownerId: null, away: true, leftAt: Date.now(), ownerLevel: player.level, ownerAvatar: player.avatar, ownerPid: player.pid, squeezedAway: 0,
+    });
     this.heldPlots.delete(player.profileId);
     this.heldPlots.set(player.profileId, key);
     while (this.heldPlots.size > MAX_HELD_PLOTS) this.dropHeldPlot(this.heldPlots.keys().next().value);
@@ -397,6 +406,8 @@ export class WorldRoom extends Room {
     delete plot.away;
     delete plot.leftAt;
     delete plot.ownerLevel;
+    delete plot.ownerAvatar;
+    delete plot.ownerPid;
     return key;
   }
 
@@ -758,6 +769,25 @@ export class WorldRoom extends Room {
     return Date.now() >= player.arrivesAt - ARRIVAL_SLACK_MS;
   }
 
+  // The day's featured stray: caught once a day, it joins your album.
+  handleCatchStray(player, { id }) {
+    const now = Date.now();
+    const today = dayOf(now);
+    if (!Number.isInteger(id) || player.strayDay === today || !this.arrived(player)) return;
+    const stray = this.strays.featuredNear(id, player, REACH, now);
+    if (!stray) return;
+    const character = CHARACTER_BY_ID[stray.characterId];
+    const isNew = !player.collection[character.id];
+    player.strayDay = today;
+    player.collection[character.id] = (player.collection[character.id] ?? 0) + 1;
+    this.bump(player, 'strays');
+    this.checkRows(player);
+    this.clientOf(player)?.send('caughtStray', { characterId: character.id, isNew });
+    this.announce(`${player.name} caught today's stray, ${character.name}!`, character.rarity);
+    this.sendMe(player);
+    this.markDirty();
+  }
+
   handleClaimPlot(player, { plotX, plotY }) {
     if (!Number.isInteger(plotX) || !Number.isInteger(plotY)) return;
     if (plotX < 0 || plotY < 0 || plotX >= WORLD_WIDTH_PLOTS || plotY >= WORLD_HEIGHT_PLOTS) return;
@@ -1045,6 +1075,7 @@ export class WorldRoom extends Room {
     this.boss.tick(now);
     this.rain.tick(now);
     this.itch.tick(now);
+    this.strays.tick(now, featuredFor(dayOf(now)));
     if (!this.bloodMoon && now >= this.nextBloodMoon) {
       this.bloodMoon = { endsAt: now + BLOOD_MOON.lastsMs * EVENT_SCALE };
       this.announce('Blood Moon! Rare characters are sprouting everywhere.', 'bloodMoon');
@@ -1164,6 +1195,7 @@ export class WorldRoom extends Room {
       featured: featuredFor(dayOf(Date.now())),
       season: this.seasonView(),
       drops: this.rain.drops(),
+      strays: this.strays.view(),
       serverNow: Date.now(),
     };
   }

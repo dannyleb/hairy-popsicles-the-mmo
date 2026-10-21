@@ -163,6 +163,25 @@ const SOUNDS = {
   click() {
     tone('triangle', 900, 1200, 0.04, 0.12);
   },
+  // A mite under a fingertip.
+  squish() {
+    burst(1800, 4, 0.05, 0.3, 'bandpass');
+    tone('sine', 900, 300, 0.05, 0.12);
+  },
+  // A flea springing off.
+  boing() {
+    tone('sine', 500, 1600, 0.09, 0.14);
+  },
+  // Someone napping, poked.
+  snore() {
+    burst(220, 3, 0.45, 0.22, 'bandpass');
+    tone('sawtooth', 70, 55, 0.4, 0.06);
+  },
+  // A stray, poked: a little squeak, pitched by who it is.
+  squeak(pitch = 1) {
+    tone('triangle', 700 * pitch, 1100 * pitch, 0.07, 0.16);
+    tone('triangle', 1100 * pitch, 800 * pitch, 0.06, 0.12, 0.07);
+  },
 };
 
 // A buzz to go with some sounds, on phones that can (Android; iPhones can't).
@@ -177,6 +196,7 @@ const BUZZ = {
   bloop: 14,
   scratch: [20, 60, 20, 60, 20],
   nope: [15, 40, 15],
+  squish: 12,
 };
 const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 export const hasHaptics = canBuzz;

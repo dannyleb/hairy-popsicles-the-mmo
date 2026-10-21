@@ -6,3 +6,4 @@ dist-ssr/
 .env
 .env.local
 .neon
+__pycache__/

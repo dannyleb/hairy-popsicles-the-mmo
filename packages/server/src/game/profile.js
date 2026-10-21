@@ -54,6 +54,7 @@ export function saveToken(player, plot, plotKey) {
     nameColor: player.nameColor,
     invitedBy: player.invitedBy ?? null,  // whose invite brought them, until it pays out
     inviteLog: player.inviteLog,  // as an inviter: today's count and the friends already paid for
+    strayDay: player.strayDay ?? null,  // the day they last caught the featured stray
     startedAt: player.startedAt ?? null,  // when the save was first made
     plot: plot && {
       key: plotKey,
@@ -133,6 +134,7 @@ export function readToken(token) {
       paid: Array.isArray(p.inviteLog?.paid) ? p.inviteLog.paid.filter(isPublicId).slice(-INVITE_PAID_KEPT) : [],
     },
     startedAt: time(p.startedAt) || null,
+    strayDay: typeof p.strayDay === 'string' ? p.strayDay.slice(0, 10) : null,
     plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,
     savedAt: time(p.savedAt),
   };

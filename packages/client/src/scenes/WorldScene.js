@@ -35,9 +35,13 @@ import { isPal, makePal, notePal } from '../ui/pals.js';
 import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
+import { createCritters } from '../world/critters.js';
 import { createDropsView } from '../world/drops.js';
 import { createFx } from '../world/fx.js';
 import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W } from '../world/layout.js';
+import { createSleepers } from '../world/sleepers.js';
+import { createStraysView } from '../world/strays.js';
+import { createTrails } from '../world/trails.js';
 
 // Character textures are squares with the character standing on the bottom edge.
 const AVATAR_SIZE = 64;
@@ -113,6 +117,11 @@ export class WorldScene extends Phaser.Scene {
     this.fx = createFx(this);
     this.bossView = createBossView(this, this.fx);
     this.drops = createDropsView(this, this.fx);
+    this.trails = createTrails(this);
+    this.critters = createCritters(this);
+    this.sleepers = createSleepers(this);
+    this.strays = createStraysView(this);
+    this.walkers = [];  // everything walking about this frame: players and strays
     this.lastTarget = null;   // where I last walked to, which is where the server has me
     this.arrivesAt = 0;
     this.walkId = 0;
@@ -228,6 +237,12 @@ export class WorldScene extends Phaser.Scene {
       else if (item === 'candle') this.hud.toast('A new candle on your plot.');
       else this.hud.toast('New name color. Looking good.');
     });
+    on('caughtStray', ({ characterId, isNew }) => {
+      const copies = (this.private?.collection[characterId] ?? 0) + 1;  // the 'me' with it follows
+      this.hud.reveal(characterId, { isNew, caught: true, bonus: describeBonus(wearBonus(characterId, copies)) });
+      sfx.discover();
+      if (isNew) this.hud.markNew();
+    });
     on('gave', ({ to, characterId }) => {
       this.hud.toast(`You gave ${to} a ${CHARACTER_BY_ID[characterId].name}.`, { characterId });
       sfx.quest();
@@ -293,6 +308,8 @@ export class WorldScene extends Phaser.Scene {
     this.seenFirstState = true;
     this.bossView.sync(state.boss);
     this.drops.sync(state.drops);
+    this.sleepers.sync(state.plots);
+    this.strays.sync(state.strays, this.caughtStrayToday());
     if (!this.lastTarget && state.players[this.myId()]) {
       const me = state.players[this.myId()];
       this.lastTarget = { x: me.x, y: me.y };
@@ -346,7 +363,17 @@ export class WorldScene extends Phaser.Scene {
     this.firstSession ??= !remembered('coached') && me.level === 1 && (me.stats?.harvests ?? 0) === 0;
     this.private = me;
     this.hud.setMe(me);
+    this.strays.sync(this.state?.strays, this.caughtStrayToday());
     this.updateCoach();
+  }
+
+  // The day (UTC, as the server counts it) and whether I've caught its stray.
+  today() {
+    return new Date(this.now()).toISOString().slice(0, 10);
+  }
+
+  caughtStrayToday() {
+    return this.private?.strayDay === this.today();
   }
 
   // First-time tips for things that turn up later on.
@@ -358,6 +385,9 @@ export class WorldScene extends Phaser.Scene {
     if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? The bag (top right) is the shop: fertilizer, candles for your plot, a name color.');
     if (this.private.level >= 2 && Object.keys(this.state.players).length <= 3) {
       this.hud.tip('invite', `Quiet in here? The trophy (top right) has Invite a friend: they start next to you, and at level ${INVITE.level} you both get a Boil Seed.`);
+    }
+    if (this.strays.featured() && !this.caughtStrayToday()) {
+      this.hud.tip('stray', "Today's featured character is loose! Find the stray glowing gold (gold dot on your map) and tap it to catch it.");
     }
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
     for (const crop of this.crops.values()) {
@@ -538,6 +568,8 @@ export class WorldScene extends Phaser.Scene {
     if (this.bossView.contains(x, y)) return this.hitBoss();
     const glob = this.drops.at(x, y);
     if (glob) return this.grab(glob);
+    const stray = this.strays.at(x, y);
+    if (stray) return this.tapStray(stray);
 
     // A crop's head pokes up into the tile above its hole, so hit-test crops before tiles.
     // Your own plot comes before other players, who may well be standing on it.
@@ -546,6 +578,19 @@ export class WorldScene extends Phaser.Scene {
     if (plot?.ownerId === this.myId()) return this.tapOwnHole(hit.plotKey, plot, hit.slot);
     const other = this.avatarAt(x, y);
     if (other) return this.hud.inspect(other);
+    const asleep = this.sleepers.at(x, y);
+    if (asleep) return this.tapSleeper(this.state.plots[asleep]);
+    const squished = this.critters.squishAt(x, y, this.time.now);
+    if (squished) {
+      this.fx.droplets(squished.x, squished.y, { count: 4, key: 'drop-blood', speed: [40, 110], size: [3, 6] });
+      sfx.squish();
+      return;
+    }
+    if (this.critters.wormAt(x, y)) {
+      sfx.emote();
+      this.hud.toast('A worm, crawling across the world. It comes through every few minutes.');
+      return;
+    }
     if (plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
 
     if (!this.myPlotKey()) {
@@ -557,6 +602,29 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.walk(x, y);
+  }
+
+  // The day's featured stray is caught by walking up and tapping it; the rest
+  // (or it, once caught) just say something.
+  tapStray(view) {
+    const { stray } = view;
+    if (stray.featured && !this.caughtStrayToday()) {
+      const at = this.myTarget();
+      if (Math.hypot(at.x - view.x, at.y - view.y) > REACH - 40) this.walk(view.x + 30, view.y + 12);
+      this.whenThere(() => this.room.send('catchStray', { id: stray.id }));
+      this.fx.ring(view.x, view.y - 26, { color: 0xffcf5a, size: 120, duration: 400 });
+      return;
+    }
+    this.strays.hop(view);
+    sfx.squeak(0.8 + (stray.id % 5) * 0.12);
+    const lines = linesOf(stray.characterId);
+    if (settings.get('bubbles')) this.bubble(view.container, lines[Math.floor(Math.random() * lines.length)], 'mutter', 54);
+  }
+
+  tapSleeper(plot) {
+    if (!plot) return;
+    sfx.snore();
+    this.hud.toast(`${plot.ownerName} is asleep. Squeeze their crops to help them along; they'll hear about it when they're back.`, { characterId: plot.ownerAvatar });
   }
 
   holeAt(x, y) {
@@ -1098,6 +1166,7 @@ export class WorldScene extends Phaser.Scene {
         speakers.push({ id: avatar.characterId, follow: avatar.container, height: AVATAR_SIZE });
       }
     }
+    speakers.push(...this.strays.speakers(onScreen));
     if (!speakers.length) return;
     const { id, follow, height } = speakers[Math.floor(Math.random() * speakers.length)];
     if (this.bubbles.some((b) => b.follow === follow)) return;
@@ -1366,10 +1435,20 @@ export class WorldScene extends Phaser.Scene {
 
   update(time, delta) {
     const camera = this.cameras.main;
+    const calm = settings.get('calm');
     this.watchFrameRate(time, delta);
-    this.backdrop.update(time, delta, camera);
+    this.backdrop.update(time, delta, camera, this.walkers, calm);
     this.updatePointer(time);
     if (!this.state) return;
+
+    const now = this.now();
+    this.strays.update(time, now);
+    this.walkers.length = 0;
+    for (const avatar of this.avatars.values()) this.walkers.push(avatar.container);
+    this.walkers.push(...this.strays.positions());
+    this.trails.update(time, this.walkers, camera.worldView, !quality().lite);
+    this.critters.update(time, delta, now, camera.worldView, this.walkers, calm);
+    this.sleepers.update(time, camera.worldView, calm);
 
     this.updateCrops(time);
     this.bossView.update(time);
@@ -1413,7 +1492,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (time > this.nextSlowTick) {
       this.nextSlowTick = time + SLOW_TICK_MS;
-      this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time);
+      this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time, this.caughtStrayToday() ? null : this.strays.featured());
       this.hud.setEvents(this.state, this.now());
       this.updateCoach();
       if (this.private) this.updateTips();

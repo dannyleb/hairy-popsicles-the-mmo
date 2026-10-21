@@ -8,3 +8,4 @@ export * from './titles.js';
 export * from './shop.js';
 export * from './itch.js';
 export * from './season.js';
+export * from './strays.js';

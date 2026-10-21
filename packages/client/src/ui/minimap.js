@@ -4,7 +4,7 @@ import { el } from './dom.js';
 const SIZE = 92;  // CSS px
 const PLOT_PX = PLOT_SIZE * TILE_SIZE;
 
-// The whole world at a glance: plots, players, the boss. Tap it to walk there.
+// The whole world at a glance: plots, players, the boss, today's stray. Tap it to walk there.
 export function createMinimap({ onTravel }) {
   const root = el('div', 'minimap');
   const canvas = el('canvas');
@@ -23,7 +23,8 @@ export function createMinimap({ onTravel }) {
 
   return {
     root,
-    draw(state, myId, view, time) {
+    // `stray`: where today's featured stray is, while it's still to be caught.
+    draw(state, myId, view, time, stray = null) {
       g.clearRect(0, 0, SIZE, SIZE);
       g.fillStyle = state.bloodMoon ? 'rgba(70, 8, 14, 0.85)' : 'rgba(40, 18, 22, 0.8)';
       g.fillRect(0, 0, SIZE, SIZE);
@@ -46,6 +47,13 @@ export function createMinimap({ onTravel }) {
         g.fillStyle = '#ff5a4a';
         g.beginPath();
         g.arc(state.boss.x * k, state.boss.y * k, pulse, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      if (stray) {
+        g.fillStyle = `rgba(255, 207, 90, ${0.65 + 0.35 * Math.sin(time / 240)})`;
+        g.beginPath();
+        g.arc(stray.x * k, stray.y * k, 2.6, 0, Math.PI * 2);
         g.fill();
       }
 

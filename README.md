@@ -171,14 +171,21 @@ Timers are short on purpose while nothing persists. Rarities live in
   sprouts 4x as often as the others of its rarity. The daily gift card and
   the album say who, or "a mystery Rare" if you've never grown it, and its
   album card gets a "Sprouting today" badge. A reason to look every day.
+- **Strays.** Eight characters wander the world on their own (the server
+  walks them; `packages/shared/src/strays.js`). One is always the day's
+  featured character, glowing gold with a "Today's stray" label and a gold
+  dot on the minimap: walk up and tap it to catch a copy for your album, once
+  a day. Catching 7 earns the Dogcatcher title. The others hop and squeak
+  when tapped, and one of them is swapped for someone new every 10 minutes.
 - **Wear bonuses.** Who you play as matters: an Uncommon gives +10% scraps
   from harvests, a Rare also makes your crops grow 10% faster, a Legendary
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Thirteen goals (harvest 25 and 150, squeeze 20, top The
+- **Titles.** Fifteen goals (harvest 25 and 150, squeeze 20, top The
   Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
-  scratch The Itch 5 times, 31 teeth in the Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
+  scratch The Itch 5 times, bring 3 friends, catch 7 strays, 31 teeth in the
+  Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
 - **Shop.** Somewhere to spend scraps besides seeds (the bag button, top
@@ -196,7 +203,15 @@ candlelit expanse of it seen from above, lit like the character renders.
 Plots are raw sores with a 3x3 grid of follicle holes the characters grow out
 of. Candles flicker at plot corners, pus-flies drift in loops, spores float
 past, hairs, pimples, moles and slime puddles are scattered about, and the
-camera follows you. Characters on screen mutter their lines from the first
+camera follows you. It's alive between players too: the ground breathes,
+hairs sway and get pushed aside as people walk through, everyone (strays
+included) leaves a wet smear that dries off over half a minute, mites
+trundle in loops and scatter from anyone near (tap one to squish it), fleas
+sit and then spring away, and every 5 minutes a great pale worm crawls across
+the world, in the same place on every screen. Players who are away nap beside
+the plot the world is keeping for them, with a z drifting up now and then.
+All of it is cheap (well under a millisecond a frame together), and trails
+are off on the lite quality setting. Characters on screen mutter their lines from the first
 game's `src/roster.js` (characters without lines fall back to its grunts).
 
 **Flow:** an HTML loading screen (shows before the JavaScript arrives) → a
@@ -261,11 +276,14 @@ Placeholder, generated procedurally by `tools/world.py` into
 `packages/client/public/world/`: a seamless 1024px wet-skin ground tile,
 three plot-sore variants, pimples, a pustule, moles, hairs, slime and pus
 puddles, a candle, its flame, soft glow/spore sprites, and for the MMO layer
-The Boil, the scab over locked holes, goo droplets and the four seed icons.
+The Boil, the scab over locked holes, goo droplets and the four seed icons,
+plus the world's wildlife and landmarks (mites, a flea, the worm, the smear
+trail, freckles, warts, the Navel, the Eye, veins and a plinth).
 Each is a height map + color + gloss shaded with one warm key light from the
 upper left, so it sits with the renders. Deterministic; rerun with
 `python tools/world.py` after changing it (`python tools/world.py ground` for
-just the ground, `events` for the MMO-layer art). The plot art's hole
+just the ground, `events` for the MMO-layer art, `life` for wildlife and
+landmarks). The plot art's hole
 positions must match `HOLE_OFFSET` in `packages/client/src/world/layout.js`.
 Swap any file for real art with the same name and size and nothing else
 changes.

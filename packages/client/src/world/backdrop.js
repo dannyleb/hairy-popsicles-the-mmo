@@ -14,6 +14,7 @@ const PROPS = [
 export const WORLD_TEXTURES = [
   'ground', 'ground-macro', 'plot-0', 'plot-1', 'plot-2', 'candle', 'flame', 'glow', 'spore',
   'boil', 'scab', 'drop-pus', 'drop-blood',
+  'mite-0', 'mite-1', 'flea', 'worm-head', 'worm-body', 'smear',
   ...PROPS.flatMap((p) => p.keys),
 ];
 
@@ -36,16 +37,21 @@ export function createBackdrop(scene) {
   const ground = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground')
     .setOrigin(0).setTileScale(0.5).setTint(NIGHT_TINT).setDepth(DEPTH.ground);
   // A big soft color drift stretched over the world, so the ground tile's repeat doesn't show.
-  scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground-macro')
+  // It deepens and fades very slowly: the skin breathing.
+  const macro = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground-macro')
     .setOrigin(0).setTileScale(8).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro);
 
+  const hairs = [];
   for (const { keys, count, size, spin } of PROPS) {
     for (let i = 0; i < count; i++) {
       const key = keys[Math.floor(rand() * keys.length)];
       const prop = scene.add.image(between(0, WORLD_W), between(0, WORLD_H), `world:${key}`)
         .setTint(NIGHT_TINT).setDepth(DEPTH.decor);
       prop.setScale(between(...size) / prop.width);
-      if (spin) prop.setRotation(between(0, Math.PI * 2));
+      if (spin) {
+        prop.setRotation(between(0, Math.PI * 2));
+        hairs.push({ prop, rest: prop.rotation, push: 0, phase: rand() * 1000 });
+      }
     }
   }
 
@@ -106,8 +112,19 @@ export function createBackdrop(scene) {
       for (const f of flies) f.halo.setTint(on ? BLOOD_FLY_GLOW : FLY_GLOW);
     },
 
-    update(time, delta, camera) {
+    // `walkers`: things moving about, which brush the hairs aside; `calm`: reduce motion.
+    update(time, delta, camera, walkers = [], calm = false) {
       const view = camera.worldView;
+      if (!calm) macro.setAlpha(0.86 + 0.14 * Math.sin(time * 0.0006));
+      for (const h of hairs) {
+        const { prop } = h;
+        if (prop.x < view.x - 80 || prop.x > view.right + 80 || prop.y < view.y - 80 || prop.y > view.bottom + 80) continue;
+        const by = walkers.find((w) => Math.abs(w.x - prop.x) < 55 && Math.abs(w.y - prop.y) < 40);
+        if (by) h.push += ((by.x < prop.x ? 0.35 : -0.35) - h.push) * 0.2;
+        else h.push *= 0.94;
+        const air = calm ? 0 : 0.045 * Math.sin(time * 0.0011 + h.phase) + 0.02 * Math.sin(time * 0.0031 + h.phase * 2);
+        prop.setRotation(h.rest + air + h.push);
+      }
       for (const c of candles) {
         // Lights well off screen aren't drawn at all.
         const near = !(c.x < view.x - GLOW_SIZE || c.x > view.right + GLOW_SIZE || c.y < view.y - GLOW_SIZE || c.y > view.bottom + GLOW_SIZE);

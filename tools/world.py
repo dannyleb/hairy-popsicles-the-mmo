@@ -1,4 +1,4 @@
-"""Usage: python tools/world.py [preview-dir]
+"""Usage: python tools/world.py [ground|events|life]
 Generates the world art into packages/client/public/world/. Deterministic (fixed seeds).
 Everything is a height map + color + gloss, shaded with one warm key light from the
 upper left, like the character renders, so ground, plots and props read as one scene.
@@ -519,11 +519,301 @@ def seed_icon(name, seed, albedo, head=None, rough=0.0, n=128):
     return save(rgb, name, a)
 
 
+# ---------- life: critters, trails, regions, landmarks ----------
+
+def legs_mask(n, s, pairs, spread, bend, length, width, frame, rng, cx=None, cy=None):
+    """Jointed legs fanning out from a body, drawn at s x supersampling."""
+    img = Image.new("L", (n * s, n * s), 0)
+    draw = ImageDraw.Draw(img)
+    cx = n * s / 2 if cx is None else cx
+    cy = n * s / 2 if cy is None else cy
+    for i in range(pairs):
+        base_y = cy + (i - (pairs - 1) / 2) * spread * s
+        swing = (0.32 if (i + frame) % 2 else -0.32)                     # alternate legs step
+        for side in (-1, 1):
+            ang = side * (np.pi / 2) + side * (i - (pairs - 1) / 2) * 0.45 + swing * side
+            knee = (cx + side * 6 * s + np.cos(ang - side * bend) * length * 0.5 * s,
+                    base_y + np.sin(ang - side * bend) * length * 0.5 * s)
+            foot = (knee[0] + np.cos(ang + side * bend) * length * 0.55 * s,
+                    knee[1] + np.sin(ang + side * bend) * length * 0.55 * s + rng.normal(0, 0.5) * s)
+            draw.line([(cx + side * 4 * s, base_y), knee, foot], fill=255, width=int(width * s), joint="curve")
+    return np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
+
+
+def mite(name, seed, frame, n=96):
+    """A dust mite seen from above: a pale, lumpy, translucent sack on eight jointed legs."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    abdomen = np.clip(1 - ((x / 0.34) ** 2 + ((y - 0.08) / 0.42) ** 2), 0, 1)
+    head = np.clip(1 - ((x / 0.16) ** 2 + ((y + 0.42) / 0.14) ** 2), 0, 1)
+    body = np.clip(np.maximum(abdomen, head) * 4, 0, 1)
+    lumps = gaussian_filter(rng.standard_normal((n, n)), 2.2) * 3
+    h = 9 * np.sqrt(abdomen) + 5 * np.sqrt(head) + 0.8 * lumps * body
+    legs = legs_mask(n, 4, 4, 9, 0.5, 26, 2.2, frame, rng) * (1 - body)
+    h += 2.0 * gaussian_filter(legs, 0.7)
+    albedo = mix(np.broadcast_to(np.array([0.86, 0.74, 0.62]), (n, n, 3)), np.array([0.62, 0.34, 0.26]), np.clip(0.5 + 0.35 * lumps, 0, 1))
+    albedo = mix(albedo, np.array([0.48, 0.26, 0.18]), np.clip(head * 3, 0, 1))
+    albedo = mix(albedo, np.array([0.40, 0.22, 0.16]), legs)
+    color = shade(h, albedo, 0.9 * body + 0.3 * legs, bump=1.0, shine=70, ao=0.2, sss=1.2)
+    alpha = np.clip(body + legs, 0, 1)
+    shadow = shadow_of(alpha, n, 3, 4, 2.0, 0.45) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def flea(name, seed, n=96):
+    """A flea from above: a glossy dark-amber shell in bands, big hind legs folded at its sides."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    shell = np.clip(1 - ((x / 0.26) ** 2 + (y / 0.46) ** 2), 0, 1)
+    head = np.clip(1 - ((x / 0.14) ** 2 + ((y + 0.5) / 0.12) ** 2), 0, 1)
+    body = np.clip(np.maximum(shell, head) * 5, 0, 1)
+    bands = 0.5 + 0.5 * np.cos((y + 0.5) * 30)
+    h = 10 * np.sqrt(shell) + 4 * np.sqrt(head) - 0.8 * bands * body
+    legs = legs_mask(n, 4, 3, 10, 0.9, 30, 3.2, 0, rng) * (1 - body)
+    h += 2.5 * gaussian_filter(legs, 0.7)
+    albedo = mix(np.broadcast_to(np.array([0.36, 0.18, 0.08]), (n, n, 3)), np.array([0.18, 0.08, 0.04]), bands * 0.6)
+    albedo = mix(albedo, np.array([0.30, 0.16, 0.08]), legs)
+    color = shade(h, albedo, 1.4 * body + 0.4 * legs, bump=1.2, shine=110, ao=0.1, sss=0.4)
+    alpha = np.clip(body + legs, 0, 1)
+    shadow = shadow_of(alpha, n, 3, 4, 2.0, 0.5) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def worm(name, seed, head=False, n=96):
+    """One ring of a big pale worm (or its head, with a puckered mouth), front toward -y."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt((x / 0.62) ** 2 + (y / 0.5) ** 2)
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.6
+    rings = 0.5 + 0.5 * np.cos(y * 22)
+    h = 18 * dome - 1.4 * rings * dome + 0.6 * gaussian_filter(rng.standard_normal((n, n)), 2) * 3 * dome
+    albedo = mix(np.broadcast_to(np.array([0.90, 0.66, 0.62]), (n, n, 3)), np.array([0.74, 0.40, 0.42]), rings * 0.5)
+    if head:
+        mouth = np.exp(-((x / 0.14) ** 2 + ((y + 0.28) / 0.1) ** 2))
+        h -= 9 * mouth
+        albedo = mix(albedo, np.array([0.30, 0.04, 0.06]), np.clip(mouth * 2, 0, 1))
+    color = shade(h, albedo, 0.9 + 0.5 * dome, bump=0.8, shine=80, ao=0.2, sss=1.4)
+    alpha = np.clip((1 - r) * 8, 0, 1)
+    shadow = shadow_of(alpha, n, 4, 6, 3.0, 0.45) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def smear(name, seed, n=96):
+    """A wet streak of slime left behind by something walking: mostly highlights."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    blob = np.exp(-((x / 0.22) ** 2 + (y / 0.55) ** 2))
+    blob *= 1 + 0.25 * gaussian_filter(rng.standard_normal((n, n)), 5) * 5
+    inside = np.clip((blob - 0.35) * 4, 0, 1)
+    h = 6 * gaussian_filter(inside, 3)
+    gy, gx = np.gradient(h)
+    nx, ny, nz = -gx * 1.6, -gy * 1.6, np.ones_like(h)
+    norm = np.sqrt(nx * nx + ny * ny + nz * nz)
+    ndh = np.clip((nx * HALF[0] + ny * HALF[1] + nz * HALF[2]) / norm, 0, 1)
+    glint = np.clip(ndh ** 120 * 2.5 + ndh ** 20 * 0.2, 0, 1) * inside
+    rim = np.clip(inside - gaussian_filter(inside, 2.0), 0, 1) * 2.5
+    rgb = np.broadcast_to(np.array([0.70, 0.78, 0.52]), (n, n, 3)) * (1 - 0.5 * rim)[..., None]
+    rgb = rgb * (1 - glint)[..., None] + glint[..., None]
+    return save(rgb, name, np.clip(inside * 0.5 + rim * 0.5 + glint, 0, 1))
+
+
+def freckle(name, seed, n=64):
+    """A flat brown freckle: no height, a ragged soft edge."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y) / 0.7
+    edge = 1 + 0.25 * spectral(n, rng, 2.4, fmax=6 / n)
+    body = np.clip((1 - r * edge) * 2.5, 0, 1)
+    tint = mix(np.broadcast_to(np.array([0.52, 0.30, 0.18]), (n, n, 3)), np.array([0.40, 0.20, 0.12]), np.clip(0.5 + 0.4 * spectral(n, rng, 2.0, fmax=10 / n), 0, 1))
+    return save(tint, name, body * 0.75)
+
+
+def wart(name, seed, n=128):
+    """A cauliflower wart: a rough grey-pink dome of little knobs."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y) / 0.62
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.7
+    f1, _, _, _ = cells(n, rng, 40, periodic=False)
+    knobs = np.clip(1 - f1 / (n * 0.09), 0, 1) ** 0.6
+    h = 16 * dome + 7 * knobs * dome
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.70, 0.62, 0.58]), np.clip(dome * 1.5, 0, 1))
+    albedo = mix(albedo, np.array([0.50, 0.30, 0.28]), (1 - knobs) * dome * 0.6)
+    color = shade(h, albedo, 0.15 + 0.1 * knobs, bump=1.0, shine=25, ao=0.5)
+    alpha = np.clip((1.02 - r) * 6, 0, 1)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 4, 6, 3, 0.35) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def navel(name, seed, n=640):
+    """The belly button at the middle of the world: a deep, folded pit, glistening at the bottom."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.12) ** 2)
+    ang = np.arctan2(y, x)
+    warp = 0.05 * spectral(n, rng, 3.0, fmax=5 / n)
+    rr = r + warp
+    folds = np.cos(ang * 7 + 3 * spectral(n, rng, 3.0, fmax=4 / n)) * np.exp(-((rr - 0.40) / 0.2) ** 2)
+    rim = np.exp(-((rr - 0.62) / 0.12) ** 2)                            # a soft swelling lip
+    pit = -np.clip(1 - rr / 0.5, 0, 1) ** 1.6
+    h = 120 * pit + 30 * rim + 30 * folds + 3 * spectral(n, rng, 2.8, fmax=60 / n)
+    depth = np.clip(-pit, 0, 1)
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.62, 0.26, 0.26]), np.clip(depth * 1.4, 0, 1))
+    albedo = mix(albedo, np.array([0.18, 0.04, 0.05]), np.clip((depth - 0.6) * 2.5, 0, 1))
+    lint = np.clip(spectral(n, rng, 1.6, fmax=60 / n) - 1.6, 0, 1) * np.clip(depth * 2, 0, 1)
+    albedo = mix(albedo, np.array([0.55, 0.55, 0.62]), lint * 0.7)    # a little belly-button lint
+    gloss = 0.3 + 1.2 * np.clip((depth - 0.5) * 2, 0, 1) + 0.4 * rim
+    color = shade(h, albedo, gloss, bump=0.5, shine=90, ao=0.02, sss=1.2)
+    color *= (1 - 0.75 * np.clip((depth - 0.45) * 2, 0, 1))[..., None]  # the bottom is dark
+    alpha = np.clip((1.0 - rr) * 4, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def eye_socket(name, seed, n=512):
+    """Skin around a giant eye: puffy lids, creases and lashes, with an almond-shaped opening."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    almond = (x / 0.62) ** 2 + (y / (0.30 * np.clip(1 - x * x / 0.42, 0.05, 1))) ** 2
+    hole = almond < 1
+    lid = np.exp(-((np.sqrt(almond) - 1.15) / 0.22) ** 2)
+    crease = np.exp(-((np.sqrt((x / 0.72) ** 2 + ((y + 0.06) / 0.5) ** 2) - 1) / 0.03) ** 2) * (y < 0)
+    r = np.sqrt(x * x + y * y)
+    h = 22 * lid - 6 * crease + 1.5 * spectral(n, rng, 2.8, fmax=30 / n)
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.72, 0.38, 0.40]), np.clip(lid * 1.2, 0, 1))
+    albedo = mix(albedo, np.array([0.40, 0.18, 0.22]), crease * 0.6)
+    img = Image.new("L", (n * 2, n * 2), 0)
+    draw = ImageDraw.Draw(img)
+    for i in range(46):                                                 # lashes along the upper lid
+        t = -0.95 + 1.9 * i / 45
+        bx = t * 0.62
+        by = -0.30 * np.sqrt(max(1 - bx * bx / 0.42, 0.05)) * np.sqrt(max(1 - t * t, 0))
+        ang = -np.pi / 2 + t * 0.9 + rng.normal(0, 0.08)
+        ln = 0.10 + 0.06 * (1 - abs(t)) + rng.normal(0, 0.01)
+        p0 = ((bx + 1) * n, (by + 1) * n)
+        p1 = ((bx + np.cos(ang) * ln * 0.6 + 1) * n, (by + np.sin(ang) * ln + 1) * n)
+        p2 = ((bx + np.cos(ang) * ln * 0.9 + 1 + 0.03 * np.sign(t)) * n, (by + np.sin(ang) * ln * 1.25 + 1) * n)
+        draw.line([p0, p1, p2], fill=255, width=4, joint="curve")
+    lashes = np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
+    albedo = mix(albedo, np.array([0.06, 0.04, 0.04]), lashes)
+    color = shade(h, albedo, 0.35 + 0.5 * lid + 0.6 * lashes, bump=0.7, shine=50, ao=0.3)
+    alpha = np.clip((0.98 - r) * 5, 0, 1)
+    alpha = np.where(hole, 0, alpha)
+    alpha = np.maximum(alpha, lashes)
+    return save(tone(color), name, alpha)
+
+
+def eye_ball(name, seed, n=256):
+    """The white of a giant eye: a wet bulging dome threaded with red veins."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y)
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.5
+    veins = lines(spectral(n, rng, 2.6, fmax=12 / n), 0.06) * np.clip((r - 0.35) * 3, 0, 1)
+    albedo = mix(np.broadcast_to(np.array([0.95, 0.88, 0.82]), (n, n, 3)), np.array([0.85, 0.20, 0.18]), veins * 0.85)
+    albedo = mix(albedo, np.array([0.80, 0.52, 0.50]), np.clip((r - 0.7) * 3, 0, 1))
+    color = shade(30 * dome + 1.5 * veins, albedo, 1.6, bump=0.6, shine=160, ao=0.0, sss=0.6)
+    return save(tone(color), name, np.clip((1 - r) * 10, 0, 1))
+
+
+def eye_iris(name, seed, n=160):
+    """Iris and pupil, which look about; the highlight on them stays put toward the light."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y)
+    ang = np.arctan2(y, x)
+    fibers = 0.5 + 0.5 * np.cos(ang * 60 + 4 * spectral(n, rng, 2.4, fmax=8 / n))
+    albedo = mix(np.broadcast_to(np.array([0.36, 0.48, 0.20]), (n, n, 3)), np.array([0.62, 0.46, 0.14]), np.clip((0.55 - r) * 3, 0, 1))
+    albedo = albedo * (0.7 + 0.4 * fibers)[..., None]
+    albedo = mix(albedo, np.array([0.10, 0.14, 0.06]), np.clip((r - 0.85) * 8, 0, 1))
+    albedo = mix(albedo, np.array([0.02, 0.01, 0.01]), np.clip((0.36 - r) * 30, 0, 1))
+    color = shade(4 * np.clip(1 - r, 0, 1), albedo, 0.4, bump=0.6, shine=60, ao=0.0, sss=0)
+    glint = np.exp(-(((x + 0.32) / 0.12) ** 2 + ((y + 0.34) / 0.12) ** 2))
+    color = color * (1 - glint)[..., None] + glint[..., None] * 1.2
+    return save(tone(color), name, np.clip((1 - r) * 12, 0, 1))
+
+
+def eye_lid(name, seed, n=256):
+    """The upper lid that comes down over the eye when it blinks (scaled from its top edge)."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    y01 = (y + 1) / 2                                                   # 0 at the top, 1 at the edge
+    shape = (np.abs(x) < 0.98 * np.sqrt(np.clip(1 - (y01 * 0.2) ** 2, 0, 1)))
+    edge = np.exp(-((y01 - 0.94) / 0.05) ** 2)
+    h = 10 * np.sqrt(np.clip(1 - x * x, 0, 1)) + 6 * edge + 1.2 * spectral(n, rng, 2.8, fmax=24 / n)
+    albedo = mix(np.broadcast_to(np.array([0.76, 0.48, 0.46]), (n, n, 3)), np.array([0.56, 0.24, 0.26]), edge)
+    color = shade(h, albedo, 0.5, bump=0.8, shine=40, ao=0.2)
+    alpha = shape * np.clip((1 - np.abs(x)) * 12, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def vein(name, seed, w=192, h=48):
+    """A raised blue vein running left to right, fading at the ends so pieces overlap into a path."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    u = xx / w
+    wander = 0.12 * np.sin(u * np.pi * 2 + rng.uniform(0, 6)) * h
+    d = np.abs(yy - h / 2 - wander) / (h * 0.16)
+    tube = np.clip(1 - d ** 2, 0, 1) ** 0.5
+    ends = np.clip(u * 6, 0, 1) * np.clip((1 - u) * 6, 0, 1)
+    height = 8 * tube
+    albedo = mix(np.broadcast_to(np.array([0.46, 0.34, 0.62]), (h, w, 3)), np.array([0.30, 0.22, 0.52]), np.clip(1 - tube, 0, 1))
+    color = shade(height, albedo, 0.9 * tube, bump=1.0, shine=60, ao=0.0, sss=0.6)
+    alpha = np.clip(tube * 3, 0, 1) * ends * 0.85
+    return save(tone(color), name, alpha)
+
+
+def plinth(name, seed, w=192, h=160):
+    """A pedestal of old, polished bone for the statue in the middle of the world."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    cx, rx = w / 2, w * 0.40
+    top, bottom, ry = h * 0.24, h * 0.80, w * 0.40 * 0.32
+    u = (xx - cx) / rx
+    body = (np.abs(u) <= 1) & (yy >= top) & (yy <= bottom + ry * np.sqrt(np.clip(1 - u * u, 0, 1)))
+    cap = u ** 2 + ((yy - top) / ry) ** 2 <= 1
+    shape = (body | cap).astype(float)
+    bone = np.array([0.86, 0.80, 0.66])
+    grain = 1 - 0.12 * np.clip(gaussian_filter(rng.standard_normal((h, w)), 3) * 4, -1, 1)
+    lit = (0.25 + 0.65 * (np.clip(1 - u, 0, 2) / 2) ** 0.8)[..., None] * bone * grain[..., None]
+    lit[cap] = (bone * 1.05 * grain[..., None])[cap]
+    rim = cap & ~(u ** 2 + ((yy - top) / ry) ** 2 <= 0.8)
+    lit[rim] = lit[rim] * 0.85
+    shadow = gaussian_filter(np.roll(np.roll(shape, 8, 0), 14, 1) * (yy > h * 0.6), 5) * 0.5 * (1 - shape)
+    rgb, a = composite(np.clip(lit, 0, 1), shape, shadow)
+    return save(rgb, name, a)
+
+
+def life():
+    mite("mite-0", 71, 0)
+    mite("mite-1", 71, 1)
+    flea("flea", 72)
+    worm("worm-body", 73)
+    worm("worm-head", 73, head=True)
+    smear("smear", 74)
+    for i, seed in enumerate([75, 76, 77]):
+        freckle(f"freckle-{i}", seed)
+    wart("wart-0", 78)
+    wart("wart-1", 79)
+    navel("navel", 81)
+    eye_socket("eye-socket", 82)
+    eye_ball("eye-ball", 83)
+    eye_iris("eye-iris", 84)
+    eye_lid("eye-lid", 85)
+    vein("vein", 86)
+    plinth("plinth", 87)
+
+
 def main():
     if sys.argv[1:] == ["ground"]:
         return ground()
     if sys.argv[1:] == ["events"]:
         return events()
+    if sys.argv[1:] == ["life"]:
+        return life()
     ground()
     macro()
     for i, seed in enumerate([101, 102, 103]):
@@ -544,6 +834,7 @@ def main():
     glow("glow")
     glow("spore", n=32, falloff=1.6)
     events()
+    life()
 
 
 def events():
