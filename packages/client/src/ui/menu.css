@@ -357,6 +357,34 @@
   }
 }
 
+.menu-live {
+  margin: 2px 0 0;
+  font-size: 15px;
+  text-align: center;
+  color: var(--flesh-dim, #c98f7d);
+}
+
+.menu-live.on::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #a8c66c;
+  box-shadow: 0 0 8px #a8c66c;
+  vertical-align: 1px;
+}
+
+.menu-invite {
+  margin: 0 auto 4px;
+  max-width: 320px;
+  font-size: 17px;
+  line-height: 1.3;
+  text-align: center;
+  color: #f0a8bc;
+}
+
 .menu-pitch {
   margin: 8px auto 0;
   max-width: 300px;

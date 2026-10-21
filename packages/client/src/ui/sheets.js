@@ -1,4 +1,4 @@
-import { CHARACTERS, CHARACTER_BY_ID, NAME_COLORS, RARITIES, SEASONS, SEASON_COLORS, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, INVITE, NAME_COLORS, RARITIES, SEASONS, SEASON_COLORS, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
 import { hasHaptics, sfx } from '../audio/sfx.js';
 import { fullQuality, resetQuality } from '../display.js';
 import { settings } from '../settings.js';
@@ -6,6 +6,7 @@ import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { isPal, togglePal } from './pals.js';
 import { shareAlbum } from './sharecard.js';
+import { inviteLink } from '../net/invite.js';
 import { savedProfile } from '../net/profile.js';
 
 const SETTINGS = [
@@ -16,12 +17,13 @@ const SETTINGS = [
   { name: 'calm', label: 'Reduce motion' },
 ];
 
-// The share sheet on phones; a copied link elsewhere.
-async function shareLink(button) {
-  const url = window.location.href.split('#')[0];
+// The share sheet on phones; a copied link elsewhere. The link is this
+// player's own invite: whoever comes by it starts next to them.
+async function shareLink(button, pid) {
+  const url = inviteLink(pid);
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Hairy Popsicles: The MMO', text: 'Come grow gross little characters with me.', url });
+      await navigator.share({ title: 'Hairy Popsicles: The MMO', text: `Come grow gross little characters with me. Get to level ${INVITE.level} and we both get a Boil Seed.`, url });
       return;
     }
     await navigator.clipboard.writeText(url);
@@ -91,10 +93,16 @@ export function createSheets(actions) {
       item.append(row);
       list.append(item);
     });
-    const invite = button('sheet-button', 'Invite someone', () => shareLink(invite));
+    const invite = button('sheet-button', 'Invite a friend', () => shareLink(invite, players[myId]?.pid));
     const actionsRow = el('div', 'sheet-actions');
     actionsRow.append(invite);
-    open(`Who's here · ${Object.keys(players).length}`, el('p', 'overlay-hint', 'Ranked by album size. Tap someone to see them, or to make them a pal ♥.'), list, actionsRow);
+    open(
+      `Who's here · ${Object.keys(players).length}`,
+      el('p', 'overlay-hint', 'Ranked by album size. Tap someone to see them, or to make them a pal ♥.'),
+      list,
+      el('p', 'overlay-hint', `Invite a friend: they start right next to you, and when they reach level ${INVITE.level} you both get a Boil Seed.`),
+      actionsRow,
+    );
   }
 
   function inspect(id) {

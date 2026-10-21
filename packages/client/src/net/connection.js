@@ -1,7 +1,7 @@
 import { Client } from 'colyseus.js';
+import { forgetInvite, pendingInvite } from './invite.js';
 import { savedProfile } from './profile.js';
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'ws://localhost:2567';
+import { SERVER_URL } from './server.js';
 
 const client = new Client(SERVER_URL);
 
@@ -13,7 +13,12 @@ function quiet(room) {
 }
 
 export async function connect(playerName) {
-  return quiet(await client.joinOrCreate('world', { name: playerName, profile: savedProfile() }));
+  const profile = savedProfile();
+  // An invite only counts for someone new; either way it's used up by joining.
+  const invitedBy = profile ? null : pendingInvite();
+  const room = quiet(await client.joinOrCreate('world', { name: playerName, profile, invitedBy }));
+  forgetInvite();
+  return room;
 }
 
 // Back into the same seat after the socket dropped (phones do this whenever the

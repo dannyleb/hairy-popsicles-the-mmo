@@ -96,6 +96,15 @@ Timers are short on purpose while nothing persists. Rarities live in
   title, and every character (silhouettes for the unfound) with the game's
   link: the phone's share sheet where it can take pictures, a download
   elsewhere.
+- **Invites.** "Invite a friend" (on the who's-here screen) shares the
+  player's own link (`?with=<public id>`). The friend's title screen says who
+  invited them and whether they're on now; a brand-new player who joins by it
+  starts right next to the inviter, and both become pals. When the friend
+  reaches level 3 both get 50 scraps and a Boil Seed (the inviter at most 3
+  times a day, paid on their return if they're away), and 3 friends earn the
+  Ringleader title. The title screen also shows how many are playing now; that
+  request goes out the moment the page opens, so a napping free server starts
+  waking while the menu is read.
 - **First minute.** A new player's title screen says what the game is in one
   line. In the world, a welcome card shows their starter character and the
   loop (grow, collect, play as them), then they're given a plot of their own
@@ -313,7 +322,7 @@ squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
 of season), `held` (offline players' plots), `admin` (key, lockout, what it
-shows), `limits` (joins and seats per address, request sizes, invisible
+shows), `invites` (invite links, rewards, the daily cap), `limits` (joins and seats per address, request sizes, invisible
 characters, lockout by real address), `titles`, `gifts`, `hardening`
 (filter, rate limits) and `filter`.
 GitHub Actions runs them on every push and pull request
@@ -331,7 +340,10 @@ It shows everyone online now and everyone who left in the last 3 days (from
 the server's copy of their last save; it's in memory, so a restart clears it):
 level, scraps, album with counts and shinies, inventory, lifetime stats,
 quests, titles, plot, streak and ids, plus the live events, plots being held
-for absent players, and recent chat. Search, filter and sort; tap a player for
+for absent players, and recent chat. "New players today" is the tester
+funnel: how many new players got a plot, planted, harvested and reached
+levels 2, 3 and 5, how many came by invite, how many came back from an
+earlier day, and how long sessions last (all since the server last started). Search, filter and sort; tap a player for
 everything. It refreshes every 10 seconds and is read-only.
 
 The key goes in a header, never in the URL; ten wrong keys lock that address

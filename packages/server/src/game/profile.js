@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
-  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, levelFor,
+  CHARACTER_BY_ID, NAME_COLORS, NAME_MAX, PLOT_SIZE, RARITY_ORDER, SEED_BY_ID, SHOP, STAT_NAMES, TEND_MAX, TITLE_BY_ID, isPublicId, levelFor,
 } from '@hptm/shared';
 import { hasBlocked, plainText } from './filter.js';
 
@@ -51,6 +51,8 @@ export function saveToken(player, plot, plotKey) {
     rows: player.rows,
     colors: player.colors,
     nameColor: player.nameColor,
+    invitedBy: player.invitedBy ?? null,  // whose invite brought them, until it pays out
+    startedAt: player.startedAt ?? null,  // when the save was first made
     plot: plot && {
       key: plotKey,
       candles: plot.candles ?? 0,
@@ -122,6 +124,8 @@ export function readToken(token) {
     rows: Array.isArray(p.rows) ? [...new Set(p.rows.filter((r) => RARITY_ORDER.includes(r)))] : [],
     colors: Array.isArray(p.colors) ? p.colors.filter((c) => Object.hasOwn(NAME_COLORS, c)) : [],
     nameColor: Object.hasOwn(NAME_COLORS, p.nameColor) && p.colors?.includes(p.nameColor) ? p.nameColor : null,
+    invitedBy: isPublicId(p.invitedBy) ? p.invitedBy : null,
+    startedAt: time(p.startedAt) || null,
     plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,
     savedAt: time(p.savedAt),
   };

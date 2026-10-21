@@ -1,5 +1,7 @@
-import { CHARACTERS, CHARACTER_BY_ID, NAME_MAX, RARITIES, featuredFor, levelFor, linesOf, seasonOn } from '@hptm/shared';
+import { CHARACTERS, CHARACTER_BY_ID, INVITE, NAME_MAX, RARITIES, featuredFor, levelFor, linesOf, seasonOn } from '@hptm/shared';
+import { inviter, pendingInvite } from '../net/invite.js';
 import { forgetProfile, peekProfile, readSaveCode, storeProfile } from '../net/profile.js';
+import { worldStatus } from '../net/status.js';
 import { hasHaptics } from '../audio/sfx.js';
 import { remember, remembered, settings } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
@@ -7,11 +9,12 @@ import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.7';
+const VERSION = 'v0.8';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'Invite a friend (trophy, top right): they start right next to you, and when they reach level 3 you both get a Boil Seed. Bring 3 for the Ringleader title.',
     'The Rotting Season, until Nov 1: harvests drop teeth for a Pumpkin name color and the Trick or Treater title.',
     'The Itch: now and then the whole world shares one goal. Everyone who helps gets a Boil Seed.',
     "Players' plots stay in the world while they're away. Squeeze them, and they'll hear about it.",
@@ -63,6 +66,25 @@ function todayLines(saved) {
     lines.push({ text: `${season.name.replace(/^The /, '')} · ${days > 1 ? `${days} days left` : 'last day'}`, season: season.id });
   }
   return lines;
+}
+
+// How many are playing right now, once the server answers. It may be waking
+// up from a nap, which is worth knowing before tapping Play.
+function liveLine() {
+  const line = el('p', 'menu-live');
+  line.hidden = true;
+  const waking = setTimeout(() => {
+    line.textContent = 'Waking the world up…';
+    line.hidden = false;
+  }, 2500);
+  worldStatus.then((status) => {
+    clearTimeout(waking);
+    const online = status?.online ?? 0;
+    line.textContent = `${online} playing now`;
+    line.classList.add('on');
+    line.hidden = online === 0;
+  });
+  return line;
 }
 
 function saveName(name) {
@@ -118,7 +140,18 @@ export function createMenu({ onPlay }) {
     today.append(el('li', `${line.hot ? 'hot' : ''}${line.season ? ` season ${line.season}` : ''}`.trim() || null, line.text));
   }
   if (today.children.length) form.append(today);
-  form.append(name, play);
+  // Arrived by a friend's link: say whose, and what playing together is worth.
+  const invite = !saved && pendingInvite();
+  if (invite) {
+    const reward = `Reach level ${INVITE.level} and you both get a Boil Seed.`;
+    const line = el('p', 'menu-invite', `A friend invited you. ${reward}`);
+    form.append(line);
+    inviter(invite).then((info) => {
+      if (!info?.name) return;
+      line.textContent = info.here ? `${info.name} invited you, and is playing now. Tap Play to start right next to them.` : `${info.name} invited you. ${reward}`;
+    });
+  }
+  form.append(name, play, liveLine());
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const chosen = name.value.trim();

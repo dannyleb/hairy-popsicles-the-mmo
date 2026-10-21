@@ -45,6 +45,8 @@ check('the page never renders data as HTML', !/innerHTML|outerHTML|insertAdjacen
 check('and players who left, from their last save', left?.status === 'offline' && left.scraps === 77 && left.inventory.teeth === 3 && left.shinies.shiv === 1 && left.streak === 4);
 check('the world and recent chat come too', data.events && 'itch' in data.events && data.chat.some((c) => c.text === 'hello admin'));
 check('saves themselves are never sent', !JSON.stringify(data).includes(token.split('.')[1]));
+// The new player (no save) is in today's funnel; the one with a save isn't.
+check("today's new players and how far they got", data.funnel?.newPlayers === 1 && data.funnel.stages.plant === 0 && typeof data.funnel.sessions.count === 'number', JSON.stringify(data.funnel));
 
 // Guessing gets an address locked out for a while (the right key included).
 for (let i = 0; i < 10; i++) await get('/admin/data', `guess${i}`, { 'X-Forwarded-For': '10.0.0.9' });

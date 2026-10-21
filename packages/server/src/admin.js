@@ -5,7 +5,7 @@ import { listDepartures } from './game/departed.js';
 import { readToken } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
 import { getWorld } from './rooms/WorldRoom.js';
-import { statsReport } from './stats.js';
+import { funnelReport, statsReport } from './stats.js';
 
 // The admin page: who's playing and what they've got. GET /admin is the page
 // (no data in it); GET /admin/data is the data, for whoever holds ADMIN_KEY.
@@ -93,6 +93,7 @@ function report(you) {
     at: Date.now(),
     you,  // the address this server sees for you, and where it got it: the lockout goes by it
     stats: statsReport(),
+    funnel: funnelReport(),
     players: [...world.players, ...departedPlayers(liveIds)],
     heldPlots: world.heldPlots,
     events: world.events,

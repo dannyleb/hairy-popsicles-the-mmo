@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
 import { applyRenderScale, canvasSize, renderScale } from './display.js';
+import { takeInviteFromUrl } from './net/invite.js';
+import './net/status.js';  // starts waking the server while everything else loads
 import { BootScene } from './scenes/BootScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
+takeInviteFromUrl();
 const [width, height] = canvasSize();
 
 const game = new Phaser.Game({

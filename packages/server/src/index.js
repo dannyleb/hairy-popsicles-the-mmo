@@ -1,9 +1,11 @@
 import { createServer } from 'http';
 import colyseus from '@colyseus/core';
 import wsTransport from '@colyseus/ws-transport';
+import { isPublicId } from '@hptm/shared';
 import { handleAdmin } from './admin.js';
+import { nameOf } from './game/invites.js';
 import { clientAddress, createLimiter } from './net.js';
-import { WorldRoom } from './rooms/WorldRoom.js';
+import { WorldRoom, getWorld } from './rooms/WorldRoom.js';
 import { statsReport } from './stats.js';
 
 const { Server, matchMaker } = colyseus;
@@ -20,12 +22,22 @@ httpServer.requestTimeout = 15_000;
 // route handler (which takes over the httpServer's 'request' event) still
 // falls through to this for anything that isn't a /matchmake request —
 // in particular Render's health check hitting GET /.
+const json = (res, body) => {
+  res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(body, null, 2));
+};
+// Who an invite link is from, for the title screen: a name and whether they're on now.
+const lookups = createLimiter({ limit: 60, windowMs: 60_000 });
+
 httpServer.on('request', (req, res) => {
   if (handleAdmin(req, res)) return;
-  if (req.url === '/stats') {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-    res.end(JSON.stringify(statsReport(), null, 2));
-    return;
+  const url = URL.parse(req.url ?? '/', 'http://server') ?? new URL('http://server/');  // a mangled path must not throw
+  // Online: players here now, not ones whose phone dropped and may be back.
+  if (url.pathname === '/stats') return json(res, { ...statsReport(), online: getWorld()?.activeCount() ?? 0 });
+  if (url.pathname === '/invite') {
+    const pid = url.searchParams.get('with');
+    const known = isPublicId(pid) && lookups.take(clientAddress(req).address);
+    return json(res, known ? { name: nameOf(pid), here: Boolean(getWorld()?.isHere(pid)) } : { name: null, here: false });
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('ok');

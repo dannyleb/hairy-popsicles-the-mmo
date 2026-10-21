@@ -48,6 +48,14 @@ const refusal = (promise) => promise.then(() => null, (error) => error);
 check('a huge join is refused unread', (await matchmake(JSON.stringify({ name: 'x'.repeat(20_000) }), { 'CF-Connecting-IP': '198.51.100.1' })).status === 413);
 check('so is one with no length', await chunked() === 411);
 check('and the room list', (await fetch(`${HTTP}/matchmake/world`)).status === 405);
+// A mangled path (here one no URL parser accepts) gets an answer, not a crash.
+const net = await import('node:net');
+const mangled = await new Promise((resolve) => {
+  const socket = net.connect(PORT, 'localhost', () => socket.write('GET //[ HTTP/1.1\r\nHost: x\r\n\r\n'));
+  socket.on('data', (d) => { resolve(String(d).split('\r\n')[0]); socket.end(); });
+  socket.on('error', () => resolve('error'));
+});
+check('a mangled request path is answered, and the server stays up', mangled.startsWith('HTTP/1.1') && (await fetch(`${HTTP}/stats`)).ok, mangled);
 
 // Seats per network (by socket here: no proxy in front).
 const seated = [await join({ name: 'One' }), await join({ name: 'Two' }), await join({ name: 'Three' })];

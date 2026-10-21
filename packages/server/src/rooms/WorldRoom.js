@@ -9,6 +9,7 @@ import {
   EMOTE_COOLDOWN_MS,
   FERTILIZER_SPEEDUP,
   GIFT_COOLDOWN_MS,
+  INVITE,
   ITCH,
   NAME_COLORS,
   PLOT_SIZE,
@@ -37,6 +38,7 @@ import {
   XP,
   greenThumb,
   holeOpen,
+  isPublicId,
   featuredFor,
   levelFor,
   rowComplete,
@@ -48,6 +50,7 @@ import {
 import { createBoss } from '../game/boss.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
+import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
 import { maskText, plainText } from '../game/filter.js';
@@ -55,7 +58,7 @@ import { cleanName, newProfileId, publicIdOf, readToken, saveToken } from '../ga
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
 import { clientAddress } from '../net.js';
-import { recordJoin, recordOnline } from '../stats.js';
+import { recordArrival, recordJoin, recordOnline, recordSession, recordStage } from '../stats.js';
 
 const { Room, ServerError } = colyseus;
 
@@ -195,6 +198,10 @@ export class WorldRoom extends Room {
     const player = existing ? this.takeOver(existing, client) : this.createPlayer(client, save);
     const name = cleanName(options?.name);
     if (name) this.rename(player, name);
+    noteName(player.pid, player.name);
+    // Brand new, from a friend's invite link: start next to them.
+    if (!save && !existing && isPublicId(options?.invitedBy) && options.invitedBy !== player.pid) this.arriveInvited(player, options.invitedBy);
+    this.payOwedInvites(player);
 
     const daily = checkIn(player.daily, Date.now());
     const today = dayOf(Date.now());
@@ -207,6 +214,7 @@ export class WorldRoom extends Room {
     this.checkTitles(player);  // a streak can earn one just by showing up
     this.checkRows(player);    // and a save from before row rewards may have some due
     recordJoin(player.profileId, Object.keys(this.players).length);
+    if (!existing) recordArrival(player.profileId, { isNew: !save, invited: !save && Boolean(player.invitedBy), savedAt: save?.savedAt, startedAt: save?.startedAt });
     console.log(`join ${player.id} ${player.name}${save ? ' (saved)' : ''} (${this.clients.length} here)`);
     topUp(player, this.othersPresent(player));
     player.saveDirty = true;
@@ -241,6 +249,8 @@ export class WorldRoom extends Room {
       titles: [],
       title: null,
       rows: [],            // album rows (rarities) completed and paid for
+      invitedBy: null,     // public id of whoever's invite brought them, until it pays out
+      startedAt: Date.now(),  // when this save was first made (null for saves from before it was kept)
       notices: [],         // shown once the client is listening ('sync')
       synced: false,
       saveDirty: true,
@@ -272,6 +282,8 @@ export class WorldRoom extends Room {
         titles: save.titles,
         title: save.title,
         rows: save.rows,
+        invitedBy: save.invitedBy,
+        startedAt: save.startedAt,
       });
       if (Object.keys(save.collection).length) {
         player.collection = save.collection;
@@ -375,6 +387,58 @@ export class WorldRoom extends Room {
     return player;
   }
 
+  // A new player who came by `pid`'s invite: placed by them if they're here,
+  // made pals on both sides, and both paid once the newcomer reaches INVITE.level.
+  arriveInvited(player, pid) {
+    player.invitedBy = pid;
+    const inviter = Object.values(this.players).find((p) => p.pid === pid && !p.away);
+    if (inviter) {
+      player.x = inviter.x + (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 40);
+      player.y = inviter.y + 20 + Math.random() * 40;
+      this.notify(inviter, { kind: 'inviteJoined', name: player.name, pid: player.pid });
+    }
+    player.notices.push({ kind: 'invited', name: inviter?.name ?? nameOf(pid), pid, here: Boolean(inviter), level: INVITE.level, ...INVITE.reward });
+  }
+
+  payInvite(player) {
+    const pid = player.invitedBy;
+    player.invitedBy = null;
+    const inviter = Object.values(this.players).find((p) => p.pid === pid);
+    this.payInviteReward(player, inviter?.name ?? nameOf(pid), 'invitee');
+    // The inviter's share counts toward their day even if they're away now.
+    if (!earnToday(pid, today())) return;
+    if (inviter) this.payInviteReward(inviter, player.name, 'inviter');
+    else owe(pid, player.name);
+    this.announce(`${player.name} reached level ${INVITE.level}${inviter ? ` and ${inviter.name}` : ''}: a Boil Seed each for playing together.`, 'gift');
+  }
+
+  // Rewards that came in while this player was away.
+  payOwedInvites(player) {
+    for (const { name } of collectOwed(player.pid)) this.payInviteReward(player, name, 'inviter');
+  }
+
+  payInviteReward(player, friend, role) {
+    player.currency += INVITE.reward.scraps;
+    player.inventory.boil += INVITE.reward.boil;
+    if (role === 'inviter') this.bump(player, 'invites');
+    this.notify(player, { kind: 'invite', role, name: friend, ...INVITE.reward });
+    this.sendMe(player);
+  }
+
+  activeCount() {
+    return Object.values(this.players).filter((p) => !p.away).length;
+  }
+
+  isHere(pid) {
+    return Object.values(this.players).some((p) => p.pid === pid && !p.away);
+  }
+
+  // A notice now if they're listening, or when they are.
+  notify(player, notice) {
+    if (player.synced) this.clientOf(player)?.send('notice', notice);
+    else player.notices.push(notice);
+  }
+
   rename(player, name) {
     player.name = name;
     for (const plot of Object.values(this.plots)) {
@@ -412,6 +476,7 @@ export class WorldRoom extends Room {
     const [plotKey, plot] = this.plotOf(player);
     rememberDeparture(player.profileId, saveToken(player, plot, plotKey), player.xp > 0);
     delete this.players[client.sessionId];
+    recordSession(Date.now() - player.joinedAt);
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
     // The plot is in their save too, and comes back with them either way.
@@ -535,6 +600,8 @@ export class WorldRoom extends Room {
     player.xp += amount;
     player.level = levelFor(player.xp);
     if (player.level > before) {
+      for (const level of [2, 3, 5]) if (before < level && player.level >= level) recordStage(player.profileId, `level${level}`);
+      if (player.invitedBy && player.level >= INVITE.level) this.payInvite(player);
       if (player.synced) this.clientOf(player)?.send('levelUp', { level: player.level });
       else player.notices.push({ kind: 'levelUp', level: player.level, from: before });
       if (player.level % ANNOUNCE_LEVELS === 0) this.announce(`${player.name} reached level ${player.level}!`, 'level');
@@ -623,6 +690,7 @@ export class WorldRoom extends Room {
       ownerName: player.name,
       slots: Array.from({ length: PLOT_SIZE * PLOT_SIZE }, () => null),
     };
+    recordStage(player.profileId, 'plot');
     player.saveDirty = true;
     this.markDirty();
   }
@@ -660,6 +728,7 @@ export class WorldRoom extends Room {
     };
     this.grantXp(player, XP.plant);
     this.progress(player, 'plant');
+    recordStage(player.profileId, 'plant');
     this.sendMe(player);
     this.markDirty();
   }
@@ -705,6 +774,7 @@ export class WorldRoom extends Room {
     else if (rank(characterId) >= 2) this.announce(`${player.name} grew a ${rarity.label} ${character.name}!`, character.rarity);
     this.grantXp(player, xp);
     this.progress(player, 'harvest');
+    recordStage(player.profileId, 'harvest');
     if (rank(characterId) >= 1) this.progress(player, 'uncommon');
     if (rank(characterId) >= 2) this.progress(player, 'rare');
     if (isNew) this.progress(player, 'discover');

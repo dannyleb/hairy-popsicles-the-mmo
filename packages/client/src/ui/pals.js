@@ -31,6 +31,14 @@ export function togglePal(pid, name) {
   return isPal(pid);
 }
 
+// Pals made by an invite, on both sides.
+export function makePal(pid, name) {
+  if (!pid || isPal(pid)) return false;
+  pals[pid] = name;
+  store();
+  return true;
+}
+
 // Keep the name current when a pal renames themselves.
 export function notePal(pid, name) {
   if (isPal(pid) && pals[pid] !== name) {

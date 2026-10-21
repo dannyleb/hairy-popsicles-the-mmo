@@ -14,3 +14,10 @@ export const EMOTE_BY_ID = Object.fromEntries(EMOTES.map((e) => [e.id, e]));
 
 // Giving a spare copy of a character (you keep at least one) to another player.
 export const GIFT_COOLDOWN_MS = 10_000;
+
+// Bringing a friend: a new player who arrives by someone's invite link starts
+// next to them, and once they reach `level` both get the reward. An inviter is
+// paid for at most `perDay` friends a day (so a pile of alts isn't a seed farm).
+export const INVITE = { level: 3, reward: { scraps: 50, boil: 1 }, perDay: 3 };
+// A public id, as an invite link carries it.
+export const isPublicId = (value) => typeof value === 'string' && /^[\w-]{12}$/.test(value);

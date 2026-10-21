@@ -29,6 +29,7 @@ const SUITES = {
   held: [{ PORT: 2582, GROW_SCALE: 0.05, PLOT_HOLD_MS: 8000 }],
   admin: [{ PORT: 2583, ADMIN_KEY: 'test-admin-key' }, { PORT: 2584 }],
   season: [{ PORT: 2580, GROW_SCALE: 0.01, SEASON_DAY: '2026-10-25' }, { PORT: 2581, GROW_SCALE: 0.01, SEASON_DAY: '2026-12-01' }],
+  invites: [{ PORT: 2586, GROW_SCALE: 0.01 }],
   limits: [{ PORT: 2585, JOINS_PER_MINUTE: 16, SEATS_PER_ADDRESS: 3, NEWCOMERS_KEPT: 3, ADMIN_KEY: 'test-admin-key' }],
 };
 // Every test player comes from this one machine, so the per-address limits are

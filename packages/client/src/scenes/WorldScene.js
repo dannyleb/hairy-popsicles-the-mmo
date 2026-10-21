@@ -3,6 +3,7 @@ import {
   CHARACTER_BY_ID,
   EMOTE_BY_ID,
   HOLE_ORDER,
+  INVITE,
   MAX_LEVEL,
   PLOT_SIZE,
   RARITY_ORDER,
@@ -30,7 +31,7 @@ import { remembered, settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
 import { offerInstallLater } from '../ui/install.js';
-import { isPal, notePal } from '../ui/pals.js';
+import { isPal, makePal, notePal } from '../ui/pals.js';
 import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
@@ -120,6 +121,7 @@ export class WorldScene extends Phaser.Scene {
     this.crops = new Map();
     this.plots = new Map();
     this.bubbles = [];
+    this.invitedArrivals = new Set();  // public ids of friends my invite just brought in
     this.nextMutter = 0;
     this.nextStep = 0;
     this.nextSparkle = 0;
@@ -158,10 +160,7 @@ export class WorldScene extends Phaser.Scene {
         return key ? this.state.plots[key] : null;
       },
       leave: () => this.leave(),
-      palsChanged: () => {
-        for (const avatar of this.avatars.values()) avatar.label = '';  // redraw names with or without ♥
-        this.syncAvatars();
-      },
+      palsChanged: () => this.redrawNames(),
     });
 
     // A tap acts when the finger lifts, so a second finger landing turns it into a pinch instead.
@@ -326,7 +325,11 @@ export class WorldScene extends Phaser.Scene {
   noticeComings(before, after) {
     for (const p of Object.values(after)) {
       if (before[p.id] || p.id === this.myId()) continue;
-      if (isPal(p.pid)) {
+      if (this.invitedArrivals.delete(p.pid)) {
+        this.hud.chatLine({ text: `♥ ${p.name} came from your invite, and they're your pal now.`, kind: 'system' });
+        this.hud.toast(`${p.name} came from your invite! They're right next to you.`, { characterId: p.avatar, color: '#f0a8bc' });
+        sfx.discover();
+      } else if (isPal(p.pid)) {
         this.hud.chatLine({ text: `♥ Your pal ${p.name} arrived.`, kind: 'system' });
         this.hud.toast(`Your pal ${p.name} is here.`, { characterId: p.avatar, color: '#f0a8bc' });
         sfx.quest();
@@ -355,6 +358,9 @@ export class WorldScene extends Phaser.Scene {
     if (this.state.season) this.hud.tip(`season-${this.state.season.id}`, `${this.state.season.name} is on! Harvests can drop teeth 🦷 for a limited name color and title. Tap its pill (top right) to see.`);
     if (this.state.boss) this.hud.tip('boss', 'Tap The Boil again and again until it bursts. Everyone who helps gets paid.');
     if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? The bag (top right) is the shop: fertilizer, candles for your plot, a name color.');
+    if (this.private.level >= 2 && Object.keys(this.state.players).length <= 3) {
+      this.hud.tip('invite', `Quiet in here? The trophy (top right) has Invite a friend: they start next to you, and at level ${INVITE.level} you both get a Boil Seed.`);
+    }
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
     for (const crop of this.crops.values()) {
       if (crop.glow.visible && !crop.mine && this.cameras.main.worldView.contains(crop.image.x, crop.image.y)) {
@@ -1213,7 +1219,30 @@ export class WorldScene extends Phaser.Scene {
       this.hud.albumRow(notice);
       sfx.fanfare();
       if (notice.boil) this.hud.selectSeed('boil');
+    } else if (notice.kind === 'invited') {
+      this.befriend(notice.pid, notice.name ?? 'Your inviter');
+      const who = notice.name ? `${notice.name} invited you, and they're your pal now ♥` : 'A friend invited you';
+      this.hud.chatLine({ text: `${who}. Reach level ${notice.level} and you both get a Boil Seed.`, kind: 'system' });
+    } else if (notice.kind === 'inviteJoined') {
+      // Their arrival is announced as it happens (just after this), as coming from the invite.
+      this.befriend(notice.pid, notice.name);
+      this.invitedArrivals.add(notice.pid);
+    } else if (notice.kind === 'invite') {
+      const text = notice.role === 'inviter' ? `${notice.name} got to level ${INVITE.level} from your invite!` : `Level ${INVITE.level}, thanks to ${notice.name ?? 'your friend'}'s invite!`;
+      this.hud.announce(`${text} +${notice.scraps} scraps · +${notice.boil} Boil Seed`, 'gift');
+      this.hud.selectSeed('boil');
+      sfx.fanfare();
     }
+  }
+
+  // Pals made by an invite, on both sides.
+  befriend(pid, name) {
+    if (makePal(pid, name)) this.redrawNames();
+  }
+
+  redrawNames() {
+    for (const avatar of this.avatars.values()) avatar.label = '';  // redraw names with or without ♥
+    this.syncAvatars();
   }
 
   onBossReward({ damage, top, scraps, xp, seeds }) {

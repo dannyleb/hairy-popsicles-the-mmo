@@ -71,7 +71,14 @@
   .tile span { color: var(--dim); font-size: 13px; }
 
   /* events */
+  .funnel { display: grid; gap: 6px; max-width: 640px; }
+  .step { display: grid; grid-template-columns: 120px 1fr 74px; align-items: center; gap: 10px; font-size: 14px; }
+  .step .bar { height: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .step .bar i { display: block; height: 100%; background: var(--gold); }
+  .step b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .step b small { color: var(--dim); font-weight: 400; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  #funnel-more { margin-top: 12px; }
   .chip { padding: 6px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; font-size: 14px; }
   .chip.on { border-color: var(--gold); }
   .chip.off { color: var(--dim); }
@@ -148,6 +155,11 @@
 
     <div class="tiles" id="tiles"></div>
 
+    <h2>New players today</h2>
+    <div class="funnel" id="funnel"></div>
+    <div class="chips" id="funnel-more"></div>
+    <p class="note">Counted since the server last started today: Render's free plan restarts it after 15 idle minutes, which clears these.</p>
+
     <h2>World</h2>
     <div class="chips" id="events"></div>
 
@@ -194,7 +206,7 @@
 (() => {
   const STORE = 'hptm:admin-key';
   const STAT_LABELS = {
-    harvests: 'Harvests', squeezes: 'Squeezes given', bossTops: 'Top Boil squeezer', globs: 'Globs grabbed',
+    harvests: 'Harvests', squeezes: 'Squeezes given', bossTops: 'Top Boil squeezer', globs: 'Globs grabbed', invites: 'Friends brought',
     shinies: 'Shinies grown', chats: 'Chat lines', gifts: 'Gifts given', itches: 'Itches scratched', teeth: 'Teeth found',
   };
   const REFRESH_MS = 10_000;
@@ -264,6 +276,7 @@
   function render() {
     $('updated').textContent = `Updated ${new Date(data.at).toLocaleTimeString()}`;
     renderTiles();
+    renderFunnel();
     renderEvents();
     renderPlayers();
     renderChat();
@@ -290,6 +303,41 @@
       tile.append(el('b', null, value), el('span', null, label));
       return tile;
     }));
+  }
+
+  // How far today's new players got, step by step, and who came back.
+  function renderFunnel() {
+    const f = data.funnel;
+    const steps = [
+      [f.newPlayers, 'started'],
+      [f.stages.plot, 'got a plot'],
+      [f.stages.plant, 'planted'],
+      [f.stages.harvest, 'harvested'],
+      [f.stages.level2, 'reached Lv 2'],
+      [f.stages.level3, 'reached Lv 3'],
+      [f.stages.level5, 'reached Lv 5'],
+    ];
+    $('funnel').replaceChildren(...steps.map(([count, label]) => {
+      const share = f.newPlayers ? count / f.newPlayers : 0;
+      const row = el('div', 'step');
+      const bar = el('div', 'bar');
+      const fill = el('i');
+      fill.style.width = `${Math.round(share * 100)}%`;
+      bar.append(fill);
+      const value = el('b', null, `${count} `);
+      if (f.newPlayers) value.append(el('small', null, `${Math.round(share * 100)}%`));
+      row.append(el('span', null, label), bar, value);
+      return row;
+    }));
+    const yesterday = f.yesterdayNew == null ? '' : ` of ${f.yesterdayNew}`;
+    const { count, medianMinutes, meanMinutes } = f.sessions;
+    const chips = [
+      `${f.invited} came by invite`,
+      `${f.returning} back from an earlier day`,
+      `${f.fromYesterday}${yesterday} who started yesterday came back`,
+      count ? `${count} sessions ended: median ${medianMinutes} min, average ${meanMinutes} min` : 'No sessions ended yet today',
+    ];
+    $('funnel-more').replaceChildren(...chips.map((text) => el('span', 'chip', text)));
   }
 
   function renderEvents() {
