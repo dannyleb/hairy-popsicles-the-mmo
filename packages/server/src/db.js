@@ -17,8 +17,11 @@ const pool = URL ? new pg.Pool({ connectionString: URL, max: 5, idleTimeoutMilli
 pool?.on('error', (error) => console.error('database connection lost:', error.message));
 
 const pending = new Set();  // writes still in flight, waited for at shutdown
+let ready = false;          // set up and answering, as of startup
 
 export const hasDatabase = Boolean(pool);
+// For /stats: 'off' (no DATABASE_URL), 'ready', or 'unreachable' (set, but setup failed).
+export const databaseState = () => (!pool ? 'off' : ready ? 'ready' : 'unreachable');
 
 export async function setUpDatabase() {
   if (!pool) return;
@@ -33,6 +36,7 @@ export async function setUpDatabase() {
         updated_at timestamptz NOT NULL DEFAULT now()
       )`);
     await direct.query('CREATE INDEX IF NOT EXISTS saves_updated_at ON saves (updated_at)');
+    ready = true;
   } finally {
     await direct.end();
   }

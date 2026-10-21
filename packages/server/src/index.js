@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import colyseus from '@colyseus/core';
 import wsTransport from '@colyseus/ws-transport';
 import { handleAdmin } from './admin.js';
-import { closeDatabase, hasDatabase, setUpDatabase } from './db.js';
+import { closeDatabase, databaseState, hasDatabase, setUpDatabase } from './db.js';
 import { nameOf } from './game/invites.js';
 import { readInviteCode } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
@@ -37,7 +37,7 @@ httpServer.on('request', (req, res) => {
   // Version: the commit Render deployed, to tell which build is live.
   if (url.pathname === '/stats') {
     return json(res, {
-      ...statsReport(), online: getWorld()?.activeCount() ?? 0, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null, database: hasDatabase,
+      ...statsReport(), online: getWorld()?.activeCount() ?? 0, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null, database: databaseState(),
     });
   }
   if (url.pathname === '/invite') {

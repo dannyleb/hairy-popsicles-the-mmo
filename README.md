@@ -447,7 +447,7 @@ What protects what, and what's still open.
   (direct, for creating its table at startup); set both on Render. Locally,
   `neon env pull` writes them to `.env.local`, which `npm run dev:server`
   loads. The admin page's tiles say whether it's connected and how many
-  players it holds; `/stats` has `database: true|false`.
+  players it holds; `/stats` has `database`: `ready`, `unreachable` or `off`.
 - **Keeping it awake:** `.github/workflows/keepalive.yml` pings the server
   every 10 minutes so it never naps (GitHub's schedules can run a few
   minutes late, so a rare nap can still slip through), and logs which build

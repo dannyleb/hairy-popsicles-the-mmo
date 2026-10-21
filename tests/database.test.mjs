@@ -122,7 +122,7 @@ check('coming back with an old save after a restart gets the newest one', back.m
 check('and their plot', back.state.plots['4,4']?.ownerId === back.room.sessionId);
 const status = await (await fetch('http://localhost:2591/admin/data', { headers: { Authorization: 'Bearer test-admin-key' } })).json();
 check('the admin page shows the database and how many saves it holds', status.database?.on === true && status.database.saves >= 2, JSON.stringify(status.database));
-check('/stats says the database is on', (await (await fetch('http://localhost:2591/stats')).json()).database === true);
+check('/stats says the database is ready', (await (await fetch('http://localhost:2591/stats')).json()).database === 'ready');
 await back.room.leave(true);
 await watcher.room.leave(true);
 b.kill('SIGTERM');
@@ -131,6 +131,7 @@ await b.exited;
 // ---- server C: the database is down; the game still runs
 const c = await startServer(2592, { DATABASE_URL: 'postgres://nobody@127.0.0.1:1/none', DATABASE_URL_UNPOOLED: 'postgres://nobody@127.0.0.1:1/none' });
 check('with the database down, the server still starts', c.log.includes('running without it'));
+check('and /stats says it is unreachable', (await (await fetch('http://localhost:2592/stats')).json()).database === 'unreachable');
 const started = Date.now();
 const stillPlays = await join(2592, { profile: original });
 check('and players can still join, from their own save', stillPlays.me?.currency === 100 && Date.now() - started < 6000, `${Date.now() - started}ms`);
