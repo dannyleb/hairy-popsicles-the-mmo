@@ -7,6 +7,13 @@ import { MenuScene } from './scenes/MenuScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
 takeInviteFromUrl();
+
+// iPhones ignore user-scalable=no: a pinch on the HUD would zoom the whole page
+// (blurring the game and pushing the HUD off the edge) and leave it there.
+// Pinching the world still zooms the camera: that's touch events, not these.
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+}
 const [width, height] = canvasSize();
 
 const game = new Phaser.Game({

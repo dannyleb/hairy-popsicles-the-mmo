@@ -48,6 +48,40 @@ const CANDLE_WIDTH = 22;
 const GLOW_SIZE = 340;
 const FLIES = 36;
 const SPORES = 45;
+// The regions' casts of color, drawn once into one small texture stretched over
+// the whole world: a single layer for the GPU to fill each frame, rather than
+// four overlapping ones. Each region's cast fades out from its middle the way
+// the glow sprite does ((1 - d)^2.2), multiplied together where they meet.
+const TINT_REACH = 1300;  // px from a region's middle that its cast reaches
+function regionTint(scene) {
+  const key = 'region-tint';
+  if (!scene.textures.exists(key)) {
+    const n = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = n;
+    canvas.height = n;
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, n, n);
+    g.globalCompositeOperation = 'multiply';
+    for (const [region, tint] of Object.entries(REGION_TINTS)) {
+      const cx = (REGIONS[region].x / WORLD_W) * n;
+      const cy = (REGIONS[region].y / WORLD_H) * n;
+      const gradient = g.createRadialGradient(cx, cy, 0, cx, cy, (TINT_REACH / WORLD_W) * n);
+      for (let i = 0; i <= 8; i++) {
+        const k = (1 - i / 8) ** 2.2;
+        const c = [16, 8, 0].map((shift) => Math.round(255 + (((tint >> shift) & 255) - 255) * k));
+        gradient.addColorStop(i / 8, `rgb(${c.join(',')})`);
+      }
+      g.fillStyle = gradient;
+      g.fillRect(0, 0, n, n);
+    }
+    scene.textures.addCanvas(key, canvas);
+  }
+  return scene.add.image(0, 0, key).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H)
+    .setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro + 1);
+}
+
 // Veins under the skin, from the Navel out to each region and landmark.
 const VEIN = { step: 26, tint: 0x8a76b0, alpha: 0.55 };
 // Phaser draws everything in a scene every frame, on screen or not, so the
@@ -96,11 +130,7 @@ export function createBackdrop(scene) {
     .setOrigin(0).setTileScale(8).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro);
 
   // A soft cast of color over each region's ground; the Navel glows faintly warm.
-  for (const [region, tint] of Object.entries(REGION_TINTS)) {
-    const { x, y } = REGIONS[region];
-    scene.add.image(x, y, 'world:glow').setTint(tint).setBlendMode(Phaser.BlendModes.MULTIPLY)
-      .setDisplaySize(2600, 2600).setDepth(DEPTH.macro + 1);
-  }
+  regionTint(scene);
   scene.add.image(LANDMARKS.navel.x, LANDMARKS.navel.y, 'world:glow').setTint(0xff9a70).setBlendMode(Phaser.BlendModes.ADD)
     .setAlpha(0.16).setDisplaySize(760, 760).setDepth(DEPTH.decor + 6);
 
@@ -238,10 +268,14 @@ export function createBackdrop(scene) {
     },
 
     // Everything goes red while a Blood Moon is up.
-    // 1 at midday, 0 at midnight.
+    // 1 at midday, 0 at midnight. Dusk and dawn are the world as it's drawn;
+    // only one layer is ever on, the shade toward midnight or the lift toward
+    // midday (each is a whole screen for the GPU to fill).
     setDaylight(light) {
-      shade.setAlpha(NIGHT_SHADE.alpha * (1 - light)).setVisible(tints && light < 0.99);
-      lift.setAlpha(DAY_LIFT.alpha * light).setVisible(tints && light > 0.01);
+      const night = Math.max(0, Math.min(1, (0.5 - light) * 2));
+      const day = Math.max(0, Math.min(1, (light - 0.5) * 2));
+      shade.setAlpha(NIGHT_SHADE.alpha * night).setVisible(tints && night > 0.01);
+      lift.setAlpha(DAY_LIFT.alpha * day).setVisible(tints && day > 0.01);
       glowLevel = 0.55 + 0.75 * (1 - light);
     },
 

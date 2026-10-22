@@ -6,7 +6,7 @@ import { DEPTH } from './layout.js';
 // itchy wind. Everything lives in screen-relative coordinates (0..1 across
 // the view) and wraps, so there's always some in view and none anywhere else.
 const FLAKES = 110;
-const FOG_BANKS = 7;
+const FOG_BANKS = 5;
 const STREAKS = 16;
 
 export function createWeather(scene) {

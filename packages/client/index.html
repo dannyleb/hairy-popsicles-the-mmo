@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0e0608" />
@@ -24,6 +24,8 @@
       --text: #f0d9c8;
     }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--text); }
+    /* No double-tap zoom, and no text resizing of its own: the page never zooms (see main.js). */
+    html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     #app { width: 100vw; height: 100vh; }
     #vignette {
       position: fixed; inset: 0; z-index: 2; pointer-events: none;

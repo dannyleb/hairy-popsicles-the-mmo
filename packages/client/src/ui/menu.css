@@ -311,7 +311,7 @@
   width: 100%;
   margin: 6px 0;
   padding: 8px 10px;
-  font: 13px/1.3 ui-monospace, monospace;
+  font: 16px/1.3 ui-monospace, monospace;  /* 16px: any smaller and iPhones zoom in on it */
   color: var(--text);
   word-break: break-all;
   background: #2a161c;

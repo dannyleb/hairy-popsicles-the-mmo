@@ -15,17 +15,25 @@ const deviceRatio = Math.min(window.devicePixelRatio || 1, 3);
 const screenArea = (window.screen?.width || window.innerWidth) * (window.screen?.height || window.innerHeight);
 const budgetRatio = Math.max(1, Math.min(deviceRatio, Math.sqrt(PIXEL_BUDGET / screenArea)));
 
-// If frames still come slowly (an old laptop, or a browser drawing without the
-// graphics card), the game steps down through these and remembers where it
-// landed: first the resolution, then the purely ambient glows (candle light,
-// fireflies, walking trails), then a softer resolution still.
+// If frames still come slowly (an old laptop, a busy phone, or a browser
+// drawing without the graphics card), the game steps down through these: first
+// the resolution, a little at a time (a phone at 3x goes to 2x, then 1.5x,
+// rather than straight to a blurry 1x), then the purely ambient glows (candle
+// light, fireflies, walking trails), then softer still. Steps that change
+// nothing on this screen are skipped.
 const QUALITY = [
   { scale: budgetRatio, lite: false },
-  { scale: Math.min(budgetRatio, 1), lite: false },
+  { scale: Math.min(budgetRatio, 2), lite: false },
+  { scale: Math.min(budgetRatio, 1.5), lite: false },
+  { scale: Math.min(budgetRatio, 1.5), lite: true },
   { scale: Math.min(budgetRatio, 1), lite: true },
   { scale: 0.75, lite: true },
 ];
-let level = Math.min(QUALITY.length - 1, Math.max(0, Math.floor(Number(settings.get('quality')) || 0)));
+// Where it landed last time is remembered, but each visit starts one step
+// sharper: a slow patch once (a busy moment, a hot phone) doesn't mean blurry
+// for good. If it's still slow, it steps back down within seconds.
+const saved = Math.floor(Number(settings.get('quality')) || 0);
+let level = Math.min(QUALITY.length - 1, Math.max(0, saved - 1));
 
 export const quality = () => QUALITY[level];
 export const renderScale = () => QUALITY[level].scale;
