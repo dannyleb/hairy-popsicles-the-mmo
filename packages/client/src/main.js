@@ -39,3 +39,23 @@ const game = new Phaser.Game({
 });
 
 window.addEventListener('resize', () => applyRenderScale(game));
+
+// A phone short of memory can take the graphics context from a tab in the
+// background. When it gives it back, Phaser rebuilds every texture from its
+// loaded image, but on iPhones some come back blank (the image's pixels were
+// thrown away, and the temporary link it was loaded through is gone): the
+// characters, crops and plots vanish while the ground and labels still draw.
+// Start fresh instead; everything that matters is on the server. Not twice in
+// a minute, in case the phone keeps taking it.
+const RESTORED_KEY = 'hptm:restoredAt';
+game.events.once(Phaser.Core.Events.READY, () => {
+  game.renderer.on(Phaser.Renderer.Events.RESTORE_WEBGL, () => {
+    try {
+      if (Date.now() - (Number(sessionStorage.getItem(RESTORED_KEY)) || 0) < 60_000) return;
+      sessionStorage.setItem(RESTORED_KEY, String(Date.now()));
+    } catch {
+      // Can't tell if it just did: reload anyway, a blank world is worse.
+    }
+    window.location.reload();
+  });
+});
