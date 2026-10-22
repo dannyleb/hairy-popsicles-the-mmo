@@ -11,7 +11,7 @@ export const TITLES = [
   { id: 'scab-picker', name: 'Scab Picker', goal: 'Peel 30 pieces of scab', stat: 'peels', count: 30 },
   { id: 'wound-dresser', name: 'Wound Dresser', goal: 'Pick 40 crumbs of crust out of The Gash', stat: 'crumbs', count: 40 },
   { id: 'tick-twister', name: 'Tick Twister', goal: 'Help pry 5 Ticks off', stat: 'ticks', count: 5 },
-  { id: 'hair-puller', name: 'Hair Puller', goal: 'Help pull out 3 ingrown hairs', stat: 'hairs', count: 3 },
+  { id: 'hair-puller', name: 'Hair Puller', goal: 'Help pull out 3 ingrown hairs (2+ tugs each)', stat: 'hairs', count: 3 },
   { id: 'pore-squeezer', name: 'Pore Squeezer', goal: 'Squeeze 40 blackheads', stat: 'blackheads', count: 40 },
   { id: 'lint-picker', name: 'Lint Picker', goal: 'Grab 30 balls of navel lint', stat: 'lint', count: 30 },
   { id: 'glob-goblin', name: 'Glob Goblin', goal: 'Grab 50 globs in Pus Rains', stat: 'globs', count: 50 },

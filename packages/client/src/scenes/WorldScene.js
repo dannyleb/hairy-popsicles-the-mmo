@@ -604,7 +604,7 @@ export class WorldScene extends Phaser.Scene {
   // taps). Two fingers only become a pinch once the gap between them changes.
   onPointerDown(pointer) {
     this.pendingTaps ??= new Map();
-    this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y });
+    this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y, at: this.now() });
     const held = !this.hold && this.state && this.private && !this.hud.blocking() && this.eventViews.at(pointer.worldX, pointer.worldY);
     if (held && (held.kind === 'scab' || held.kind === 'blackheads')) {
       this.hold = { id: pointer.id, kind: held.kind, head: held.head ?? null, x: pointer.worldX, y: pointer.worldY, sx: pointer.x, sy: pointer.y, since: null, peeled: 0 };
@@ -644,7 +644,7 @@ export class WorldScene extends Phaser.Scene {
       this.pinch = null;
     }
     if (!tap || Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * renderScale()) return;
-    this.handleTap(pointer);
+    this.handleTap(pointer, tap.at);
   }
 
   setUserZoom(zoom) {
@@ -652,7 +652,8 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setZoom(cameraZoom() * this.userZoom);
   }
 
-  handleTap(pointer) {
+  // `downAt`: when the finger landed (by the server's clock), for anything timed to a beat.
+  handleTap(pointer, downAt = this.now()) {
     if (!this.state || !this.private || this.hud.blocking()) return;
     const x = pointer.worldX;
     const y = pointer.worldY;
@@ -669,7 +670,7 @@ export class WorldScene extends Phaser.Scene {
     if (plot?.ownerId === this.myId()) return this.tapOwnHole(hit.plotKey, plot, hit.slot);
     // (After my own plot: The Tick latches on right beside the busiest one.)
     const happening = this.eventViews.at(x, y);
-    if (happening) return this.tapEvent(happening);
+    if (happening) return this.tapEvent(happening, downAt);
     const other = this.avatarAt(x, y);
     if (other) return this.hud.inspect(other);
     if (crop && plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
@@ -705,10 +706,10 @@ export class WorldScene extends Phaser.Scene {
 
   // The Scab is peeled by holding a finger on it (see updateHold); a crumb of The
   // Gash is picked, and The Tick pried at, a tap at a time.
-  tapEvent(hit) {
-    const at = hit.crumb ?? this.eventViews.position();
+  tapEvent(hit, downAt) {
+    const at = hit.crumb ?? hit.head ?? this.eventViews.position();
     const me = this.myTarget();
-    if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 30) this.walkNear(at, hit.crumb ? 30 : 85);
+    if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 30) this.walkNear(at, hit.crumb || hit.head ? 30 : 85);
     if (hit.kind === 'scab') {
       if (!this.heldPeels) this.hud.toast('Hold your finger on The Scab to peel a piece off.');
       return;
@@ -720,7 +721,8 @@ export class WorldScene extends Phaser.Scene {
     if (hit.kind === 'ingrown') {
       // A tug only once you're there, judged against the beat on this screen.
       if (Date.now() < this.arrivesAt) return;
-      const beat = this.eventViews.judgeTug(this.now());
+      // (Judged from when the finger landed: a tap takes a moment to lift.)
+      const beat = this.eventViews.judgeTug(downAt);
       this.room.send('tug', beat ? { beat } : { miss: true });
       (beat ? sfx.tug : sfx.slip)();
       return;
@@ -746,6 +748,7 @@ export class WorldScene extends Phaser.Scene {
     if (!pointer?.isDown || moved || this.pinch || this.eventViews.kind() !== hold.kind || hold.done || hold.head?.out || this.hud.blocking()) {
       this.eventViews.holding(null);
       if (!pointer?.isDown || moved || this.pinch) this.hold = null;
+      else hold.since = null;  // (held through a menu or the end: a fresh hold after)
       return;
     }
     const at = hold.head ?? this.eventViews.position();

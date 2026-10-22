@@ -26,7 +26,7 @@ export function createRain(room, scale) {
   let nextId = 1;
 
   function dropNear(player, now) {
-    if (drops.size >= RAIN.maxDrops) return;
+    if (drops.size - lintLeft() >= RAIN.maxDrops) return;  // (a Navel's lint doesn't stop the rain)
     const angle = Math.random() * Math.PI * 2;
     const dist = 60 + Math.random() * RAIN.spread;
     const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
@@ -43,6 +43,12 @@ export function createRain(room, scale) {
 
   const active = () => Object.values(room.players).filter((p) => !p.away);
 
+  function lintLeft() {
+    let n = 0;
+    for (const drop of drops.values()) if (drop.lint) n++;
+    return n;
+  }
+
   return {
     view() {
       return rain && { endsAt: rain.endsAt };
@@ -56,7 +62,7 @@ export function createRain(room, scale) {
     spill(x, y, count) {
       const now = Date.now();
       const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
-      for (let i = 0; i < count && drops.size < RAIN.maxDrops; i++) {
+      for (let i = 0; i < count && drops.size - lintLeft() < RAIN.maxDrops; i++) {
         const angle = Math.random() * Math.PI * 2;
         const dist = 50 + Math.random() * 90;
         const id = nextId++;
@@ -117,11 +123,7 @@ export function createRain(room, scale) {
       room.markDirty();
     },
 
-    lintLeft() {
-      let n = 0;
-      for (const drop of drops.values()) if (drop.lint) n++;
-      return n;
-    },
+    lintLeft,
 
     // What the glob was worth ({ scraps, gold, blood, lint, prize }), or null if it's gone or out of reach.
     grab(player, id) {

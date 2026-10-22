@@ -1,8 +1,9 @@
 import { BLACKHEADS, REACH } from '@hptm/shared';
 import { spotInRegion } from './regionSpot.js';
-import { present } from './spots.js';
+import { clearOfPlots, present } from './spots.js';
 
-const CLEARANCE = 120;  // px from the patch's middle to the nearest plot
+const CLEARANCE = 150;  // px from the patch's middle to the nearest plot
+const HEAD_CLEARANCE = 30;  // and from each blackhead (a tap on one mustn't land on someone's crop)
 const SPACING = 34;     // px between blackheads
 const SQUEEZE_GAP_MS = BLACKHEADS.holdMs - 80;  // a finger held on one, allowing for the network
 
@@ -31,6 +32,7 @@ export function createBlackheads(room, scale, done) {
         const dist = Math.sqrt(Math.random()) * BLACKHEADS.spread;
         const x = Math.round(spot.x + Math.cos(angle) * dist);
         const y = Math.round(spot.y + Math.sin(angle) * dist * 0.75);
+        if (!clearOfPlots(room, x, y, HEAD_CLEARANCE)) continue;
         if (heads.every((h) => Math.hypot(h.x - x, h.y - y) >= SPACING)) heads.push({ id: heads.length, x, y, by: null });
       }
       patch = {

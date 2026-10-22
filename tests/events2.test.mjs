@@ -63,6 +63,11 @@ check("a tug on a beat that hasn't come yet doesn't count", a.state.event.progre
 a.room.send('tug', { miss: true });
 await sleep(250);
 check('a tap off the beat lets it slip back', a.state.event.progress < one);
+const slipped = a.state.event.progress;
+a.room.send('tug', { miss: true });
+a.room.send('tug', { miss: true });
+await sleep(250);
+check("and only once a beat (nobody can hold it in by mashing)", a.state.event.progress >= slipped - 1 / 24 - 1e-9);
 for (let i = 0; i < 40 && a.state.event?.kind === 'ingrown'; i++) {
   beat = await onBeat(a);
   a.room.send('tug', { beat });
@@ -115,12 +120,19 @@ for (let round = 0; round < 3; round++) {
   await waitFor(() => a.ev.navelCough.length > round + 1 || !a.state.event, 7000);
   await sleep(300);
 }
-await waitFor(() => !a.state.event, 15_000);
+// Sweep up any left lying about (one can land behind another's walk).
+for (let sweep = 0; sweep < 3 && a.state.event; sweep++) {
+  for (const ball of (a.state.drops ?? []).filter((d) => d.lint)) {
+    await walk(a, ball.x, ball.y + 8);
+    a.room.send('grab', { id: ball.id });
+  }
+  await waitFor(() => !a.state.event, 3000);
+}
 const grabbed = [...a.ev.gotGlob, ...b.ev.gotGlob].filter((g) => g.lint);
 check('it coughs three times', a.ev.navelCough.length === LINT.coughs);
 check('grabbed lint pays, and counts toward Lint Picker (not as Pus Rain globs)', grabbed.length > 0 && a.me.stats.lint + b.me.stats.lint === grabbed.length && a.me.stats.globs === 0 && b.me.stats.globs === 0, `${grabbed.length} grabbed`);
 check('the special one had something in it', grabbed.some((g) => g.prize));
-check('all grabbed, the Navel settles down', !a.state.event && a.ev.eventOver.some((m) => m.kind === 'lint'));
+check('all grabbed, the Navel settles down', !a.state.event && a.ev.eventOver.some((m) => m.kind === 'lint'), JSON.stringify(a.state.event && { ...a.state.event, now: a.now() }));
 
 await a.room.leave(true);
 await b.room.leave(true);

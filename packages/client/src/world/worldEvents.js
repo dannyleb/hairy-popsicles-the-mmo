@@ -100,7 +100,7 @@ export function createEventViews(scene, fx) {
       const image = scene.add.image(h.x, h.y, h.done ? 'world:pore' : 'world:blackhead').setDepth(DEPTH.decor + 3);
       image.setScale(0);
       scene.tweens.add({ targets: image, scale: HEAD_SIZE / image.width, delay: Math.random() * 500, duration: 400, ease: 'Back.out' });
-      heads.set(h.id, { ...h, image });
+      heads.set(h.id, { ...h, image, out: h.done });  // (squeezed before we came: no gunk to show)
     }
     const label = text(e.x, e.y - 130, 'Blackheads · hold one to squeeze');
     const ring = scene.add.graphics().setDepth(DEPTH.bubbles - 2);

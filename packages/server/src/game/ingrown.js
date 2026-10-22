@@ -4,13 +4,13 @@ import { present } from './spots.js';
 
 const CLEARANCE = 80;     // px from its middle to the nearest plot
 const LATE_MS = 600;      // a tug may arrive this long after its beat (the trip here)
-const SLIP_GAP_MS = 300;
 
 // Ingrown Hair (see INGROWN in @hptm/shared), always in the Scalp. Beats fall
 // every beatMs from when it came up; a tug names the beat it was on (the
 // client judges the timing, as it's the one that sees the beat) and counts if
 // that beat is now or just gone and the player hasn't tugged on it yet. A slip
-// (a tap off the beat) lets the hair back one. Counted by save.
+// (a tap off the beat) lets the hair back one, at most once a beat for each
+// player (so nobody can hold it in by mashing). Counted by save.
 export function createIngrown(room, scale, done) {
   let hair = null;
 
@@ -36,6 +36,7 @@ export function createIngrown(room, scale, done) {
         expiresAt: now + INGROWN.lastsMs * scale,
         tuggers: new Map(),   // profile id → tugs
         lastBeat: new Map(),  // profile id → the last beat they tugged on
+        lastSlip: new Map(),  // profile id → the last beat they slipped on
       };
       room.announce('An Ingrown Hair is bulging up in the Scalp! Tug it out in time with its throb.', 'boss');
       room.markDirty();
@@ -61,8 +62,9 @@ export function createIngrown(room, scale, done) {
     tug(player, { beat, miss }, now) {
       if (!hair || Math.hypot(player.x - hair.x, player.y - hair.y) > REACH) return null;
       if (miss === true) {
-        if (now - (player.lastSlipAt ?? 0) < SLIP_GAP_MS) return null;
-        player.lastSlipAt = now;
+        const beatNow = Math.round((now - hair.startAt) / INGROWN.beatMs);
+        if ((hair.lastSlip.get(player.profileId) ?? -1) >= beatNow) return null;
+        hair.lastSlip.set(player.profileId, beatNow);
         hair.pulled = Math.max(0, hair.pulled - 1);
         room.markDirty();
         return { slipped: true };

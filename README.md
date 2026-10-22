@@ -73,7 +73,8 @@ Timers are short on purpose while nothing persists. Rarities live in
   `packages/server/src/game/`, run by `worldEvents.js`).
   Each shows in the event pill (tap it to walk over), the minimap and an
   edge-of-screen arrow, and everything done at one counts for the "Help at
-  world events" quests.
+  world events" quests. Rewards paid when one ends go to those still in the
+  world then.
 - **The Boil.** A giant boil swells up near someone. Everyone taps it; it
   gets redder and fatter until it bursts. Everyone who hit it gets scraps
   and XP; anyone with 3+ hits gets a Boil Seed (the top squeezer gets 2),
@@ -108,9 +109,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   tap off it and it slips back. Everyone can tug once a beat, so a crowd in
   time pulls it out fast: out comes a hair as long as your arm. Everyone who
   tugged is paid by how many; the most (6+) gets a Boil Seed. The timing is
-  judged on the player's screen (it's the one that sees the beat); the server
-  takes one tug per player per beat, and only for a beat that's now or just
-  gone. Hair Puller title for 3.
+  judged on the player's screen, from when the finger lands (it's the one
+  that sees the beat); the server takes one tug per player per beat, only for
+  a beat that's now or just gone, and one slip per player per beat. Hair
+  Puller title for 3 (each with at least 2 tugs).
 - **Blackheads.** A patch of them (8, plus 3 a player, up to 20) in the
   Armpit. Hold a finger on one to squeeze it out; each comes out once, to
   whoever's first. 2 scraps each, and the gunk makes fertilizer: a dose for
