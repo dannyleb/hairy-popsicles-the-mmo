@@ -23,6 +23,7 @@ const budgetRatio = Math.max(1, Math.min(deviceRatio, Math.sqrt(PIXEL_BUDGET / s
 // nothing on this screen are skipped.
 const QUALITY = [
   { scale: budgetRatio, lite: false },
+  { scale: Math.min(budgetRatio, 2.5), lite: false },
   { scale: Math.min(budgetRatio, 2), lite: false },
   { scale: Math.min(budgetRatio, 1.5), lite: false },
   { scale: Math.min(budgetRatio, 1.5), lite: true },
@@ -32,15 +33,18 @@ const QUALITY = [
 // Where it landed last time is remembered, but each visit starts one step
 // sharper: a slow patch once (a busy moment, a hot phone) doesn't mean blurry
 // for good. If it's still slow, it steps back down within seconds.
+// "Always full sharpness" (in Settings) keeps it at the top, smooth or not.
 const saved = Math.floor(Number(settings.get('quality')) || 0);
-let level = Math.min(QUALITY.length - 1, Math.max(0, saved - 1));
+let level = settings.get('sharp') ? 0 : Math.min(QUALITY.length - 1, Math.max(0, saved - 1));
 
 export const quality = () => QUALITY[level];
 export const renderScale = () => QUALITY[level].scale;
 export const fullQuality = () => level === 0;
 
-// One step down (skipping steps that change nothing here); false at the bottom.
+// One step down (skipping steps that change nothing here); false at the bottom
+// (or when the player has asked for full sharpness whatever).
 export function lowerQuality(toLowest = false) {
+  if (settings.get('sharp')) return false;
   const before = QUALITY[level];
   while (level < QUALITY.length - 1) {
     level += 1;

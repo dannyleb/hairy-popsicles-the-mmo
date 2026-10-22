@@ -58,7 +58,6 @@ export function createDropsView(scene, fx) {
         const image = scene.add.image(d.x, d.y - FALL, d.blood ? 'world:drop-blood' : 'world:drop-pus').setOrigin(0.5, 0.8).setDepth(d.y);
         const scale = (d.gold ? GOLD_SIZE : SIZE) / image.width;
         image.setScale(scale * 0.8, scale * 1.3);
-        if (d.gold) image.preFX?.addGlow(0xffcf5a, 4, 0, false, 0.1, 10);
         const glob = { image, glow, gold: d.gold, x: d.x, y: d.y, scale, landed: false, phase: Math.random() * 1000 };
         globs.set(d.id, glob);
         scene.tweens.add({

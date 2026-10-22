@@ -78,7 +78,8 @@ const REPLACED = 4001;            // close code: this save was opened somewhere 
 const ZOOM_RANGE = [0.55, 1.6];   // how far a pinch (or the mouse wheel) zooms the world, around the usual view
 const TAP_SLOP = 12;              // px a finger can drift and still count as a tap
 // Frames slower than this (median, over a few seconds) step the graphics down a notch.
-const SLOW_FRAME_MS = 26;
+// (A steady 30 a second is fine: only slower than that costs sharpness.)
+const SLOW_FRAME_MS = 38;
 const FRAME_WINDOW_MS = 3000;
 const FRAME_SETTLE_MS = 5000;     // let loading finish (and the last change take hold) before judging
 const SPARKLE_MS = 180;           // how often something shiny on screen throws off a glint

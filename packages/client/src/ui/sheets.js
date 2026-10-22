@@ -15,6 +15,8 @@ const SETTINGS = [
   { name: 'bubbles', label: 'Speech bubbles' },
   ...(hasHaptics ? [{ name: 'haptics', label: 'Vibration' }] : []),
   { name: 'calm', label: 'Reduce motion' },
+  // Never lighten the graphics on its own, even if that costs some smoothness.
+  { name: 'sharp', label: 'Always full sharpness', reload: true },
 ];
 
 // The share sheet on phones; a copied link elsewhere. The link is this
@@ -304,7 +306,7 @@ export function createSheets(actions) {
   function settingsSheet() {
     showing = { kind: 'settings' };
     const list = el('div', 'settings-list');
-    for (const { name, label } of SETTINGS) {
+    for (const { name, label, reload } of SETTINGS) {
       const row = el('label', 'setting');
       const toggle = el('input');
       toggle.type = 'checkbox';
@@ -312,6 +314,10 @@ export function createSheets(actions) {
       toggle.addEventListener('change', () => {
         settings.set(name, toggle.checked);
         sfx.click();
+        if (reload && toggle.checked) {
+          resetQuality();
+          window.location.reload();
+        }
       });
       row.append(el('span', null, label), toggle);
       list.append(row);

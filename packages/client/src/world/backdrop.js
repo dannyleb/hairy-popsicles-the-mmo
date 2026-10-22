@@ -48,21 +48,24 @@ const CANDLE_WIDTH = 22;
 const GLOW_SIZE = 340;
 const FLIES = 36;
 const SPORES = 45;
-// The regions' casts of color, drawn once into one small texture stretched over
-// the whole world: a single layer for the GPU to fill each frame, rather than
-// four overlapping ones. Each region's cast fades out from its middle the way
-// the glow sprite does ((1 - d)^2.2), multiplied together where they meet.
+// The colors laid over the ground, drawn once into one texture stretched over
+// the whole world: the big soft color drift that hides the ground tile's
+// repeat (ground-macro, a 256px tile shown 8x), and each region's cast of
+// color, fading out from its middle the way the glow sprite does ((1 - d)^2.2),
+// multiplied together. One layer for the GPU to fill each frame, not five.
 const TINT_REACH = 1300;  // px from a region's middle that its cast reaches
-function regionTint(scene) {
-  const key = 'region-tint';
+const MACRO_TILE = 256 * 8;
+function groundCast(scene) {
+  const key = 'ground-cast';
   if (!scene.textures.exists(key)) {
-    const n = 128;
+    const n = 512;
     const canvas = document.createElement('canvas');
     canvas.width = n;
     canvas.height = n;
     const g = canvas.getContext('2d');
-    g.fillStyle = '#ffffff';
-    g.fillRect(0, 0, n, n);
+    const macro = scene.textures.get('world:ground-macro').getSourceImage();
+    const tile = (MACRO_TILE / WORLD_W) * n;
+    for (let x = 0; x < n; x += tile) for (let y = 0; y < n; y += tile) g.drawImage(macro, x, y, tile, tile);
     g.globalCompositeOperation = 'multiply';
     for (const [region, tint] of Object.entries(REGION_TINTS)) {
       const cx = (REGIONS[region].x / WORLD_W) * n;
@@ -79,7 +82,7 @@ function regionTint(scene) {
     scene.textures.addCanvas(key, canvas);
   }
   return scene.add.image(0, 0, key).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H)
-    .setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro + 1);
+    .setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro);
 }
 
 // Veins under the skin, from the Navel out to each region and landmark.
@@ -124,13 +127,9 @@ export function createBackdrop(scene) {
 
   const ground = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground')
     .setOrigin(0).setTileScale(0.5).setTint(NIGHT_TINT).setDepth(DEPTH.ground);
-  // A big soft color drift stretched over the world, so the ground tile's repeat doesn't show.
-  // It deepens and fades very slowly: the skin breathing.
-  const macro = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground-macro')
-    .setOrigin(0).setTileScale(8).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(DEPTH.macro);
-
-  // A soft cast of color over each region's ground; the Navel glows faintly warm.
-  regionTint(scene);
+  // The color drift and each region's cast of color, in one layer (groundCast).
+  // It deepens and fades very slowly: the skin breathing. The Navel glows faintly warm.
+  const macro = groundCast(scene);
   scene.add.image(LANDMARKS.navel.x, LANDMARKS.navel.y, 'world:glow').setTint(0xff9a70).setBlendMode(Phaser.BlendModes.ADD)
     .setAlpha(0.16).setDisplaySize(760, 760).setDepth(DEPTH.decor + 6);
 
