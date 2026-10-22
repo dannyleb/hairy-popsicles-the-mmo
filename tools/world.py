@@ -72,17 +72,20 @@ def mix(a, b, t):
 
 # ---------- shading ----------
 
-def shade(height, albedo, gloss, bump=1.0, shine=60, wrap=0.35, ao=1.0, periodic=False, sss=1.0):
+def normals(height, bump=1.0, periodic=False):
     if periodic:
         gx = (np.roll(height, -1, 1) - np.roll(height, 1, 1)) / 2
         gy = (np.roll(height, -1, 0) - np.roll(height, 1, 0)) / 2
-        local = gaussian_filter(height, 6, mode="wrap")
     else:
         gy, gx = np.gradient(height)
-        local = gaussian_filter(height, 6, mode="nearest")
     nx, ny, nz = -gx * bump, -gy * bump, np.ones_like(height)
     norm = np.sqrt(nx * nx + ny * ny + nz * nz)
-    nx, ny, nz = nx / norm, ny / norm, nz / norm
+    return nx / norm, ny / norm, nz / norm
+
+
+def shade(height, albedo, gloss, bump=1.0, shine=60, wrap=0.35, ao=1.0, periodic=False, sss=1.0):
+    nx, ny, nz = normals(height, bump, periodic)
+    local = gaussian_filter(height, 6, mode="wrap" if periodic else "nearest")
 
     ndl = nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]
     diffuse = np.clip((ndl + wrap) / (1 + wrap), 0, 1)
@@ -175,6 +178,8 @@ FLUSH = np.array([0.74, 0.40, 0.40])
 JAUNDICE = np.array([0.76, 0.62, 0.46])
 BRUISE = np.array([0.48, 0.36, 0.36])
 VEIN = np.array([0.44, 0.32, 0.36])   # a dull plum under the skin, not blue
+GOO = np.array([0.88, 0.86, 0.58])    # mucus: pale yellow with a green cast
+SERUM = np.array([0.70, 0.30, 0.22])  # what weeps from the pores, a little blood in it
 
 
 def stripes(n, rng, a, b, width, warp, wiggle=0.015):
@@ -182,6 +187,34 @@ def stripes(n, rng, a, b, width, warp, wiggle=0.015):
     yy, xx = np.mgrid[0:n, 0:n]
     phase = 2 * np.pi * (a * xx + b * yy) / n + warp * spectral(n, rng, 3.2, fmax=wiggle)
     return np.clip((np.cos(phase) - (1 - width)) / width, 0, 1) ** 2
+
+
+def stamped(n, shapes):
+    """A tiling 0..1 mask of circles [(x, y, r)], drawn at 2x for smooth edges."""
+    img = Image.new("L", (n * 2, n * 2))
+    draw = ImageDraw.Draw(img)
+    for x, y, r in shapes:
+        for ox in (-n, 0, n):
+            for oy in (-n, 0, n):
+                draw.ellipse([(x + ox - r) * 2, (y + oy - r) * 2, (x + ox + r) * 2, (y + oy + r) * 2], fill=255)
+    return np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
+
+
+def drips(rng, starts, count, length, width):
+    """Circles tracing drips that ooze down the screen from `starts`, thinning
+    as they go and ending in a fat drop."""
+    shapes = []
+    for _ in range(count):
+        x, y = starts[rng.integers(len(starts))]
+        steps = int(rng.uniform(*length) / 2)
+        w0 = rng.uniform(*width)
+        drift = rng.normal(0, 0.12)
+        for i in range(steps):
+            x += drift + rng.normal(0, 0.35)
+            y += 2
+            shapes.append((x, y, w0 * (1 - 0.45 * i / steps)))
+        shapes.append((x, y + 2, w0 * rng.uniform(1.2, 1.8)))
+    return shapes
 
 
 def ground(n=1024, seed=7):
@@ -223,12 +256,57 @@ def ground(n=1024, seed=7):
     albedo *= (1 + 0.05 * spectral(n, rng, 1.0))[..., None]
 
     wet = np.clip(0.35 + 0.2 * spectral(n, rng, 3, fmax=0.02), 0.1, 1)
-    color = shade(h, albedo, wet, bump=1.0, shine=45, ao=0.04, periodic=True)
-    # The set behind the characters: softer and a little quieter in colour than
-    # anything standing on it, like the background of a portrait.
+
+    # Goo (its own random sequence, so the skin under it stays as it was).
+    grng = np.random.default_rng(seed + 100)
+    # Slicks of mucus lying on the skin and pooled along the folds, thick enough
+    # to have rounded, glistening edges.
+    slick = np.clip((spectral(n, grng, 2.6, fmax=0.06) - 1.1) * 4, 0, 1)
+    pooled = np.clip((gaussian_filter(folds, 6.0, mode="wrap") - 0.22) * 4, 0, 1)
+    slick = np.maximum(slick, pooled * np.clip(spectral(n, grng, 3.2, fmax=0.02) + 0.3, 0, 1))
+    slick = gaussian_filter(slick, 1.5, mode="wrap")
+    thick = gaussian_filter(slick, 5, mode="wrap")
+    ripple = gaussian_filter(grng.standard_normal((n, n)), 9, mode="wrap")
+    goo_h = 26 * thick + 1.2 * thick * ripple / ripple.std()
+    goo = np.clip(slick * 1.4, 0, 1)
+    # Beads of moisture, big enough to catch the light; light through each one
+    # pools on its far side, away from the light.
+    beads = stamped(n, [(grng.uniform(0, n), grng.uniform(0, n), grng.uniform(2.5, 6)) for _ in range(140)])
+    goo_h += 16 * gaussian_filter(beads, 1.6, mode="wrap") ** 0.6
+    goo = np.maximum(goo, beads * 0.7)
+    caustic = np.clip(np.roll(gaussian_filter(beads, 1.5, mode="wrap"), (3, 3), (0, 1)) - beads * 0.4, 0, 1)
+    # Drips hanging off the bottom edges of the slicks, oozing down the screen.
+    edges = np.argwhere((slick > 0.5) & (np.roll(slick, -6, 0) < 0.3))
+    starts = [(x, y) for y, x in edges[grng.integers(len(edges), size=300)]]
+    dripping = stamped(n, drips(grng, starts, 75, (16, 90), (2.0, 4.5)))
+    goo_h += 18 * gaussian_filter(dripping, 1.8, mode="wrap") ** 0.7
+    goo = np.maximum(goo, dripping)
+    # Weeping pores: a bead of pinkish serum sitting in some of them.
+    weep = np.clip(pores - 0.6, 0, 1) * np.clip(spectral(n, grng, 2.0, fmax=0.2) - 0.6, 0, 1) * 6
+    weep = gaussian_filter(np.clip(weep, 0, 1), 1.0, mode="wrap")
+    goo_h += 4 * weep
+    albedo = mix(albedo, SERUM, weep * 0.7)
+    # Skin under and around the goo is wet: raw, red and glossy.
+    albedo = mix(albedo, FLUSH * 0.95, 0.35 * gaussian_filter(goo, 8, mode="wrap"))
+    h += goo_h
+
+    color = shade(h, albedo, wet + 0.25 + 1.6 * goo, bump=1.0, shine=45, ao=0.04, periodic=True)
+    # The set behind the characters: a little quieter in colour than anything
+    # standing on it, like the background of a portrait.
     rgb = tone(color, 0.82)
     lum = (rgb @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
-    return save(lum + (rgb - lum) * 0.82, "ground")
+    rgb = lum + (rgb - lum) * 0.9
+    # The goo's colour goes on after the grade, which would pull its yellow to
+    # skin: see-through mucus, glowing through its thick middle, and a crisp
+    # glint over the soft sheen.
+    film = np.clip(slick * 0.8 + dripping * 0.8 + beads * 0.3, 0, 1)
+    rgb = mix(rgb, rgb * np.array([0.98, 1.0, 0.80]) * 0.8 + GOO * 0.22, film * 0.75)
+    rgb += (0.14 * thick)[..., None] * GOO
+    rgb += (0.20 * caustic)[..., None] * np.array([1.0, 0.88, 0.62])
+    nx, ny, nz = normals(h, periodic=True)
+    ndh = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1)
+    rgb += (goo * (0.9 * ndh ** 300 + 0.25 * ndh ** 60))[..., None] * np.array([1.0, 0.97, 0.90])
+    return save(np.clip(rgb, 0, 1), "ground")
 
 
 def macro(n=256, seed=11):

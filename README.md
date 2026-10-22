@@ -366,7 +366,9 @@ background. If it keeps a piece of scenery, add an erase box for that slug to
 ## World art
 
 Placeholder, generated procedurally by `tools/world.py` into
-`packages/client/public/world/`: a seamless 1024px wet-skin ground tile,
+`packages/client/public/world/`: a seamless 1024px ground tile of skin under
+goo (glossy mucus slicks and beads, drips oozing down off the slicks,
+weeping pores; the goo's colour goes on after the grade, so it stays yellow),
 three plot-sore variants, pimples, a pustule, moles, hairs, slime and pus
 puddles, a candle, its flame, soft glow/spore sprites, and for the MMO layer
 The Boil, the scab over locked holes, goo droplets and the four seed icons,
@@ -379,7 +381,7 @@ Each is a height map + color + gloss shaded with one warm key light from the
 upper left, so it sits with the renders, then graded to the renders' skin
 (red-brown in the shadows warming to ochre in the lights, strong reds kept
 crimson), with pores and fine creases and a soft sheen rather than hard
-glints. In the game the ground and its props are drawn in `NIGHT_TINT` and
+glints (crisp ones only on the ground's goo). In the game the ground and its props are drawn in `NIGHT_TINT` and
 plots and world events in the slightly brighter `EVENT_TINT` (both in
 `layout.js`), so the characters are what stand out. Deterministic; rerun with
 `python tools/world.py` after changing it (`python tools/world.py ground` for
