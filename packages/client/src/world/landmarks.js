@@ -1,10 +1,10 @@
 import { CHARACTERS, LANDMARKS } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { DEPTH, FONT, NIGHT_TINT } from './layout.js';
+import { DEPTH, EVENT_TINT, FONT, NIGHT_TINT, inLight } from './layout.js';
 
 // The world's landmarks, on plots nobody can farm (LANDMARKS in @hptm/shared):
 // the Navel in the middle, a giant Eye that watches whoever's nearest and
-// blinks, and a stone statue of whoever has collected the most characters.
+// blinks, and a bone statue of whoever has collected the most characters.
 const NAVEL_SIZE = 300;
 // px: the socket's opening is 62% of its width across and 30% of it tall (see eye_socket in tools/world.py).
 const EYE = { socket: 300, ball: 196, iris: 84, lid: 204, open: 90, reach: 46, look: 520 };
@@ -12,10 +12,12 @@ const BLINK = { every: [2500, 6500], close: 90, shut: 50, open: 150 };
 const POKED_MS = 1100;
 const PLINTH_WIDTH = 120;
 const FIGURE = 128;
-const STONE = [[54, 48, 44], [214, 204, 186]];  // the statue's darkest and lightest grey
+const BONE = [[66, 44, 30], [242, 220, 176]];  // the statue's darkest and lightest ivory, like its plinth
+const EYE_WHITE = 0xd4c6ba;  // between the world's light and white, so the Eye still stands out
+const EYE_IRIS = inLight(0xf4ece4);
 
-// A stone copy of a character's art: its shading kept, its colors gone.
-function stoneTexture(scene, characterId) {
+// A bone copy of a character's art: its shading kept, its colors gone.
+function boneTexture(scene, characterId) {
   const key = `statue:${characterId}`;
   if (scene.textures.exists(key)) return key;
   const source = scene.textures.get(`char:${characterId}`).getSourceImage();
@@ -28,7 +30,7 @@ function stoneTexture(scene, characterId) {
   const px = image.data;
   for (let i = 0; i < px.length; i += 4) {
     const light = Math.min(1, ((0.3 * px[i] + 0.59 * px[i + 1] + 0.11 * px[i + 2]) / 255) * 1.15);
-    for (let c = 0; c < 3; c++) px[i + c] = STONE[0][c] + (STONE[1][c] - STONE[0][c]) * light;
+    for (let c = 0; c < 3; c++) px[i + c] = BONE[0][c] + (BONE[1][c] - BONE[0][c]) * light;
   }
   g.putImageData(image, 0, 0);
   scene.textures.addCanvas(key, canvas);
@@ -43,9 +45,9 @@ export function createLandmarks(scene) {
   // The white and the iris sit under the lids and show through their opening;
   // the upper lid comes down over them, from behind the skin above.
   const eyeAt = LANDMARKS.eye;
-  const ball = scene.add.image(eyeAt.x, eyeAt.y, 'world:eye-ball').setTint(0xe8dcd6).setDepth(DEPTH.decor + 2);
+  const ball = scene.add.image(eyeAt.x, eyeAt.y, 'world:eye-ball').setTint(EYE_WHITE).setDepth(DEPTH.decor + 2);
   ball.setScale(EYE.ball / ball.width);
-  const iris = scene.add.image(eyeAt.x, eyeAt.y, 'world:eye-iris').setTint(0xe0e0d8).setDepth(DEPTH.decor + 3);
+  const iris = scene.add.image(eyeAt.x, eyeAt.y, 'world:eye-iris').setTint(EYE_IRIS).setDepth(DEPTH.decor + 3);
   iris.setScale(EYE.iris / iris.width);
   const lid = scene.add.image(eyeAt.x, eyeAt.y - EYE.open / 2 - 5, 'world:eye-lid').setOrigin(0.5, 0)
     .setTint(NIGHT_TINT).setDepth(DEPTH.decor + 4).setVisible(false);
@@ -57,7 +59,7 @@ export function createLandmarks(scene) {
   // The statue stands near the bottom of its block, facing the Navel.
   const statueAt = LANDMARKS.statue;
   const baseY = statueAt.y + 70;
-  const plinth = scene.add.image(statueAt.x, baseY, 'world:plinth').setOrigin(0.5, 1).setDepth(baseY);
+  const plinth = scene.add.image(statueAt.x, baseY, 'world:plinth').setOrigin(0.5, 1).setTint(EVENT_TINT).setDepth(baseY);
   plinth.setScale(PLINTH_WIDTH / plinth.width);
   const feetY = baseY - plinth.displayHeight * 0.76;  // the middle of its top (see plinth in tools/world.py)
   const figure = scene.add.image(statueAt.x, feetY + 4, '__WHITE').setOrigin(0.5, 1).setDepth(baseY + 0.5).setVisible(false);
@@ -85,7 +87,7 @@ export function createLandmarks(scene) {
         caption.setText('Collect the most characters to stand here');
         return;
       }
-      figure.setTexture(stoneTexture(scene, subject.avatar)).setVisible(true);
+      figure.setTexture(boneTexture(scene, subject.avatar)).setVisible(true);
       figure.setScale(FIGURE / figure.width);
       name.setText(statue.mine ? `${subject.name} (you!)` : subject.name).setColor(subject.color ?? '#f3e6d4');
       caption.setText(`Top collector · ${subject.album} of ${CHARACTERS.length}`);
@@ -94,8 +96,8 @@ export function createLandmarks(scene) {
     statue: () => statue ?? null,
 
     setBloodMoon(on) {
-      iris.setTint(on ? 0xff7060 : 0xe0e0d8);
-      ball.setTint(on ? 0xf0b0a8 : 0xe8dcd6);
+      iris.setTint(on ? 0xff7060 : EYE_IRIS);   // a Blood Moon lights it up
+      ball.setTint(on ? 0xf0b0a8 : EYE_WHITE);
     },
 
     // `walkers`: anyone about ({ x, y }), for the Eye to watch.

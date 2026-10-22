@@ -13,12 +13,12 @@ const PROPS = [
 ];
 
 // Each region's own look: a cast over its ground, and props found only there.
-const REGION_TINTS = { scalp: 0x8c80a6, armpit: 0xc4cc72, freckles: 0xffbc84, warts: 0xa47896 };
+const REGION_TINTS = { scalp: 0x9a8074, armpit: 0xc8c088, freckles: 0xf4c098, warts: 0xa8807a };  // all in the skin's warm range
 const REGION_PROPS = [
   { region: 'scalp', keys: ['hair-0', 'hair-1', 'hair-2', 'hair-3'], count: 170, size: [110, 190], spin: true },
   { region: 'armpit', keys: ['slime-0', 'slime-1'], count: 12, size: [90, 170], steam: true },
   { region: 'armpit', keys: ['pus-0'], count: 4, size: [60, 100] },
-  { region: 'freckles', keys: ['freckle-0', 'freckle-1', 'freckle-2'], count: 320, size: [20, 60], tint: 0xffd8c0 },
+  { region: 'freckles', keys: ['freckle-0', 'freckle-1', 'freckle-2'], count: 320, size: [20, 60] },
   { region: 'warts', keys: ['wart-0', 'wart-1'], count: 50, size: [30, 72] },
 ];
 const LANDMARK_CLEARANCE = 170;  // px around a landmark kept free of region props

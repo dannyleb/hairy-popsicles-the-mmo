@@ -649,7 +649,7 @@ def worm(name, seed, head=False, n=96):
     dome = np.clip(1 - r ** 2, 0, 1) ** 0.6
     rings = 0.5 + 0.5 * np.cos(y * 22)
     h = 18 * dome - 1.4 * rings * dome + 0.6 * gaussian_filter(rng.standard_normal((n, n)), 2) * 3 * dome
-    albedo = mix(np.broadcast_to(np.array([0.90, 0.66, 0.62]), (n, n, 3)), np.array([0.74, 0.40, 0.42]), rings * 0.5)
+    albedo = mix(np.broadcast_to(np.array([0.80, 0.60, 0.50]), (n, n, 3)), np.array([0.62, 0.40, 0.34]), rings * 0.35)
     if head:
         mouth = np.exp(-((x / 0.14) ** 2 + ((y + 0.28) / 0.1) ** 2))
         h -= 9 * mouth
@@ -675,7 +675,7 @@ def smear(name, seed, n=96):
     ndh = np.clip((nx * HALF[0] + ny * HALF[1] + nz * HALF[2]) / norm, 0, 1)
     glint = np.clip(ndh ** 120 * 2.5 + ndh ** 20 * 0.2, 0, 1) * inside
     rim = np.clip(inside - gaussian_filter(inside, 2.0), 0, 1) * 2.5
-    rgb = np.broadcast_to(np.array([0.70, 0.78, 0.52]), (n, n, 3)) * (1 - 0.5 * rim)[..., None]
+    rgb = np.broadcast_to(np.array([0.78, 0.74, 0.56]), (n, n, 3)) * (1 - 0.5 * rim)[..., None]   # pale mucus, like the slime
     rgb = rgb * (1 - glint)[..., None] + glint[..., None]
     return save(rgb, name, np.clip(inside * 0.5 + rim * 0.5 + glint, 0, 1))
 
@@ -687,8 +687,8 @@ def freckle(name, seed, n=64):
     r = np.sqrt(x * x + y * y) / 0.7
     edge = 1 + 0.25 * spectral(n, rng, 2.4, fmax=6 / n)
     body = np.clip((1 - r * edge) * 2.5, 0, 1)
-    tint = mix(np.broadcast_to(np.array([0.52, 0.30, 0.18]), (n, n, 3)), np.array([0.40, 0.20, 0.12]), np.clip(0.5 + 0.4 * spectral(n, rng, 2.0, fmax=10 / n), 0, 1))
-    return save(tint, name, body * 0.75)
+    tint = mix(np.broadcast_to(np.array([0.36, 0.21, 0.13]), (n, n, 3)), np.array([0.28, 0.16, 0.10]), np.clip(0.5 + 0.4 * spectral(n, rng, 2.0, fmax=10 / n), 0, 1))
+    return save(tint, name, body * 0.75)   # darker tan than the skin, not orange
 
 
 def wart(name, seed, n=128):
@@ -756,9 +756,9 @@ def eye_socket(name, seed, n=512):
         p0 = ((bx + 1) * n, (by + 1) * n)
         p1 = ((bx + np.cos(ang) * ln * 0.6 + 1) * n, (by + np.sin(ang) * ln + 1) * n)
         p2 = ((bx + np.cos(ang) * ln * 0.9 + 1 + 0.03 * np.sign(t)) * n, (by + np.sin(ang) * ln * 1.25 + 1) * n)
-        draw.line([p0, p1, p2], fill=255, width=4, joint="curve")
-    lashes = np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
-    albedo = mix(albedo, np.array([0.06, 0.04, 0.04]), lashes)
+        draw.line([p0, p1, p2], fill=255, width=3, joint="curve")
+    lashes = gaussian_filter(np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255, 0.6)
+    albedo = mix(albedo, np.array([0.18, 0.11, 0.08]), lashes)   # dark brown, soft: hair, not ink
     color = shade(h, albedo, 0.35 + 0.5 * lid + 0.6 * lashes, bump=0.7, shine=50, ao=0.3)
     alpha = np.clip((0.98 - r) * 5, 0, 1)
     alpha = np.where(hole, 0, alpha)
@@ -772,9 +772,9 @@ def eye_ball(name, seed, n=256):
     x, y = field(n)
     r = np.sqrt(x * x + y * y)
     dome = np.clip(1 - r ** 2, 0, 1) ** 0.5
-    veins = lines(spectral(n, rng, 2.6, fmax=12 / n), 0.06) * np.clip((r - 0.35) * 3, 0, 1)
-    albedo = mix(np.broadcast_to(np.array([0.95, 0.88, 0.82]), (n, n, 3)), np.array([0.85, 0.20, 0.18]), veins * 0.85)
-    albedo = mix(albedo, np.array([0.80, 0.52, 0.50]), np.clip((r - 0.7) * 3, 0, 1))
+    veins = gaussian_filter(lines(spectral(n, rng, 2.6, fmax=12 / n), 0.045), 0.8) * np.clip((r - 0.35) * 3, 0, 1)
+    albedo = mix(np.broadcast_to(np.array([0.90, 0.82, 0.68]), (n, n, 3)), np.array([0.70, 0.20, 0.14]), veins * 0.6)   # yellowed, bloodshot
+    albedo = mix(albedo, np.array([0.72, 0.48, 0.38]), np.clip((r - 0.7) * 3, 0, 1))
     color = shade(30 * dome + 1.5 * veins, albedo, 1.6, bump=0.6, shine=160, ao=0.0, sss=0.6)
     return save(tone(color), name, np.clip((1 - r) * 10, 0, 1))
 
@@ -786,9 +786,10 @@ def eye_iris(name, seed, n=160):
     r = np.sqrt(x * x + y * y)
     ang = np.arctan2(y, x)
     fibers = 0.5 + 0.5 * np.cos(ang * 60 + 4 * spectral(n, rng, 2.4, fmax=8 / n))
-    albedo = mix(np.broadcast_to(np.array([0.36, 0.48, 0.20]), (n, n, 3)), np.array([0.62, 0.46, 0.14]), np.clip((0.55 - r) * 3, 0, 1))
-    albedo = albedo * (0.7 + 0.4 * fibers)[..., None]
-    albedo = mix(albedo, np.array([0.10, 0.14, 0.06]), np.clip((r - 0.85) * 8, 0, 1))
+    # Amber, like the characters' eyes: brown at the rim warming to gold round the pupil.
+    albedo = mix(np.broadcast_to(np.array([0.44, 0.26, 0.10]), (n, n, 3)), np.array([0.80, 0.56, 0.18]), np.clip((0.55 - r) * 3, 0, 1))
+    albedo = albedo * (0.82 + 0.24 * fibers)[..., None]
+    albedo = mix(albedo, np.array([0.14, 0.08, 0.04]), np.clip((r - 0.85) * 8, 0, 1))
     albedo = mix(albedo, np.array([0.02, 0.01, 0.01]), np.clip((0.36 - r) * 30, 0, 1))
     color = shade(4 * np.clip(1 - r, 0, 1), albedo, 0.4, bump=0.6, shine=60, ao=0.0, sss=0)
     glint = np.exp(-(((x + 0.32) / 0.12) ** 2 + ((y + 0.34) / 0.12) ** 2))
@@ -827,23 +828,38 @@ def vein(name, seed, w=192, h=48):
 
 
 def plinth(name, seed, w=192, h=160):
-    """A pedestal of old, polished bone for the statue in the middle of the world."""
+    """A pedestal of old, polished bone for the statue in the middle of the world:
+    a squat drum, lit from the upper left like everything else, its yellowed
+    enamel crazed and stained, darker where it meets the skin."""
     rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[0:h, 0:w].astype(float)
     cx, rx = w / 2, w * 0.40
     top, bottom, ry = h * 0.24, h * 0.80, w * 0.40 * 0.32
-    u = (xx - cx) / rx
-    body = (np.abs(u) <= 1) & (yy >= top) & (yy <= bottom + ry * np.sqrt(np.clip(1 - u * u, 0, 1)))
-    cap = u ** 2 + ((yy - top) / ry) ** 2 <= 1
-    shape = (body | cap).astype(float)
-    bone = np.array([0.86, 0.80, 0.66])
-    grain = 1 - 0.12 * np.clip(gaussian_filter(rng.standard_normal((h, w)), 3) * 4, -1, 1)
-    lit = (0.25 + 0.65 * (np.clip(1 - u, 0, 2) / 2) ** 0.8)[..., None] * bone * grain[..., None]
-    lit[cap] = (bone * 1.05 * grain[..., None])[cap]
-    rim = cap & ~(u ** 2 + ((yy - top) / ry) ** 2 <= 0.8)
-    lit[rim] = lit[rim] * 0.85
+    u = np.clip((xx - cx) / rx, -1, 1)
+    side = (np.abs((xx - cx) / rx) <= 1) & (yy >= top) & (yy <= bottom + ry * np.sqrt(np.clip(1 - u * u, 0, 1)))
+    cap = ((xx - cx) / rx) ** 2 + ((yy - top) / ry) ** 2 <= 1
+    shape = gaussian_filter((side | cap).astype(float), 0.7)
+    # Normals: the drum's side curves away left and right; the top faces up (and a little at us).
+    nside = np.stack([u, np.zeros_like(u), np.sqrt(1 - u * u)], -1)
+    ntop = np.broadcast_to(np.array([0.0, -0.8, 0.6]), (h, w, 3))
+    n3 = np.where(cap[..., None], ntop, nside)
+    ndl = n3 @ LIGHT
+    diffuse = np.clip((ndl + 0.3) / 1.3, 0, 1)
+    ndh = np.clip(n3 @ HALF, 0, 1)
+    # Yellowed ivory, crazed and stained, its edge worn paler.
+    craze = lines(spectral(256, rng, 2.2, fmax=40 / 256)[:h, :w], 0.05)
+    stain = np.clip(gaussian_filter(rng.standard_normal((h, w)), 9) * 9 + 0.2, 0, 1)
+    albedo = mix(np.broadcast_to(np.array([0.90, 0.86, 0.64]), (h, w, 3)), np.array([0.74, 0.64, 0.40]), stain * 0.4)
+    albedo = mix(albedo, np.array([0.46, 0.34, 0.22]), craze * 0.4)
+    lip = cap & ~(((xx - cx) / rx) ** 2 + ((yy - top) / ry) ** 2 <= 0.82)
+    albedo = np.where(lip[..., None], albedo * 1.08, albedo)
+    # Darker toward the skin it stands in, and under the lip of the top.
+    ao = 1 - 0.45 * np.clip((yy - (bottom - 18)) / 30, 0, 1) * side - 0.2 * np.exp(-((yy - top - ry - 2) / 5) ** 2) * side * ~cap
+    color = albedo * (AMBIENT + KEY * diffuse[..., None]) * ao[..., None]
+    color += SSS * albedo * (1 - diffuse)[..., None] * 0.12
+    color += (SHEEN * 0.5 * ndh ** 30 + 0.04 * ndh ** 4)[..., None] * np.array([1.0, 0.93, 0.84])
     shadow = gaussian_filter(np.roll(np.roll(shape, 8, 0), 14, 1) * (yy > h * 0.6), 5) * 0.5 * (1 - shape)
-    rgb, a = composite(np.clip(lit, 0, 1), shape, shadow)
+    rgb, a = composite(tone(color, 1.5), shape, shadow)   # the brightest thing in its block, as polished bone is
     return save(rgb, name, a)
 
 

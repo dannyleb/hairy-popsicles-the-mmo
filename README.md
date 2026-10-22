@@ -282,7 +282,7 @@ and the minimap is shaded by region. Purple veins run under the skin from the
 Navel out to each region and to the Eye. Three landmarks stand on blocks of
 plots nobody can claim (a plot saved where one now stands comes back next to
 it): the Navel (tap it: it gurgles), a giant Eye that watches whoever's
-nearest and blinks (poke it and it screws itself shut), and a stone statue of
+nearest and blinks (poke it and it screws itself shut), and a bone statue of
 whoever has collected the most characters, with their name and count. The
 server picks the statue from everyone in the database seen in the last 90
 days at startup, then hands it over whenever someone passes the record.
