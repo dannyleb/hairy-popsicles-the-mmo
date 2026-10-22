@@ -1,9 +1,11 @@
 """Usage: python tools/world.py [ground|events|life|gross]
 Generates the world art into packages/client/public/world/. Deterministic (fixed seeds).
 Everything is a height map + color + gloss, shaded with one warm key light from the
-upper left, like the character renders, so ground, plots and props read as one scene.
+upper left, like the character renders, so ground, plots and props read as one scene,
+then graded to the renders' skin (see grade). WORLD_OUT=dir renders somewhere else.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +15,8 @@ from PIL import Image, ImageDraw
 from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 
-OUT = Path(__file__).resolve().parent.parent / "packages/client/public/world"
+# WORLD_OUT renders somewhere else, to compare a change before it replaces the art.
+OUT = Path(os.environ.get("WORLD_OUT") or Path(__file__).resolve().parent.parent / "packages/client/public/world")
 QUALITY = 84
 # Must match HOLE_OFFSET in packages/client/src/world/layout.js: crops stand in the holes.
 HOLE_OFFSET = 7     # world px below each tile's center
@@ -26,6 +29,7 @@ HALF /= np.linalg.norm(HALF)
 KEY = np.array([1.0, 0.82, 0.66])       # warm, like candlelight in the renders
 AMBIENT = np.array([0.20, 0.17, 0.21])  # dim, slightly cool fill
 SSS = np.array([0.55, 0.10, 0.06])      # light bleeding red through flesh in the shadows
+SHEEN = 0.6                              # the renders' highlights are a soft wet sheen, never a hard glint
 
 
 # ---------- noise ----------
@@ -84,7 +88,7 @@ def shade(height, albedo, gloss, bump=1.0, shine=60, wrap=0.35, ao=1.0, periodic
     diffuse = np.clip((ndl + wrap) / (1 + wrap), 0, 1)
     cavity = np.clip(1 + ao * (height - local), 0.35, 1.2)
     ndh = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1)
-    spec = gloss * (0.9 * ndh ** shine + 0.12 * ndh ** 6)
+    spec = SHEEN * gloss * (0.9 * ndh ** shine + 0.12 * ndh ** 6)
 
     color = albedo * (AMBIENT * cavity[..., None] + KEY * (diffuse * cavity)[..., None])
     color += sss * SSS * albedo * ((1 - diffuse) * cavity)[..., None] * 0.35
@@ -96,7 +100,58 @@ def tone(color, exposure=1.0):
     """Soft filmic shoulder so wet highlights roll off instead of clipping."""
     c = np.clip(color * exposure, 0, None)
     c = c / (1 + 0.35 * c)
-    return np.clip(c ** (1 / 1.1), 0, 1)
+    return grade(np.clip(c ** (1 / 1.1), 0, 1))
+
+
+def to_hsv(rgb):
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    d = mx - mn
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    safe = np.maximum(d, 1e-9)
+    h = np.where(mx == r, ((g - b) / safe) % 6, np.where(mx == g, (b - r) / safe + 2, (r - g) / safe + 4)) * 60
+    return np.where(d > 0, h, 0), np.where(mx > 0, d / np.maximum(mx, 1e-9), 0), mx
+
+
+def from_hsv(h, s, v):
+    h = (h % 360) / 60
+    c = v * s
+    x = c * (1 - np.abs(h % 2 - 1))
+    z = np.zeros_like(h)
+    i = np.floor(h).astype(int) % 6
+    r = np.choose(i, [c, x, z, z, x, c])
+    g = np.choose(i, [x, c, c, x, z, z])
+    b = np.choose(i, [z, z, x, c, c, x])
+    return np.stack([r, g, b], -1) + (v - c)[..., None]
+
+
+def grade(rgb, strength=0.7):
+    """The character renders' skin: red-brown in the shadows warming to ochre in
+    the lights, rich in the dark and paler toward the highlights. Flesh-coloured
+    pixels are pulled toward that, so the world reads as lit and graded like them
+    (measured off the renders: hue ~10 degrees in shadow to ~27 in the lights),
+    while strong reds keep their crimson."""
+    h, s, v = to_hsv(rgb)
+    lum = rgb @ np.array([0.2126, 0.7152, 0.0722])
+    signed = np.where(h > 180, h - 360, h)
+    flesh = np.clip((50 - np.abs(signed - 10)) / 25, 0, 1) * np.clip(s * 6, 0, 1)
+    k = np.clip(lum / 0.7, 0, 1)
+    vivid = np.clip((s - 0.5) * 2.5, 0, 0.8)   # a strong red stays red, as blood and raw flesh do in the renders
+    hue = signed + (10 + 17 * k - signed) * strength * flesh * (1 - vivid)
+    sat = s + ((0.78 - 0.5 * k) - s) * 0.45 * flesh
+    return np.clip(from_hsv(hue, np.clip(sat, 0, 1), v), 0, 1)
+
+
+def fine_skin(h, w, rng, pore=5.0):
+    """Pores and a net of fine creases, the surface detail of the renders' skin, as
+    a height to add (pores and creases dip). `pore`: px between pores."""
+    count = max(8, int(h * w / (pore * pore * 9)))
+    tree = cKDTree(rng.random((count, 2)) * [h, w])
+    yy, xx = np.mgrid[0:h, 0:w]
+    d, _ = tree.query(np.stack([yy.ravel(), xx.ravel()], 1))
+    pores = np.exp(-((d.reshape(h, w) / (pore * 0.32)) ** 2))
+    n = gaussian_filter(rng.standard_normal((h, w)), pore * 0.7)
+    creases = np.exp(-((n / (n.std() * 0.16)) ** 2))
+    return -pores - 0.5 * creases
 
 
 def save(rgb, name, alpha=None):
@@ -118,8 +173,8 @@ def save(rgb, name, alpha=None):
 SKIN = np.array([0.78, 0.56, 0.50])
 FLUSH = np.array([0.74, 0.40, 0.40])
 JAUNDICE = np.array([0.76, 0.62, 0.46])
-BRUISE = np.array([0.50, 0.38, 0.44])
-VEIN = np.array([0.40, 0.40, 0.56])
+BRUISE = np.array([0.48, 0.36, 0.36])
+VEIN = np.array([0.44, 0.32, 0.36])   # a dull plum under the skin, not blue
 
 
 def stripes(n, rng, a, b, width, warp, wiggle=0.015):
@@ -137,7 +192,7 @@ def ground(n=1024, seed=7):
     # diamonds, the texture you see on the back of a hand.
     sets = [(41, 49, 2.2, 1.0), (-50, 38, 2.2, 0.9), (6, -63, 2.5, 0.5)]
     skin_lines = sum(stripes(n, rng, a, b, 0.2, w, wiggle=0.05) * patchy(0.4) * k for a, b, w, k in sets)
-    h = -1.2 * np.clip(skin_lines, 0, 1.4)
+    h = -0.45 * gaussian_filter(np.clip(skin_lines, 0, 1.4), 1.0, mode="wrap")
 
     # Pores sit where the lines cross, plus a scatter of loose ones.
     crossings = gaussian_filter(np.clip(skin_lines - 1.0, 0, 1), 0.8, mode="wrap")
@@ -162,8 +217,8 @@ def ground(n=1024, seed=7):
     albedo = mix(albedo, FLUSH, 0.45 + 0.4 * spectral(n, rng, 3.4, fmax=0.015))
     albedo = mix(albedo, JAUNDICE, 0.3 * spectral(n, rng, 3.4, fmax=0.012))
     albedo = mix(albedo, BRUISE, np.clip(spectral(n, rng, 3.6, fmax=0.01) - 1.4, 0, 1) * 0.5)
-    albedo = mix(albedo, VEIN, 0.35 * vein_tint)
-    albedo = mix(albedo, FLUSH * 0.55, 0.6 * gaussian_filter(folds, 3, mode="wrap"))
+    albedo = mix(albedo, VEIN, 0.25 * vein_tint)
+    albedo = mix(albedo, FLUSH * 0.6, 0.35 * gaussian_filter(folds, 4, mode="wrap"))
     albedo *= (1 - 0.5 * pores)[..., None]
     albedo *= (1 + 0.05 * spectral(n, rng, 1.0))[..., None]
 
@@ -206,8 +261,8 @@ def pimple(name, seed, size=1.0, head=None, n=96):
     r = np.sqrt(x * x + y * y) / (0.62 * size)
     wobble = 1 + 0.08 * gaussian_filter(rng.standard_normal((n, n)), 6) * 6
     dome = np.exp(-((r * wobble) ** 2) * 2.4)
-    h = 7 * dome
-    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.78, 0.25, 0.22]), np.clip(1.6 * dome, 0, 1) * 0.85)
+    h = 7 * dome + 0.6 * fine_skin(n, n, rng, pore=4.0)
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.70, 0.30, 0.24]), np.clip(1.6 * dome, 0, 1) * 0.8)
     gloss = 0.5 + 0.4 * dome
     if head is not None:
         cap = np.exp(-((r / 0.33) ** 2) * 3)
@@ -353,10 +408,10 @@ def plot_bed(name, seed, n=512, span=176, plot=144, tile=48):
     h += -16 * gaussian_filter(holes, 2) + 4 * lips
 
     blotch = gaussian_filter(rng.standard_normal((n, n)), 12) * 12
-    meat = mix(np.broadcast_to(np.array([0.30, 0.03, 0.05]), (n, n, 3)), np.array([0.70, 0.18, 0.19]), np.clip(d ** 2 * 1.2 + 0.25 * blotch, 0, 1))
+    meat = mix(np.broadcast_to(np.array([0.30, 0.06, 0.04]), (n, n, 3)), np.array([0.66, 0.24, 0.18]), np.clip(d ** 2 * 1.2 + 0.25 * blotch, 0, 1))
     slough = np.clip(gaussian_filter(rng.standard_normal((n, n)), 7) * 7 - 0.9, 0, 1)
     meat = mix(meat, np.array([0.84, 0.66, 0.36]), slough * 0.8)       # yellowish slough
-    skin = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.82, 0.38, 0.36]), np.clip(1.5 - (d - 1) * 8, 0, 1))
+    skin = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.76, 0.40, 0.32]), np.clip(1.5 - (d - 1) * 8, 0, 1))
     albedo = mix(skin, meat, bed)
     albedo = mix(albedo, np.array([0.08, 0.01, 0.02]), holes)
     gloss = 0.5 + 1.8 * bed + 0.8 * lips
@@ -453,13 +508,14 @@ def boil(name, seed, n=384):
     phase = ang * 9 + 2.2 * spectral(n, rng, 3.2, fmax=6 / n) + 3 * r
     veins = np.exp(-((np.sin(phase / 2) / 0.05) ** 2))
     veins *= np.clip((r - 0.45) * 3, 0, 1) * np.clip((1.0 - r) * 8, 0, 1)
-    h += 3.0 * veins
-    albedo = mix(np.broadcast_to(np.array([0.52, 0.08, 0.10]), (n, n, 3)), np.array([0.86, 0.30, 0.28]), np.clip(dome * 1.3, 0, 1))
-    albedo = mix(albedo, np.array([0.42, 0.18, 0.40]), veins * 0.8)
+    h += 3.0 * veins + 1.0 * fine_skin(n, n, rng, pore=4.0)
+    albedo = mix(np.broadcast_to(np.array([0.46, 0.08, 0.08]), (n, n, 3)), np.array([0.78, 0.26, 0.22]), np.clip(dome * 1.3, 0, 1))
+    albedo = mix(albedo, np.array([0.36, 0.10, 0.10]), veins * 0.7)
     albedo = mix(albedo, np.array([0.96, 0.86, 0.50]), np.clip(head * 1.6, 0, 1))
     albedo = mix(albedo, np.array([1.0, 0.97, 0.86]), np.clip((head - 0.75) * 4, 0, 1))
     halo = np.clip(1.5 - r, 0, 1) * (1 - np.clip(dome * 3, 0, 1))
-    skin = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.80, 0.22, 0.22]), np.clip(halo * 1.4, 0, 1))
+    blotch = np.clip(0.6 + 0.6 * spectral(n, rng, 2.6, fmax=20 / n), 0, 1)   # inflamed skin is blotchy, not an even glow
+    skin = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.62, 0.28, 0.22]), np.clip(halo * 0.8 * blotch, 0, 0.6))
     albedo = np.where((dome > 0)[..., None], albedo, skin)
     gloss = 0.4 + 1.6 * dome + 0.8 * head
     color = shade(h, albedo, gloss, bump=0.9, shine=140, ao=0.05)
@@ -660,9 +716,9 @@ def navel(name, seed, n=640):
     folds = np.cos(ang * 7 + 3 * spectral(n, rng, 3.0, fmax=4 / n)) * np.exp(-((rr - 0.40) / 0.2) ** 2)
     rim = np.exp(-((rr - 0.62) / 0.12) ** 2)                            # a soft swelling lip
     pit = -np.clip(1 - rr / 0.5, 0, 1) ** 1.6
-    h = 120 * pit + 30 * rim + 30 * folds + 3 * spectral(n, rng, 2.8, fmax=60 / n)
+    h = 120 * pit + 30 * rim + 30 * folds + 3 * spectral(n, rng, 2.8, fmax=60 / n) + 3 * fine_skin(n, n, rng, pore=7.0)
     depth = np.clip(-pit, 0, 1)
-    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.62, 0.26, 0.26]), np.clip(depth * 1.4, 0, 1))
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.60, 0.30, 0.24]), np.clip(depth * 1.4, 0, 1))
     albedo = mix(albedo, np.array([0.18, 0.04, 0.05]), np.clip((depth - 0.6) * 2.5, 0, 1))
     lint = np.clip(spectral(n, rng, 1.6, fmax=60 / n) - 1.6, 0, 1) * np.clip(depth * 2, 0, 1)
     albedo = mix(albedo, np.array([0.55, 0.55, 0.62]), lint * 0.7)    # a little belly-button lint
@@ -751,7 +807,7 @@ def eye_lid(name, seed, n=256):
 
 
 def vein(name, seed, w=192, h=48):
-    """A raised blue vein running left to right, fading at the ends so pieces overlap into a path."""
+    """A raised vein running left to right, a dull plum under the skin, fading at the ends so pieces overlap into a path."""
     rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[0:h, 0:w].astype(float)
     u = xx / w
@@ -760,7 +816,7 @@ def vein(name, seed, w=192, h=48):
     tube = np.clip(1 - d ** 2, 0, 1) ** 0.5
     ends = np.clip(u * 6, 0, 1) * np.clip((1 - u) * 6, 0, 1)
     height = 8 * tube
-    albedo = mix(np.broadcast_to(np.array([0.46, 0.34, 0.62]), (h, w, 3)), np.array([0.30, 0.22, 0.52]), np.clip(1 - tube, 0, 1))
+    albedo = mix(np.broadcast_to(np.array([0.50, 0.34, 0.40]), (h, w, 3)), np.array([0.34, 0.22, 0.30]), np.clip(1 - tube, 0, 1))
     color = shade(height, albedo, 0.9 * tube, bump=1.0, shine=60, ao=0.0, sss=0.6)
     alpha = np.clip(tube * 3, 0, 1) * ends * 0.85
     return save(tone(color), name, alpha)
@@ -822,8 +878,8 @@ def scab_bed(name, seed, n=384):
     f1, _, _, _ = cells(n, rng, 70, periodic=False)
     beads = np.clip(1 - f1 / (n * 0.018), 0, 1) ** 1.5 * np.clip((0.85 - r) * 4, 0, 1)
     beads *= np.clip(spectral(n, rng, 2.0, fmax=8 / n) + 0.3, 0, 1)
-    h = 4 * body + 1.5 * spectral(n, rng, 2.8, fmax=40 / n) * body + 5 * beads
-    albedo = mix(np.broadcast_to(np.array([0.95, 0.52, 0.50]), (n, n, 3)), np.array([0.78, 0.20, 0.22]), np.clip((r - 0.45) * 2, 0, 1))
+    h = 4 * body + 1.5 * spectral(n, rng, 2.8, fmax=40 / n) * body + 5 * beads + 0.8 * fine_skin(n, n, rng, pore=5.0) * body
+    albedo = mix(np.broadcast_to(np.array([0.86, 0.52, 0.44]), (n, n, 3)), np.array([0.70, 0.26, 0.20]), np.clip((r - 0.45) * 2, 0, 1))
     albedo = mix(albedo, np.array([0.55, 0.03, 0.05]), np.clip(beads * 1.5, 0, 1))
     color = shade(h, albedo, 0.9 + 0.9 * body + 1.2 * beads, bump=0.6, shine=110, ao=0.1, sss=1.0)
     alpha = np.clip((1.06 - r) * 4, 0, 1)
@@ -838,12 +894,12 @@ def scab_pieces(prefix, seed, count=SCAB_PIECES, n=384):
     edge = 1 + 0.1 * spectral(n, rng, 3.0, fmax=6 / n)
     body = np.clip((1 - r * edge) * 7, 0, 1)
     f1, f2, _, _ = cells(n, rng, 70, periodic=False)
-    cracks = np.exp(-(((f2 - f1) / 2.2) ** 2)) * body
+    cracks = np.exp(-(((f2 - f1) / 3.0) ** 2)) * body
     lip = np.clip((r * edge - 0.72) * 5, 0, 1) * body                  # the edge lifts and curls, paler
     h = 10 * body + 2.5 * spectral(n, rng, 2.6, fmax=24 / n) * body - 3 * cracks + 5 * lip
     albedo = mix(np.broadcast_to(np.array([0.30, 0.09, 0.06]), (n, n, 3)), np.array([0.52, 0.22, 0.12]), np.clip(0.5 + 0.45 * spectral(n, rng, 2.4, fmax=14 / n), 0, 1))
     albedo = mix(albedo, np.array([0.72, 0.55, 0.32]), lip * 0.7)
-    albedo = mix(albedo, np.array([0.10, 0.02, 0.02]), cracks * 0.8)
+    albedo = mix(albedo, np.array([0.18, 0.06, 0.03]), cracks * 0.55)
     color = tone(shade(h, albedo, 0.12 + 0.12 * body + 0.2 * lip, bump=1.0, shine=30, ao=0.35))
     ang = (np.arctan2(y, x) + 0.35 * r + 0.12 * spectral(n, rng, 3.0, fmax=5 / n)) % (2 * np.pi)
     bounds = np.sort((2 * np.pi * (np.arange(count) + rng.uniform(-0.25, 0.25, count)) / count) % (2 * np.pi))
@@ -873,7 +929,8 @@ def gash(name, seed, w=640, h=160):
     lips = np.exp(-(((np.abs(d) - 0.75) / 0.32) ** 2)) * taper
     fibrin = np.clip(noise * 3, 0, 1) * split
     height = 16 * lips - 24 * split + 4 * noise * lips
-    albedo = mix(np.broadcast_to(SKIN, (h, w, 3)), np.array([0.88, 0.40, 0.40]), np.clip(lips * 1.4, 0, 1))
+    height += 2.0 * fine_skin(h, w, rng, pore=5.0) * np.clip(1 - split * 2, 0, 1)
+    albedo = mix(np.broadcast_to(SKIN, (h, w, 3)), np.array([0.82, 0.44, 0.34]), np.clip(lips * 1.4, 0, 1))
     albedo = mix(albedo, np.array([0.48, 0.03, 0.05]), np.clip(split * 1.6, 0, 1))
     albedo = mix(albedo, np.array([0.18, 0.0, 0.02]), np.clip((split - 0.7) * 3, 0, 1))
     albedo = mix(albedo, np.array([0.86, 0.72, 0.36]), fibrin * 0.8)
@@ -900,7 +957,7 @@ def crust(name, seed, tint, dark, n=64):
 
 
 def tick(name, seed, n=256):
-    """A tick from above, head down in the skin: a swollen, taut grey-violet sack on eight short legs."""
+    """A tick from above, head down in the skin: a swollen, taut dusky-grey sack on eight short legs."""
     rng = np.random.default_rng(seed)
     x, y = field(n)
     bx, by = x / 0.46, (y - 0.12) / 0.56
@@ -912,8 +969,8 @@ def tick(name, seed, n=256):
     legs = legs_mask(n, 3, 4, 0.07 * n, 0.5, 0.26 * n, 7, 0, rng, cy=(1 - 0.30) * n * 3 / 2)
     legs *= 1 - np.clip(dome * 3, 0, 1)
     h = 40 * dome + 6 * scutum + 6 * head + 4 * legs - 2 * wrinkles
-    albedo = mix(np.broadcast_to(np.array([0.60, 0.54, 0.66]), (n, n, 3)), np.array([0.42, 0.36, 0.50]), np.clip(rb, 0, 1))
-    albedo = mix(albedo, np.array([0.34, 0.28, 0.40]), wrinkles * 0.6)
+    albedo = mix(np.broadcast_to(np.array([0.58, 0.50, 0.45]), (n, n, 3)), np.array([0.38, 0.31, 0.29]), np.clip(rb, 0, 1))
+    albedo = mix(albedo, np.array([0.30, 0.24, 0.22]), wrinkles * 0.6)
     albedo = mix(albedo, np.array([0.30, 0.16, 0.10]), np.clip(scutum * 2, 0, 1))
     albedo = mix(albedo, np.array([0.22, 0.10, 0.08]), np.clip(head * 2, 0, 1))
     albedo = np.where((legs > 0.02)[..., None] & (dome < 0.05)[..., None], np.array([0.32, 0.14, 0.10]), albedo)
@@ -955,8 +1012,8 @@ def ingrown(name, seed, n=192):
     draw.line(pts, fill=255, width=10, joint="curve")
     coil = gaussian_filter(np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255, 1.2) * np.clip(dome * 2, 0, 1)
     tip = np.clip(1 - np.hypot(x - 0.36, y + 0.12) / 0.05, 0, 1)
-    h = 26 * dome + 2 * coil + 4 * tip
-    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.86, 0.28, 0.26]), np.clip(dome * 1.4, 0, 1))
+    h = 26 * dome + 2 * coil + 4 * tip + 0.8 * fine_skin(n, n, rng, pore=4.5)
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.78, 0.34, 0.26]), np.clip(dome * 1.4, 0, 1))
     albedo = mix(albedo, np.array([0.95, 0.85, 0.62]), np.clip((dome - 0.75) * 3, 0, 1) * 0.6)   # a pale tight top
     albedo = mix(albedo, np.array([0.16, 0.09, 0.08]), np.clip(coil * 0.75 + tip, 0, 1))
     color = shade(h, albedo, 0.4 + 1.2 * dome, bump=0.8, shine=110, ao=0.05, sss=0.8)
@@ -1052,8 +1109,8 @@ def main():
     mole("mole-1", 6)
     for i, seed in enumerate([21, 22, 23, 24]):
         hair(f"hair-{i}", seed, curl=0.06 + 0.04 * i, width=6)
-    puddle("slime-0", 31, [0.45, 0.80, 0.88])
-    puddle("slime-1", 32, [0.45, 0.80, 0.88])
+    puddle("slime-0", 31, [0.76, 0.74, 0.54])
+    puddle("slime-1", 32, [0.76, 0.74, 0.54])
     puddle("pus-0", 33, [0.88, 0.76, 0.26])
     candle("candle", 41)
     flame("flame")

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { textResolution } from '../display.js';
 import { settings } from '../settings.js';
-import { BAR_H, DEPTH, FONT, drawBar } from './layout.js';
+import { BAR_H, DEPTH, EVENT_TINT, FONT, drawBar, inLight } from './layout.js';
 
 const SIZE = 170;           // on-screen width at full health
 const SWELL = 0.3;          // it swells this much bigger as it nears bursting
@@ -14,7 +14,6 @@ export function createBossView(scene, fx) {
   let sprite = null;
   let bar = null;
   let label = null;
-  let glow = null;
   let baseScale = 1;
   let squishUntil = 0;
 
@@ -23,13 +22,10 @@ export function createBossView(scene, fx) {
   }
 
   function spawn() {
-    glow = scene.add.image(boss.x, boss.y - 30, 'world:glow').setTint(0xff4a30).setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(DEPTH.light).setAlpha(0).setScale(420 / 256);
-    sprite = scene.add.image(boss.x, boss.y, 'world:boil').setOrigin(0.5, 0.62).setDepth(boss.y + 30);
+    sprite = scene.add.image(boss.x, boss.y, 'world:boil').setOrigin(0.5, 0.62).setDepth(boss.y + 30).setTint(EVENT_TINT);
     baseScale = SIZE / sprite.width;
     sprite.setScale(0);
     scene.tweens.add({ targets: sprite, scale: baseScale, duration: 1400, ease: 'Back.out' });
-    scene.tweens.add({ targets: glow, alpha: 0.5, duration: 1400 });
     bar = scene.add.graphics().setDepth(DEPTH.bubbles - 1);
     label = scene.add.text(boss.x, boss.y, 'The Boil', {
       fontFamily: FONT, fontSize: '16px', color: '#ffd9c0', stroke: '#1a0a0d', strokeThickness: 4, resolution: textResolution(),
@@ -38,18 +34,18 @@ export function createBossView(scene, fx) {
   }
 
   function clear() {
-    for (const thing of [sprite, bar, label, glow]) {
+    for (const thing of [sprite, bar, label]) {
       if (!thing) continue;
       scene.tweens.killTweensOf(thing);
       thing.destroy();
     }
-    sprite = bar = label = glow = null;
+    sprite = bar = label = null;
   }
 
   function sink() {
     if (!sprite) return clear();
-    const dying = [sprite, bar, label, glow];
-    sprite = bar = label = glow = null;
+    const dying = [sprite, bar, label];
+    sprite = bar = label = null;
     boss = null;
     scene.tweens.killTweensOf(dying);
     scene.tweens.add({
@@ -127,10 +123,9 @@ export function createBossView(scene, fx) {
       if (!scene.tweens.isTweening(sprite)) {
         sprite.setScale(swell * throb * (squished ? 1.12 : 1), swell * throb * (squished ? 0.84 : 1));
       }
-      // Redder and angrier as it nears bursting.
+      // Redder and angrier as it nears bursting (in the world's light: no glow).
       const anger = 1 - health();
-      sprite.setTint(Phaser.Display.Color.GetColor(255, Math.round(255 - 70 * anger), Math.round(255 - 90 * anger)));
-      glow.setAlpha(0.35 + 0.25 * anger + 0.1 * Math.sin(time * 0.008));
+      sprite.setTint(inLight(Phaser.Display.Color.GetColor(255, Math.round(255 - 70 * anger), Math.round(255 - 90 * anger))));
 
       const top = boss.y - sprite.displayHeight * 0.62 - 10;
       label.setPosition(boss.x, top - BAR_H - 4);

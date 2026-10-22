@@ -86,7 +86,7 @@ function groundCast(scene) {
 }
 
 // Veins under the skin, from the Navel out to each region and landmark.
-const VEIN = { step: 26, tint: 0x8a76b0, alpha: 0.55 };
+const VEIN = { step: 26, tint: 0x9a7e86, alpha: 0.55 };  // a dull plum, in the world's warm light
 // Phaser draws everything in a scene every frame, on screen or not, so the
 // ground's still things are grouped into cells and only the cells near the
 // view are shown. CULL_MARGIN covers the biggest of them (a long hair).

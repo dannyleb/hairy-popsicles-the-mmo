@@ -20,8 +20,19 @@ export const DEPTH = {
   bubbles: 70_000,
 };
 
-// Darkens the ground and what lies on it, so candlelight and the characters stand out.
-export const NIGHT_TINT = 0x9a8c90;
+// The world's light. The ground and what lies on it are drawn darker than the
+// characters, so they're what you look at (and candlelight shows), in a warm
+// light like the one in the characters' renders.
+export const NIGHT_TINT = 0x9c8a80;
+// Plots and world events, in that same light but a touch brighter, so they
+// read as things to tap without glowing out of the world.
+export const EVENT_TINT = 0xb2a296;
+
+// A colour (0xRRGGBB) seen in a tint, as the GPU multiplies them.
+export function inLight(color, tint = EVENT_TINT) {
+  const channel = (shift) => Math.round((((color >> shift) & 255) * ((tint >> shift) & 255)) / 255);
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
 
 export const FONT = '"Patrick Hand", system-ui, sans-serif';
 

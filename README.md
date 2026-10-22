@@ -376,7 +376,12 @@ emptied pore, gunk, navel lint; `python tools/world.py gross`),
 plus the world's wildlife and landmarks (mites, a flea, the worm, the smear
 trail, freckles, warts, the Navel, the Eye, veins and a plinth).
 Each is a height map + color + gloss shaded with one warm key light from the
-upper left, so it sits with the renders. Deterministic; rerun with
+upper left, so it sits with the renders, then graded to the renders' skin
+(red-brown in the shadows warming to ochre in the lights, strong reds kept
+crimson), with pores and fine creases and a soft sheen rather than hard
+glints. In the game the ground and its props are drawn in `NIGHT_TINT` and
+plots and world events in the slightly brighter `EVENT_TINT` (both in
+`layout.js`), so the characters are what stand out. Deterministic; rerun with
 `python tools/world.py` after changing it (`python tools/world.py ground` for
 just the ground, `events` for the MMO-layer art, `life` for wildlife and
 landmarks). The plot art's hole

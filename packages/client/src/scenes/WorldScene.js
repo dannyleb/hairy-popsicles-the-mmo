@@ -50,7 +50,7 @@ import { createDropsView } from '../world/drops.js';
 import { createEventViews } from '../world/worldEvents.js';
 import { createFx } from '../world/fx.js';
 import { createLandmarks } from '../world/landmarks.js';
-import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, WORLD_H, WORLD_W } from '../world/layout.js';
+import { DEPTH, EVENT_TINT, FONT, HOLE_OFFSET, PLOT_ART_SIZE, WORLD_H, WORLD_W } from '../world/layout.js';
 import { createSleepers } from '../world/sleepers.js';
 import { createStraysView } from '../world/strays.js';
 import { createTrails } from '../world/trails.js';
@@ -1127,7 +1127,7 @@ export class WorldScene extends Phaser.Scene {
     const y0 = py * PLOT_PX;
     const mine = plot.ownerId === this.myId();
     const art = this.add.image(x0 + PLOT_PX / 2, y0 + PLOT_PX / 2, `world:plot-${plotVariant(key)}`)
-      .setDepth(DEPTH.plot);
+      .setDepth(DEPTH.plot).setTint(EVENT_TINT);
     const scale = PLOT_ART_SIZE / art.width;
     art.setScale(scale * 0.4).setAlpha(0);
     this.tweens.add({ targets: art, scale, alpha: 1, duration: 650, ease: 'Back.out' });
@@ -1193,7 +1193,7 @@ export class WorldScene extends Phaser.Scene {
       const scab = entry.scabs.get(slot);
       if (locked && !scab) {
         const at = holeCenter(key, slot);
-        const image = this.add.image(at.x, at.y, 'world:scab').setDepth(DEPTH.plot + 2);
+        const image = this.add.image(at.x, at.y, 'world:scab').setDepth(DEPTH.plot + 2).setTint(EVENT_TINT);
         image.setScale(SCAB_SIZE / image.width).setRotation((slot * 1.7) % (Math.PI * 2));
         const text = entry.mine
           ? this.add.text(at.x, at.y + 12, `Lv ${levelForHole(slot)}`, textStyle(11, '#e9c8b8')).setOrigin(0.5, 0)

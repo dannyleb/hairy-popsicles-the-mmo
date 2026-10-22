@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { INGROWN, SCAB, TICK, tickFeedsOn } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { BAR_H, DEPTH, FONT, drawBar } from './layout.js';
+import { BAR_H, DEPTH, EVENT_TINT, FONT, drawBar, inLight } from './layout.js';
 
 // The world events after The Boil (see worldEvents.js in @hptm/shared), as
 // everyone sees them: The Scab, peeled piece by piece off raw skin; The Gash,
@@ -31,16 +31,13 @@ export function createEventViews(scene, fx) {
     .setOrigin(0.5, 1).setDepth(DEPTH.bubbles - 1);
 
   function makeScab(e) {
-    const bed = scene.add.image(e.x, e.y, 'world:scab-bed').setDepth(DEPTH.decor + 3);
+    const bed = scene.add.image(e.x, e.y, 'world:scab-bed').setDepth(DEPTH.decor + 3).setTint(EVENT_TINT);
     bed.setScale(SCAB_SIZE / bed.width);
     const pieces = e.pieces.map((state, i) => {
-      const piece = scene.add.image(e.x, e.y, `world:scab-${i}`).setDepth(DEPTH.decor + 4).setVisible(!state);
+      const piece = scene.add.image(e.x, e.y, `world:scab-${i}`).setDepth(DEPTH.decor + 4).setVisible(!state).setTint(EVENT_TINT);
       piece.setScale(SCAB_SIZE / piece.width);
       return piece;
     });
-    // Wet while it's drying: a glisten over it that fades as it dries.
-    const glisten = scene.add.image(e.x, e.y - 10, 'world:glow').setTint(0xff8070).setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(DEPTH.decor + 5).setScale(SCAB_SIZE / 256).setAlpha(0);
     const label = text(e.x, e.y - SCAB_SIZE / 2 - 4, 'The Scab');
     const ring = scene.add.graphics().setDepth(DEPTH.bubbles - 2);
     for (const thing of [bed, ...pieces]) {
@@ -48,11 +45,11 @@ export function createEventViews(scene, fx) {
       scene.tweens.add({ targets: thing, scale: SCAB_SIZE / thing.width, duration: 900, ease: 'Back.out' });
     }
     fx.droplets(e.x, e.y, { count: 8, key: 'drop-blood', speed: [50, 120] });
-    return { kind: 'scab', x: e.x, y: e.y, bed, pieces, glisten, label, ring, things: [bed, ...pieces, glisten, label, ring] };
+    return { kind: 'scab', x: e.x, y: e.y, bed, pieces, label, ring, things: [bed, ...pieces, label, ring] };
   }
 
   function makeGash(e) {
-    const wound = scene.add.image(e.x, e.y, 'world:gash').setRotation(e.angle).setDepth(DEPTH.decor + 3);
+    const wound = scene.add.image(e.x, e.y, 'world:gash').setRotation(e.angle).setDepth(DEPTH.decor + 3).setTint(EVENT_TINT);
     const sx = e.length / wound.width;
     const sy = GASH_HEIGHT / wound.height;
     wound.setScale(sx, 0);
@@ -60,7 +57,7 @@ export function createEventViews(scene, fx) {
     const crumbs = new Map();
     for (const c of e.crumbs) {
       const image = scene.add.image(c.x, c.y, c.deep ? 'world:crust-deep' : `world:crust-${c.id % 3}`).setDepth(c.y)
-        .setRotation(Math.random() * Math.PI * 2);
+        .setRotation(Math.random() * Math.PI * 2).setTint(EVENT_TINT);
       const size = c.deep ? DEEP_SIZE : CRUMB_SIZE;
       image.setScale(size / image.width).setAlpha(0);
       scene.tweens.add({ targets: image, alpha: 1, delay: 400 + Math.random() * 400, duration: 300 });
@@ -75,7 +72,7 @@ export function createEventViews(scene, fx) {
   function makeTick(e) {
     // Over the plots (so the threads reach the crops), under the crops themselves.
     const drain = scene.add.graphics().setDepth(DEPTH.light - 2);
-    const body = scene.add.image(e.x, e.y, 'world:tick').setOrigin(0.5, 0.3).setDepth(e.y + 2);
+    const body = scene.add.image(e.x, e.y, 'world:tick').setOrigin(0.5, 0.3).setDepth(e.y + 2).setTint(EVENT_TINT);
     body.setScale(0);
     scene.tweens.add({ targets: body, scale: TICK_SIZE / body.width, duration: 600, ease: 'Back.out' });
     const bar = scene.add.graphics().setDepth(DEPTH.bubbles - 1);
@@ -85,7 +82,7 @@ export function createEventViews(scene, fx) {
   }
 
   function makeIngrown(e) {
-    const bump = scene.add.image(e.x, e.y, 'world:ingrown').setDepth(DEPTH.decor + 3);
+    const bump = scene.add.image(e.x, e.y, 'world:ingrown').setDepth(DEPTH.decor + 3).setTint(EVENT_TINT);
     bump.setScale(0);
     scene.tweens.add({ targets: bump, scale: INGROWN_SIZE / bump.width, duration: 800, ease: 'Back.out' });
     const hair = scene.add.graphics().setDepth(e.y + 1);
@@ -99,7 +96,7 @@ export function createEventViews(scene, fx) {
   function makeBlackheads(e) {
     const heads = new Map();
     for (const h of e.heads) {
-      const image = scene.add.image(h.x, h.y, h.done ? 'world:pore' : 'world:blackhead').setDepth(DEPTH.decor + 3);
+      const image = scene.add.image(h.x, h.y, h.done ? 'world:pore' : 'world:blackhead').setDepth(DEPTH.decor + 3).setTint(EVENT_TINT);
       image.setScale(0);
       scene.tweens.add({ targets: image, scale: HEAD_SIZE / image.width, delay: Math.random() * 500, duration: 400, ease: 'Back.out' });
       heads.set(h.id, { ...h, image, out: h.done });  // (squeezed before we came: no gunk to show)
@@ -171,7 +168,7 @@ export function createEventViews(scene, fx) {
       head.out = true;
       head.image.setTexture('world:pore');
       const gunk = scene.add.image(head.x, head.y, 'world:gunk').setOrigin(0, 0.5).setDepth(head.y + 1)
-        .setRotation(-Math.PI / 2 + (Math.random() - 0.5) * 1.6);
+        .setRotation(-Math.PI / 2 + (Math.random() - 0.5) * 1.6).setTint(EVENT_TINT);
       const scale = GUNK_LENGTH / gunk.width;
       gunk.setScale(0, scale);
       view.gunk.push(gunk);
@@ -202,7 +199,7 @@ export function createEventViews(scene, fx) {
       event = null;
       if (kind === 'scab') {
         fx.ring(dying.x, dying.y, { color: 0xff9a8a, size: 260, duration: 600 });
-        gone([dying.label, dying.ring, dying.glisten, ...dying.pieces], 300);
+        gone([dying.label, dying.ring, ...dying.pieces], 300);
         scene.tweens.add({ targets: dying.bed, alpha: 0, delay: 2500, duration: 2500, onComplete: () => dying.bed.destroy() });
       } else if (kind === 'gash') {
         // It zips shut.
@@ -356,9 +353,9 @@ export function createEventViews(scene, fx) {
       if (view.kind === 'scab') {
         const wet = Math.max(0, Math.min(1, (event.ripeAt - now) / (SCAB.ripeMs * 0.5)));
         const dry = event.ripeAt <= now;
-        view.glisten.setAlpha(wet * (0.35 + (calm ? 0 : 0.1 * Math.sin(time * 0.005))));
+        // Wet while it's drying: redder, drying to the colour of the crust.
         const tint = Phaser.Display.Color.Interpolate.ColorWithColor(
-          Phaser.Display.Color.ValueToColor(0xffffff), Phaser.Display.Color.ValueToColor(0xff8a7a), 100, Math.round(wet * 100),
+          Phaser.Display.Color.ValueToColor(EVENT_TINT), Phaser.Display.Color.ValueToColor(inLight(0xff8a7a)), 100, Math.round(wet * 100),
         );
         for (const piece of view.pieces) if (!piece.peeling) piece.setTint(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
         // (Text only redrawn when it changes: setText skips the same text, setColor doesn't.)
