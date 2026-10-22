@@ -120,19 +120,21 @@ for (let round = 0; round < 3; round++) {
   await waitFor(() => a.ev.navelCough.length > round + 1 || !a.state.event, 7000);
   await sleep(300);
 }
-// Sweep up any left lying about (one can land behind another's walk).
-for (let sweep = 0; sweep < 3 && a.state.event; sweep++) {
+// Sweep up any left lying about (one can land behind another's walk). Once
+// it's over the next event can start soon after, so look for the lint's end.
+const lintOver = () => a.ev.eventOver.some((m) => m.kind === 'lint');
+for (let sweep = 0; sweep < 3 && !lintOver(); sweep++) {
   for (const ball of (a.state.drops ?? []).filter((d) => d.lint)) {
     await walk(a, ball.x, ball.y + 8);
     a.room.send('grab', { id: ball.id });
   }
-  await waitFor(() => !a.state.event, 3000);
+  await waitFor(lintOver, 3000);
 }
 const grabbed = [...a.ev.gotGlob, ...b.ev.gotGlob].filter((g) => g.lint);
 check('it coughs three times', a.ev.navelCough.length === LINT.coughs);
 check('grabbed lint pays, and counts toward Lint Picker (not as Pus Rain globs)', grabbed.length > 0 && a.me.stats.lint + b.me.stats.lint === grabbed.length && a.me.stats.globs === 0 && b.me.stats.globs === 0, `${grabbed.length} grabbed`);
 check('the special one had something in it', grabbed.some((g) => g.prize));
-check('all grabbed, the Navel settles down', !a.state.event && a.ev.eventOver.some((m) => m.kind === 'lint'), JSON.stringify(a.state.event && { ...a.state.event, now: a.now() }));
+check('all grabbed, the Navel settles down', lintOver() && a.state.event?.kind !== 'lint' && !(a.state.drops ?? []).some((d) => d.lint));
 
 await a.room.leave(true);
 await b.room.leave(true);
