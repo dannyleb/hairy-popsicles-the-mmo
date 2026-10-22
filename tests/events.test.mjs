@@ -42,7 +42,9 @@ check('and so it is with nobody near enough to have helped', world.ended() && !w
 // ---- the turns: a Tick whose head stayed in comes back once, and then the next event's turn
 const ends = {};
 const fake = (kind) => (done) => { ends[kind] = (opts) => done(Date.now(), opts); return { start: () => true, tick() {}, view: () => ({ kind }) }; };
+process.env.WORLD_EVENTS = 'tick,scab';  // (this test's own turns, in this order)
 const turns = createWorldEvents(0.0001, { tick: fake('tick'), scab: fake('scab') });
+delete process.env.WORLD_EVENTS;
 const next = () => { turns.tick(Date.now() + 60_000); return turns.view()?.kind; };
 const seen = [next()];
 ends.tick({ again: 'tick' });

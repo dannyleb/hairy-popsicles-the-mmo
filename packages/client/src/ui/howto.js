@@ -7,7 +7,7 @@ export const HOW_TO_PLAY = [
   'Level up to open more holes and better seeds. Quests (top left) pay extra.',
   "Tap a neighbor's growing crop to squeeze it: it ripens sooner and you get scraps.",
   'When The Boil swells up, everyone runs over and taps it until it bursts. Boil Seeds only grow Rare or better.',
-  'Other world events take turns with it. The Scab: wait for it to dry, then hold your finger on it to peel. The Gash: tap the crumbs of crust out. The Tick: crops near it stop growing until you pry it off; it comes off faster with more of you.',
+  'Other world events take turns with it. The Scab: wait for it to dry, then hold your finger on it to peel. The Gash: tap the crumbs of crust out. The Tick: crops near it stop growing until you pry it off; it comes off faster with more of you. Ingrown Hair: tap on its throb to tug. Blackheads: hold to squeeze (the gunk makes fertilizer). Navel Lint: grab what the Navel coughs up.',
   'Under a Blood Moon, rare characters sprout far more often.',
   "Today's featured character wanders the world as a stray, glowing gold. Walk up and tap it to catch it, once a day.",
   'The skin goes on a long way: the Scalp, the Armpit, Freckle Flats and Wart Hills surround the Navel. Tap things to see what they do.',

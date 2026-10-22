@@ -9,11 +9,12 @@ import { el } from './dom.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.10';
+const VERSION = 'v0.11';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'More world events: Ingrown Hair (tap on its throb to tug it out), Blackheads (hold to squeeze; the gunk makes fertilizer) and Navel Lint (grab what the Navel coughs up; one ball hides a prize).',
     'New world events, taking turns with The Boil: The Scab (hold to peel; the last piece hides a character), The Gash (pick the crust out) and The Tick (pry it off before it drains your crops).',
     'A map with every place named: tap the little map, top right. On phones, quests fold away to one line (tap to open).',
     "Strays wander the world. The day's featured one glows gold: walk up and tap it to catch it, once a day. Catch 7 for the Dogcatcher title.",

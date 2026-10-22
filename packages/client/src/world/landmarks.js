@@ -67,6 +67,7 @@ export function createLandmarks(scene) {
   const caption = scene.add.text(statueAt.x, baseY + 24, '', text(13, '#c9b39e')).setOrigin(0.5, 0)
     .setShadow(0, 1, '#000', 3, false, true).setDepth(baseY + 1).setVisible(false);
   let statue;  // undefined until the server says (the menu never knows)
+  let navelHeaveUntil = 0;
 
   const near = (x, y, at, w, h) => Math.abs(x - at.x) < w && Math.abs(y - at.y) < h;
 
@@ -99,7 +100,9 @@ export function createLandmarks(scene) {
 
     // `walkers`: anyone about ({ x, y }), for the Eye to watch.
     update(time, walkers, calm) {
-      if (!calm) navel.setScale((NAVEL_SIZE / navel.width) * (1 + 0.012 * Math.sin(time * 0.0009)));
+      // Breathing, or (when it's gurgling and coughing up lint) heaving.
+      const heave = time < navelHeaveUntil ? 0.06 * Math.sin(time * 0.03) * ((navelHeaveUntil - time) / 900) : 0;
+      if (!calm) navel.setScale((NAVEL_SIZE / navel.width) * (1 + 0.012 * Math.sin(time * 0.0009) + heave));
 
       const view = scene.cameras.main.worldView;
       if (Math.abs(eyeAt.x - view.centerX) > view.width / 2 + 200 || Math.abs(eyeAt.y - view.centerY) > view.height / 2 + 200) return;
@@ -152,6 +155,12 @@ export function createLandmarks(scene) {
       if (near(x, y, eyeAt, EYE.socket * 0.31, EYE.open / 2 + 8)) return 'eye';
       if (Math.abs(x - statueAt.x) < PLINTH_WIDTH / 2 && y < baseY + 40 && y > feetY - (figure.visible ? FIGURE : 0)) return 'statue';
       return null;
+    },
+
+    // The Navel gurgles or coughs (Navel Lint): it heaves for a moment. Returns where it is.
+    heave(time, ms = 900) {
+      navelHeaveUntil = time + ms;
+      return { x: navelAt.x, y: navelAt.y };
     },
 
     // A finger in the Eye: it screws itself shut for a moment.

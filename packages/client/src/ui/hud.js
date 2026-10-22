@@ -322,6 +322,8 @@ export function createHud(actions) {
         endsAt: event.expiresAt,
         left: event.kind === 'scab' ? event.pieces.filter((p) => !p).length / event.pieces.length
           : event.kind === 'gash' ? event.crumbs.length / event.total
+          : event.kind === 'blackheads' ? event.heads.filter((h) => !h.done).length / event.heads.length
+          : event.kind === 'lint' ? (event.coughsLeft ? 1 : event.left / Math.max(1, event.total))
           : 1 - event.progress,
       };
       bossPill.hidden = !going;

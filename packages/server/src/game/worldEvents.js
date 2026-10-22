@@ -6,7 +6,7 @@ import { WORLD_EVENT } from '@hptm/shared';
 // changes the order, for testing.
 export function createWorldEvents(scale, makers) {
   const wanted = (process.env.WORLD_EVENTS ?? '').split(',').filter((k) => makers[k]);
-  const order = wanted.length ? wanted : Object.keys(makers);
+  const order = wanted.length ? wanted : WORLD_EVENT.order.filter((k) => makers[k]);
   let turn = 0;
   let current = null;
   let again = null;     // a kind that comes back next, out of turn

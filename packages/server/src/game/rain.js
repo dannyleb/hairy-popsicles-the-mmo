@@ -1,4 +1,4 @@
-import { REACH, WORLD_PX } from '@hptm/shared';
+import { LINT, REACH, WORLD_PX } from '@hptm/shared';
 import { pick } from './roll.js';
 
 // Pus Rain: every few minutes, globs of pus rain down around whoever's
@@ -49,7 +49,7 @@ export function createRain(room, scale) {
     },
 
     drops() {
-      return [...drops.values()].map(({ id, x, y, gold, blood }) => ({ id, x, y, gold, blood }));
+      return [...drops.values()].map(({ id, x, y, gold, blood, lint, prize }) => ({ id, x, y, gold, blood, lint, prize: Boolean(prize) }));
     },
 
     // Globs of blood spilled from something torn open (a scab peeled too soon), for anyone to grab.
@@ -98,15 +98,40 @@ export function createRain(room, scale) {
       if (changed) room.markDirty();
     },
 
-    // What the glob was worth ({ scraps, gold, blood }), or null if it's gone or out of reach.
+    // Balls of lint coughed up by the Navel (Navel Lint), around (x, y). One has
+    // something in it, picked from LINT.prizes.
+    cough(x, y, count, now) {
+      const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
+      const special = Math.floor(Math.random() * count);
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.sqrt(Math.random()) * (LINT.radius - 60);
+        let roll = Math.random();
+        const prize = i === special ? LINT.prizes.find(([chance]) => (roll -= chance) < 0)?.[1] ?? LINT.prizes.at(-1)[1] : null;
+        const id = nextId++;
+        drops.set(id, {
+          id, x: Math.round(clamp(x + Math.cos(angle) * dist)), y: Math.round(clamp(y + Math.sin(angle) * dist * 0.8)),
+          gold: false, lint: true, prize, expiresAt: now + LINT.lifeMs,
+        });
+      }
+      room.markDirty();
+    },
+
+    lintLeft() {
+      let n = 0;
+      for (const drop of drops.values()) if (drop.lint) n++;
+      return n;
+    },
+
+    // What the glob was worth ({ scraps, gold, blood, lint, prize }), or null if it's gone or out of reach.
     grab(player, id) {
       const drop = drops.get(id);
       if (!drop || Math.hypot(player.x - drop.x, player.y - drop.y) > REACH) return null;
       drops.delete(id);
       room.broadcast('grabbed', { id, by: player.id });
       room.markDirty();
-      const scraps = drop.gold ? RAIN.goldValue : drop.blood ? RAIN.bloodValue : RAIN.value;
-      return { scraps, gold: drop.gold, blood: Boolean(drop.blood) };
+      const scraps = drop.gold ? RAIN.goldValue : drop.blood ? RAIN.bloodValue : drop.lint ? LINT.scraps : RAIN.value;
+      return { scraps, gold: drop.gold, blood: Boolean(drop.blood), lint: Boolean(drop.lint), prize: drop.prize ?? null };
     },
   };
 }

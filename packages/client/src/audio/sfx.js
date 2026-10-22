@@ -237,6 +237,28 @@ const SOUNDS = {
     tone('sine', 300, 900, 0.06, 0.3);
     burst(500, 1, 0.2, 0.3, 'lowpass', 0.05);
   },
+  // An Ingrown Hair's throb, on the beat.
+  beat() {
+    tone('sine', 110, 70, 0.12, 0.12);
+  },
+  // A tug on the hair, on the beat: a stretchy twang.
+  tug() {
+    tone('triangle', 220, 520, 0.12, 0.16);
+  },
+  // Off the beat: it slips back.
+  slip() {
+    tone('sawtooth', 300, 120, 0.2, 0.08);
+  },
+  // A blackhead squeezed: a slow, wet extrusion.
+  squelch() {
+    burst(700, 2, 0.25, 0.25, 'bandpass', 0, 0.06);
+    tone('sine', 180, 90, 0.25, 0.1, 0.05);
+  },
+  // The Navel coughing up lint.
+  cough() {
+    burst(300, 1, 0.3, 0.45, 'lowpass');
+    burst(900, 1.5, 0.15, 0.2, 'bandpass', 0.05);
+  },
   // The Gash zipping shut.
   zip() {
     for (let i = 0; i < 12; i++) burst(2500 + i * 150, 6, 0.02, 0.12, 'bandpass', i * 0.04);
@@ -267,6 +289,9 @@ const BUZZ = {
   crunch: 8,
   pry: 10,
   pop: [30, 50, 60],
+  tug: 12,
+  squelch: 20,
+  cough: 30,
 };
 const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 export const hasHaptics = canBuzz;

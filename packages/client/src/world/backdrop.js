@@ -29,6 +29,7 @@ export const WORLD_TEXTURES = [
   'mite-0', 'mite-1', 'flea', 'worm-head', 'worm-body', 'smear',
   'freckle-0', 'freckle-1', 'freckle-2', 'wart-0', 'wart-1', 'navel', 'eye-socket', 'eye-ball', 'eye-iris', 'eye-lid', 'vein', 'plinth',
   'scab-bed', ...Array.from({ length: SCAB.pieces }, (_, i) => `scab-${i}`), 'gash', 'crust-0', 'crust-1', 'crust-2', 'crust-deep', 'tick',
+  'ingrown', 'blackhead', 'pore', 'gunk', 'lint',
   ...PROPS.flatMap((p) => p.keys),
 ];
 

@@ -1,16 +1,22 @@
 import Phaser from 'phaser';
-import { PLOT_SIZE, SCAB, TICK, TILE_SIZE } from '@hptm/shared';
+import { INGROWN, PLOT_SIZE, SCAB, TICK, TILE_SIZE } from '@hptm/shared';
 import { textResolution } from '../display.js';
 import { DEPTH, FONT, PLOT_PIXELS } from './layout.js';
 
 // The world events after The Boil (see worldEvents.js in @hptm/shared), as
 // everyone sees them: The Scab, peeled piece by piece off raw skin; The Gash,
-// with its crumbs of crust; and The Tick, swelling as it feeds.
+// with its crumbs of crust; The Tick, swelling as it feeds; an Ingrown Hair
+// throbbing to its beat as the hair comes out; a patch of Blackheads, gunk
+// coming out of each; and Navel Lint (the lint itself is drawn as drops).
 const SCAB_SIZE = 170;
 const GASH_HEIGHT = 130;
 const CRUMB_SIZE = 26;
 const DEEP_SIZE = 34;
 const TICK_SIZE = 84;
+const INGROWN_SIZE = 120;
+const HAIR_OUT = 150;     // px of hair drawn out when it's all but out
+const HEAD_SIZE = 40;
+const GUNK_LENGTH = 54;
 const BAR_W = 110;
 const BAR_H = 9;
 const LABEL = { fontFamily: FONT, fontSize: '16px', color: '#ffd9c0', stroke: '#1a0a0d', strokeThickness: 4 };
@@ -76,6 +82,44 @@ export function createEventViews(scene, fx) {
     return { kind: 'tick', x: e.x, y: e.y, body, drain, bar, label, hands, wiggleUntil: 0, fed: [], things: [drain, body, bar, label, hands] };
   }
 
+  function makeIngrown(e) {
+    const bump = scene.add.image(e.x, e.y, 'world:ingrown').setDepth(DEPTH.decor + 3);
+    bump.setScale(0);
+    scene.tweens.add({ targets: bump, scale: INGROWN_SIZE / bump.width, duration: 800, ease: 'Back.out' });
+    const hair = scene.add.graphics().setDepth(e.y + 1);
+    const ring = scene.add.graphics().setDepth(DEPTH.bubbles - 2);
+    const bar = scene.add.graphics().setDepth(DEPTH.bubbles - 1);
+    const label = text(e.x, e.y, 'Ingrown Hair · tap on the throb');
+    const call = text(e.x, e.y, '', { fontSize: '20px', color: '#f3d27a' }).setAlpha(0);
+    return { kind: 'ingrown', x: e.x, y: e.y, bump, hair, ring, bar, label, call, lastBeat: 0, angle: -0.6, things: [bump, hair, ring, bar, label, call] };
+  }
+
+  function makeBlackheads(e) {
+    const heads = new Map();
+    for (const h of e.heads) {
+      const image = scene.add.image(h.x, h.y, h.done ? 'world:pore' : 'world:blackhead').setDepth(DEPTH.decor + 3);
+      image.setScale(0);
+      scene.tweens.add({ targets: image, scale: HEAD_SIZE / image.width, delay: Math.random() * 500, duration: 400, ease: 'Back.out' });
+      heads.set(h.id, { ...h, image });
+    }
+    const label = text(e.x, e.y - 130, 'Blackheads · hold one to squeeze');
+    const ring = scene.add.graphics().setDepth(DEPTH.bubbles - 2);
+    return { kind: 'blackheads', x: e.x, y: e.y, heads, label, ring, gunk: [], things: [label, ring] };
+  }
+
+  function makeLint(e) {
+    const label = text(e.x, e.y - 165, 'Navel Lint · grab it!');
+    return { kind: 'lint', x: e.x, y: e.y, label, things: [label] };
+  }
+
+  const makers = { scab: makeScab, gash: makeGash, tick: makeTick, ingrown: makeIngrown, blackheads: makeBlackheads, lint: makeLint };
+  const allThings = (v) => [
+    ...v.things,
+    ...(v.crumbs ? [...v.crumbs.values()].map((c) => c.image) : []),
+    ...(v.heads ? [...v.heads.values()].map((h) => h.image) : []),
+    ...(v.gunk ?? []),
+  ];
+
   // Crops of players who are here, near The Tick: it's feeding on them.
   function fedOn(state, now) {
     const crops = [];
@@ -100,7 +144,8 @@ export function createEventViews(scene, fx) {
       if (view && (!next || next.kind !== view.kind || next.x !== view.x || next.y !== view.y)) this.fade();
       event = next;
       if (!next) return;
-      if (!view) view = next.kind === 'scab' ? makeScab(next) : next.kind === 'gash' ? makeGash(next) : makeTick(next);
+      if (!view) view = makers[next.kind]?.(next) ?? null;
+      if (!view) return;  // (a kind this client doesn't know yet)
 
       if (view.kind === 'scab') {
         next.pieces.forEach((state, i) => {
@@ -124,9 +169,26 @@ export function createEventViews(scene, fx) {
           if (update) crumb.loose = update.loose;
           if (!left.has(id) && !crumb.flicked) this.picked(id);
         }
-      } else {
+      } else if (view.kind === 'tick') {
         view.fed = state ? fedOn(state, now) : [];
+      } else if (view.kind === 'blackheads') {
+        for (const h of next.heads) if (h.done) this.squeezed(h.id);
       }
+    },
+
+    // A blackhead squeezed, for everyone: a worm of gunk comes out of it.
+    squeezed(id) {
+      const head = view?.heads?.get(id);
+      if (!head || head.out) return;
+      head.out = true;
+      head.image.setTexture('world:pore');
+      const gunk = scene.add.image(head.x, head.y, 'world:gunk').setOrigin(0, 0.5).setDepth(head.y + 1)
+        .setRotation(-Math.PI / 2 + (Math.random() - 0.5) * 1.6);
+      const scale = GUNK_LENGTH / gunk.width;
+      gunk.setScale(0, scale);
+      view.gunk.push(gunk);
+      scene.tweens.add({ targets: gunk, scaleX: scale, duration: 450, ease: 'Sine.out' });
+      scene.tweens.add({ targets: gunk, alpha: 0, delay: 2200, duration: 800 });
     },
 
     // A crumb out, for everyone: flicked up and away.
@@ -146,6 +208,7 @@ export function createEventViews(scene, fx) {
     // It's over: the way each one ends.
     over({ kind, pried }) {
       if (!view || view.kind !== kind) return;
+      if (kind === 'ingrown' || kind === 'blackheads' || kind === 'lint') return this.overMore(kind);
       const dying = view;
       view = null;
       event = null;
@@ -178,10 +241,33 @@ export function createEventViews(scene, fx) {
       }
     },
 
+    overMore(kind) {
+      const dying = view;
+      view = null;
+      event = null;
+      const things = allThings(dying);
+      if (kind === 'ingrown') {
+        // Out it whips: a hair as long as your arm, flung away.
+        const whip = scene.add.graphics().setDepth(DEPTH.bubbles - 3).setPosition(dying.x, dying.y);
+        whip.lineStyle(5, 0x24160f, 1);
+        whip.beginPath().moveTo(0, 0);
+        for (let i = 1; i <= 24; i++) whip.lineTo(i * 14, Math.sin(i * 0.7) * 10);
+        whip.strokePath().setRotation(dying.angle);
+        scene.tweens.add({
+          targets: whip, x: dying.x + 220, y: dying.y - 260, rotation: dying.angle + 5, alpha: 0, duration: 1100, ease: 'Cubic.out',
+          onComplete: () => whip.destroy(),
+        });
+        fx.droplets(dying.x, dying.y, { count: 10, key: 'drop-blood', speed: [60, 160], size: [4, 8] });
+        fx.ring(dying.x, dying.y, { color: 0xffd0a0, size: 220, duration: 500 });
+      }
+      scene.tweens.killTweensOf(things);
+      scene.tweens.add({ targets: things, alpha: 0, duration: kind === 'blackheads' ? 2500 : 900, onComplete: () => things.forEach((t) => t.destroy()) });
+    },
+
     // Gone without a proper ending (we missed it while away): fade out.
     fade() {
       if (!view) return;
-      const things = [...view.things, ...(view.crumbs ? [...view.crumbs.values()].map((c) => c.image) : [])];
+      const things = allThings(view);
       view = null;
       scene.tweens.killTweensOf(things);
       scene.tweens.add({ targets: things, alpha: 0, duration: 600, onComplete: () => things.forEach((t) => t.destroy()) });
@@ -190,9 +276,20 @@ export function createEventViews(scene, fx) {
     kind: () => view?.kind ?? null,
     position: () => (view ? { x: view.x, y: view.y } : null),
 
-    // What's under a tap: { kind } for The Scab or The Tick, { kind: 'gash', crumb } for a crumb.
+    // What's under a tap: { kind } for The Scab, The Tick or an Ingrown Hair,
+    // { kind: 'gash', crumb } for a crumb, { kind: 'blackheads', head } for a blackhead.
     at(x, y) {
       if (!view) return null;
+      if (view.kind === 'lint') return null;  // (the lint itself is drops)
+      if (view.kind === 'ingrown') return Math.hypot(x - view.x, y - view.y) < INGROWN_SIZE * 0.5 ? { kind: 'ingrown' } : null;
+      if (view.kind === 'blackheads') {
+        let best = null;
+        for (const head of view.heads.values()) {
+          const d = Math.hypot(x - head.x, y - head.y);
+          if (!head.out && d < HEAD_SIZE * 0.9 && (!best || d < best.d)) best = { d, head };
+        }
+        return best && { kind: 'blackheads', head: best.head };
+      }
       if (view.kind === 'scab') return Math.hypot(x - view.x, y - view.y) < SCAB_SIZE * 0.45 ? { kind: 'scab' } : null;
       if (view.kind === 'tick') {
         // Its body (origin 0.3 down it), and not much more: it sits right by someone's crops.
@@ -216,9 +313,9 @@ export function createEventViews(scene, fx) {
       }
     },
 
-    // The ring that fills while a finger is held on The Scab: 0..1, or null to hide it.
+    // The ring that fills while a finger is held on The Scab or a blackhead: 0..1, or null to hide it.
     holding(at, k) {
-      if (view?.kind !== 'scab') return;
+      if (view?.kind !== 'scab' && view?.kind !== 'blackheads') return;
       view.ring.clear();
       if (!at) return;
       view.ring.lineStyle(7, 0x1a0a0d, 0.6).strokeCircle(at.x, at.y, 30);
@@ -226,8 +323,53 @@ export function createEventViews(scene, fx) {
         .arc(at.x, at.y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, k), false).strokePath();
     },
 
+    // A tug on the hair, judged here (this screen's the one that sees the beat):
+    // the beat it was on, or null for a slip.
+    judgeTug(now) {
+      if (view?.kind !== 'ingrown' || !event) return null;
+      const beat = Math.round((now - event.startAt) / INGROWN.beatMs);
+      const off = now - (event.startAt + beat * INGROWN.beatMs);
+      const hit = beat >= 1 && Math.abs(off) <= INGROWN.window;
+      view.call.setText(hit ? 'Tug!' : 'Slipped!').setColor(hit ? '#f3d27a' : '#ff8a7a').setAlpha(1).setPosition(view.x, view.y - 70);
+      scene.tweens.killTweensOf(view.call);
+      scene.tweens.add({ targets: view.call, y: view.y - 100, alpha: 0, duration: 700 });
+      return hit ? beat : null;
+    },
+
+    // For a sound on each beat: the beat now, while there's a hair to tug.
+    beat(now) {
+      return view?.kind === 'ingrown' && event ? Math.floor((now - event.startAt) / INGROWN.beatMs) : null;
+    },
+
     update(time, now, calm) {
       if (!view || !event) return;
+      if (view.kind === 'ingrown') {
+        // The throb: a ring closing in on the bump, landing on each beat.
+        const into = (((now - event.startAt) % INGROWN.beatMs) + INGROWN.beatMs) % INGROWN.beatMs;
+        const k = into / INGROWN.beatMs;
+        const hit = Math.min(into, INGROWN.beatMs - into) <= INGROWN.window;
+        view.ring.clear();
+        view.ring.lineStyle(hit ? 6 : 4, hit ? 0xf3d27a : 0xffe8d6, hit ? 0.95 : 0.25 + 0.5 * k)
+          .strokeCircle(view.x, view.y, INGROWN_SIZE * (0.42 + 0.6 * (1 - k)));
+        const throb = calm ? 1 : 1 + 0.07 * Math.exp(-into / 120);
+        if (!scene.tweens.isTweening(view.bump)) view.bump.setScale((INGROWN_SIZE / view.bump.width) * throb);
+        // The hair coming out, longer the further along it is.
+        const out = 10 + HAIR_OUT * event.progress;
+        view.hair.clear().lineStyle(4, 0x24160f, 1).beginPath().moveTo(view.x + 20, view.y - 8);
+        for (let i = 1; i <= 12; i++) {
+          const d = (out * i) / 12;
+          view.hair.lineTo(view.x + 20 + Math.cos(view.angle) * d - Math.sin(view.angle) * Math.sin(i * 0.8 + time * 0.004) * 4,
+            view.y - 8 + Math.sin(view.angle) * d + Math.cos(view.angle) * Math.sin(i * 0.8 + time * 0.004) * 4);
+        }
+        view.hair.strokePath();
+        const top = view.y - INGROWN_SIZE * 0.55;
+        view.label.setPosition(view.x, top - BAR_H - 4);
+        view.bar.clear();
+        view.bar.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(view.x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
+        view.bar.fillStyle(0xd8a070, 1).fillRoundedRect(view.x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * event.progress), BAR_H, 4);
+        return;
+      }
+      if (view.kind === 'blackheads' || view.kind === 'lint') return;
       if (view.kind === 'scab') {
         const wet = Math.max(0, Math.min(1, (event.ripeAt - now) / (SCAB.ripeMs * 0.5)));
         const dry = event.ripeAt <= now;

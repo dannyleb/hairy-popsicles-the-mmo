@@ -39,7 +39,9 @@ import {
   XP,
   greenThumb,
   holeOpen,
+  BLACKHEADS,
   GASH,
+  INGROWN,
   SCAB,
   TICK,
   featuredFor,
@@ -52,7 +54,10 @@ import {
   wearBonus,
 } from '@hptm/shared';
 import { createBoss } from '../game/boss.js';
+import { createBlackheads } from '../game/blackheads.js';
 import { createGash } from '../game/gash.js';
+import { createIngrown } from '../game/ingrown.js';
+import { createLint } from '../game/lint.js';
 import { createScab } from '../game/scab.js';
 import { createTick } from '../game/tick.js';
 import { createWorldEvents } from '../game/worldEvents.js';
@@ -132,12 +137,15 @@ export class WorldRoom extends Room {
     this.heldPlots = new Map();  // profile id → key of their plot, while they're gone (oldest first)
     this.chatLog = [];
     this.dirty = false;
-    // The Boil, The Scab, The Gash and The Tick take turns.
+    // The world events take turns (WORLD_EVENT.order in @hptm/shared).
     this.worldEvents = createWorldEvents(EVENT_SCALE, {
       boil: (done) => createBoss(this, EVENT_SCALE, done),
       scab: (done) => createScab(this, EVENT_SCALE, done),
       gash: (done) => createGash(this, EVENT_SCALE, done),
       tick: (done) => createTick(this, EVENT_SCALE, done),
+      ingrown: (done) => createIngrown(this, EVENT_SCALE, done),
+      blackheads: (done) => createBlackheads(this, EVENT_SCALE, done),
+      lint: (done) => createLint(this, EVENT_SCALE, done),
     });
     this.boss = this.worldEvents.events.boil;
     this.rain = createRain(this, EVENT_SCALE);
@@ -171,6 +179,8 @@ export class WorldRoom extends Room {
     on('peel', (p) => this.handlePeel(p));
     on('pick', (p, m) => this.handlePick(p, m));
     on('pry', (p) => this.handlePry(p));
+    on('tug', (p, m) => this.handleTug(p, m));
+    on('squeeze', (p, m) => this.handleSqueeze(p, m));
     on('grab', (p, m) => this.handleGrab(p, m));
     on('setTitle', (p, m) => this.handleSetTitle(p, m));
     on('gift', (p, m) => this.handleGift(p, m));
@@ -1098,11 +1108,19 @@ export class WorldRoom extends Room {
     if (!Number.isInteger(id) || !this.arrived(player)) return;
     const glob = this.rain.grab(player, id);
     if (!glob) return;
-    player.currency += glob.scraps;
-    this.clientOf(player)?.send('gotGlob', { scraps: glob.scraps, gold: glob.gold });
+    // Navel lint, maybe with something in it.
+    const prize = glob.prize ?? {};
+    player.currency += glob.scraps + (prize.scraps ?? 0);
+    player.inventory.boil += prize.boil ?? 0;
+    player.inventory.fertilizer += prize.fertilizer ?? 0;
+    this.clientOf(player)?.send('gotGlob', { scraps: glob.scraps, gold: glob.gold, lint: glob.lint, prize: glob.prize });
     this.grantXp(player, XP.grab);
-    // (Blood from a torn scab isn't a Pus Rain glob.)
-    if (!glob.blood) {
+    if (glob.lint) {
+      this.bump(player, 'lint');
+      this.progress(player, 'boss');
+      if (prize.boil) this.announce(`${player.name} found a Boil Seed in the navel lint!`, 'legendary');
+    } else if (!glob.blood) {
+      // (Blood from a torn scab isn't a Pus Rain glob.)
       this.progress(player, 'grab');
       this.bump(player, 'globs');
     }
@@ -1192,7 +1210,7 @@ export class WorldRoom extends Room {
     const [topId] = [...pries.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
     const { scraps, xp, perPry, max } = TICK.reward;
     for (const [profileId, n] of pries) {
-      const player = Object.values(this.players).find((p) => p.profileId === profileId);
+      const player = this.playerByProfile(profileId);
       if (!player) continue;
       if (!headIn) this.bump(player, 'ticks');
       this.rewardEvent(player, {
@@ -1204,10 +1222,72 @@ export class WorldRoom extends Room {
     }
   }
 
-  rewardEvent(player, { kind, scraps, xp, seeds = 0, text }) {
+  // ---------- Ingrown Hair, Blackheads ----------
+
+  handleTug(player, message) {
+    if (!this.arrived(player)) return;
+    const result = this.worldEvents.events.ingrown.tug(player, message, Date.now());
+    if (!result?.tugged) return;
+    this.grantXp(player, XP.bossHit);
+    this.progress(player, 'boss');
+    this.sendMe(player);
+  }
+
+  // Out at last: everyone who tugged gets paid by how much they did, the most a Boil Seed.
+  finishIngrown({ x, y, last, tuggers }) {
+    this.broadcast('eventOver', { kind: 'ingrown', x, y });
+    this.announce(`${last.name} gave the last tug: out came a hair as long as your arm!`, 'boss');
+    const [topId] = [...tuggers.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+    const { scraps, xp, perTug, max } = INGROWN.reward;
+    for (const [profileId, n] of tuggers) {
+      const player = this.playerByProfile(profileId);
+      if (!player) continue;
+      if (n >= 2) this.bump(player, 'hairs');
+      this.rewardEvent(player, {
+        kind: 'ingrown', scraps: Math.min(max, scraps + perTug * n), xp: xp + perTug * n, seeds: profileId === topId && n >= 6 ? 1 : 0,
+        text: `The Ingrown Hair is out. You tugged ${n}×${profileId === topId && tuggers.size > 1 ? ', the most' : ''}.`,
+      });
+    }
+  }
+
+  handleSqueeze(player, { id }) {
+    if (Number.isInteger(id) && this.arrived(player)) this.worldEvents.events.blackheads.squeeze(player, id, Date.now());
+  }
+
+  squeezedBlackhead(player, { id }) {
+    player.currency += BLACKHEADS.squeeze.scraps;
+    this.bump(player, 'blackheads');
+    this.progress(player, 'boss');
+    this.grantXp(player, BLACKHEADS.squeeze.xp);
+    this.broadcast('squeezed', { id, by: player.id });
+    this.sendMe(player);
+  }
+
+  // All squeezed (or the rest sank back): the gunk makes fertilizer.
+  finishBlackheads({ x, y, squeezers }) {
+    this.broadcast('eventOver', { kind: 'blackheads', x, y });
+    if (!squeezers.size) return;
+    this.announce('The Blackheads are squeezed! The gunk makes good fertilizer.', 'boss');
+    for (const [profileId, n] of squeezers) {
+      const player = this.playerByProfile(profileId);
+      if (!player) continue;
+      const doses = Math.max(1, Math.floor(n / BLACKHEADS.fertilizerEvery));
+      this.rewardEvent(player, {
+        kind: 'blackheads', scraps: 0, xp: 5 * n, fertilizer: doses,
+        text: `You squeezed ${n}; the gunk made ${doses} dose${doses > 1 ? 's' : ''} of fertilizer.`,
+      });
+    }
+  }
+
+  playerByProfile(profileId) {
+    return Object.values(this.players).find((p) => p.profileId === profileId) ?? null;
+  }
+
+  rewardEvent(player, { kind, scraps, xp, seeds = 0, fertilizer = 0, text }) {
     player.currency += scraps;
     player.inventory.boil += seeds;
-    this.clientOf(player)?.send('eventReward', { kind, scraps, xp, seeds, text });
+    player.inventory.fertilizer += fertilizer;
+    this.clientOf(player)?.send('eventReward', { kind, scraps, xp, seeds, fertilizer, text });
     this.grantXp(player, xp);
     this.sendMe(player);
   }

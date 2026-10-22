@@ -66,9 +66,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   come back, head start included: "Neighbors squeezed your crops 3 times
   while you were gone." The world room is never disposed, so this holds
   even when everyone has left.
-- **World events.** One at a time, 4 minutes apart, taking turns: The Boil,
-  The Scab, The Gash, The Tick (`packages/shared/src/worldEvents.js`; each
-  is its own module in `packages/server/src/game/`, run by `worldEvents.js`).
+- **World events.** One at a time, 3 minutes apart, taking turns: The Boil
+  every third turn, and between them The Scab, The Gash, The Tick, Ingrown
+  Hair, Blackheads and Navel Lint (`WORLD_EVENT.order` in
+  `packages/shared/src/worldEvents.js`; each is its own module in
+  `packages/server/src/game/`, run by `worldEvents.js`).
   Each shows in the event pill (tap it to walk over), the minimap and an
   edge-of-screen arrow, and everything done at one counts for the "Help at
   world events" quests.
@@ -101,6 +103,23 @@ Timers are short on purpose while nothing persists. Rarities live in
   head stays in: no Boil Seed or title count, and it's back in 90 seconds,
   once (then the turns carry on). If nobody gets it, it drops off full after
   2 minutes. Tick Twister title for 5.
+- **Ingrown Hair.** Bulges up in the Scalp and throbs to a beat (a ring
+  closes in on it each beat). Tap on the beat to tug the hair out a little;
+  tap off it and it slips back. Everyone can tug once a beat, so a crowd in
+  time pulls it out fast: out comes a hair as long as your arm. Everyone who
+  tugged is paid by how many; the most (6+) gets a Boil Seed. The timing is
+  judged on the player's screen (it's the one that sees the beat); the server
+  takes one tug per player per beat, and only for a beat that's now or just
+  gone. Hair Puller title for 3.
+- **Blackheads.** A patch of them (8, plus 3 a player, up to 20) in the
+  Armpit. Hold a finger on one to squeeze it out; each comes out once, to
+  whoever's first. 2 scraps each, and the gunk makes fertilizer: a dose for
+  every 2 squeezed (at least one). Pore Squeezer title for 40.
+- **Navel Lint.** The Navel gurgles, then coughs lint over its plaza three
+  times, 6 seconds apart. Grab the balls (2 scraps each, like Pus Rain
+  globs but not counted as them); the glinting one in each cough has
+  something in it: 15 scraps, 2 doses of fertilizer, or a Boil Seed
+  (announced). Lint Picker title for 30.
 - **Pus Rain (event).** Every 5 minutes, for 45 seconds, globs of pus rain
   down around everyone online; tap one to run over and grab it (2 scraps, or
   10 for a rare gold one). Walking takes time (the same on every screen and
@@ -217,10 +236,11 @@ Timers are short on purpose while nothing persists. Rarities live in
   gives +20% scraps, 15% faster growth and double shiny luck, and every
   star adds another +5% scraps. Shown on album cards, on reveals, and when
   you switch.
-- **Titles.** Eighteen goals (harvest 25 and 150, squeeze 20, top The
+- **Titles.** Twenty-one goals (harvest 25 and 150, squeeze 20, top The
   Boil 3 times, grab 50 globs, grow 3 shinies, chat 50 times, give 10 gifts,
   scratch The Itch 5 times, bring 3 friends, catch 7 strays, peel 30 pieces
-  of scab, pick 40 crumbs, pry 5 ticks, 31 teeth in the
+  of scab, pick 40 crumbs, pry 5 ticks, pull 3 ingrown hairs, squeeze 40
+  blackheads, grab 30 balls of lint, 31 teeth in the
   Rotting Season, a 7-day streak, 15 characters, all of them) each earn a title, announced to the
   world. Wear one under your name; tap your card (top left) to see them all
   with progress and switch.
@@ -347,7 +367,8 @@ three plot-sore variants, pimples, a pustule, moles, hairs, slime and pus
 puddles, a candle, its flame, soft glow/spore sprites, and for the MMO layer
 The Boil, the scab over locked holes, goo droplets and the four seed icons,
 the other world events (The Scab in ten peelable pieces over raw skin, The
-Gash, its crumbs of crust, The Tick; `python tools/world.py gross`),
+Gash, its crumbs of crust, The Tick, an ingrown hair, a blackhead and its
+emptied pore, gunk, navel lint; `python tools/world.py gross`),
 plus the world's wildlife and landmarks (mites, a flea, the worm, the smear
 trail, freckles, warts, the Navel, the Eye, veins and a plinth).
 Each is a height map + color + gloss shaded with one warm key light from the

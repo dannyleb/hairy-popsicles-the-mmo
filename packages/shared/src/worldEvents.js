@@ -1,10 +1,14 @@
-// World events: one at a time, taking turns (The Boil first, then The Scab,
-// The Gash and The Tick), a few minutes apart. Everyone nearby joins in.
+// World events: one at a time, taking turns, a few minutes apart. The Boil
+// comes round every third turn; the rest in between. Everyone nearby joins in.
 export const WORLD_EVENT = {
   firstMs: 45_000,
-  everyMs: 4 * 60_000,   // after one ends, before the next
+  everyMs: 3 * 60_000,   // after one ends, before the next
   soonMs: 90_000,        // a Tick whose head stayed in comes back this soon
-  names: { boil: 'The Boil', scab: 'The Scab', gash: 'The Gash', tick: 'The Tick' },
+  order: ['boil', 'scab', 'gash', 'boil', 'tick', 'ingrown', 'boil', 'blackheads', 'lint'],
+  names: {
+    boil: 'The Boil', scab: 'The Scab', gash: 'The Gash', tick: 'The Tick',
+    ingrown: 'Ingrown Hair', blackheads: 'Blackheads', lint: 'Navel Lint',
+  },
 };
 
 // The Scab crusts over and dries. Hold a finger on it to peel a piece; one
@@ -43,4 +47,42 @@ export const TICK = {
   crowdMs: 2500,
   lastsMs: 120_000,
   reward: { scraps: 10, xp: 20, perPry: 2, max: 60 },
+};
+
+// An Ingrown Hair bulges up in the Scalp. It throbs to a beat: a tug on the
+// beat draws the hair out a little; one off the beat lets it slip back. Every
+// player can tug once a beat, so a crowd in time pulls it out fast.
+export const INGROWN = {
+  beatMs: 900,
+  window: 170,           // ms either side of a beat that still counts as on it
+  tugs: { base: 12, perPlayer: 6 },
+  lastsMs: 120_000,
+  reward: { scraps: 8, xp: 15, perTug: 2, max: 50 },
+};
+
+// A patch of Blackheads in the Armpit. Hold a finger on one to squeeze it out
+// (each one only once, so it's a race); the gunk makes fertilizer.
+export const BLACKHEADS = {
+  holdMs: 900,
+  count: { base: 8, perPlayer: 3, max: 20 },
+  spread: 150,           // px around the patch's middle
+  lastsMs: 120_000,
+  squeeze: { scraps: 2, xp: 3 },
+  fertilizerEvery: 2,    // a dose of fertilizer for every this many squeezed (at least one)
+};
+
+// The Navel coughs up lint, a few times over, all over its plaza: grab it.
+// One ball in each cough has something in it.
+export const LINT = {
+  coughs: 3,
+  coughEveryMs: 6000,
+  perCough: { base: 8, perPlayer: 3, max: 18 },
+  radius: 260,           // px from the Navel
+  lifeMs: 25_000,        // a ball lies there this long
+  scraps: 2,
+  prizes: [              // what's in the special one: [chance, prize]
+    [0.15, { boil: 1 }],
+    [0.35, { fertilizer: 2 }],
+    [0.5, { scraps: 15 }],
+  ],
 };

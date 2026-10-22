@@ -935,6 +935,103 @@ def gross():
     tick("tick", 98)
 
 
+# ---------- more world events: Ingrown Hair, Blackheads, Navel Lint ----------
+
+def ingrown(name, seed, n=192):
+    """An ingrown hair: a swollen red bump, a dark hair coiled under its stretched skin, a tip just poking out."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + (y * 1.1) ** 2) / 0.62
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.7
+    # The coil: a hair's path spiralling under the skin, seen through it.
+    img = Image.new("L", (n * 4, n * 4), 0)
+    draw = ImageDraw.Draw(img)
+    pts = []
+    for i in range(160):
+        t = i / 159
+        ang = t * np.pi * 4.2 + rng.uniform(-0.05, 0.05)
+        rad = 0.08 + 0.32 * t
+        pts.append(((1 + np.cos(ang) * rad) * n * 2, (1 + np.sin(ang) * rad * 0.9) * n * 2))
+    draw.line(pts, fill=255, width=10, joint="curve")
+    coil = gaussian_filter(np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255, 1.2) * np.clip(dome * 2, 0, 1)
+    tip = np.clip(1 - np.hypot(x - 0.36, y + 0.12) / 0.05, 0, 1)
+    h = 26 * dome + 2 * coil + 4 * tip
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.86, 0.28, 0.26]), np.clip(dome * 1.4, 0, 1))
+    albedo = mix(albedo, np.array([0.95, 0.85, 0.62]), np.clip((dome - 0.75) * 3, 0, 1) * 0.6)   # a pale tight top
+    albedo = mix(albedo, np.array([0.16, 0.09, 0.08]), np.clip(coil * 0.75 + tip, 0, 1))
+    color = shade(h, albedo, 0.4 + 1.2 * dome, bump=0.8, shine=110, ao=0.05, sss=0.8)
+    alpha = np.clip((1.35 - r) * 3, 0, 1)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 5, 7, 5, 0.4) * (1 - alpha)
+    rgb, a = composite(tone(color), alpha, shadow)
+    return save(rgb, name, a)
+
+
+def blackhead(name, seed, n=64, emptied=False):
+    """A blackhead: a little raised pore on oily skin, plugged dark (or, emptied, a sore pink pit)."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    r = np.sqrt(x * x + y * y) / 0.55
+    dome = np.clip(1 - r ** 2, 0, 1) ** 0.8
+    plug = np.clip(1 - np.sqrt(x * x + y * y) / 0.2, 0, 1) ** 0.5
+    h = 7 * dome - (6 if emptied else -2) * plug + 0.6 * spectral(n, rng, 2.5, fmax=12 / n) * dome
+    albedo = mix(np.broadcast_to(SKIN, (n, n, 3)), np.array([0.80, 0.42, 0.38] if emptied else [0.74, 0.50, 0.42]), np.clip(dome * 1.2, 0, 1))
+    albedo = mix(albedo, np.array([0.55, 0.12, 0.14] if emptied else [0.10, 0.08, 0.06]), np.clip(plug * 1.5, 0, 1))
+    color = shade(h, albedo, 0.8 + 1.0 * dome, bump=1.0, shine=120, ao=0.1)   # oily
+    alpha = np.clip((1.2 - r) * 3, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def gunk(name, seed, w=128, h=48):
+    """What comes out of a blackhead: a curled worm of waxy yellow-white gunk with a dark tip."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    u = xx / w
+    path = h / 2 + 0.22 * h * np.sin(u * np.pi * 1.6 + 0.4)
+    thick = 0.22 * h * (0.55 + 0.45 * np.sin(np.pi * np.clip(u * 0.9 + 0.1, 0, 1)))
+    d = np.abs(yy - path) / thick
+    tube = np.clip(1 - d ** 2, 0, 1) ** 0.5 * np.clip(u * 12, 0, 1) * np.clip((1 - u) * 14, 0, 1)
+    height = 8 * tube
+    albedo = mix(np.broadcast_to(np.array([0.95, 0.88, 0.66]), (h, w, 3)), np.array([0.82, 0.72, 0.46]), np.clip(0.5 + 0.5 * np.sin(u * 30), 0, 1) * 0.3)
+    albedo = mix(albedo, np.array([0.12, 0.09, 0.06]), np.clip((u - 0.86) * 9, 0, 1))
+    color = shade(height, albedo, 0.9 * tube, bump=1.0, shine=80, ao=0.0, sss=0.6)
+    alpha = np.clip(tube * 4, 0, 1)
+    return save(tone(color), name, alpha)
+
+
+def lint(name, seed, n=64, tint=(0.58, 0.62, 0.74)):
+    """A ball of navel lint: grey-blue fluff, fibres sticking out every which way."""
+    rng = np.random.default_rng(seed)
+    x, y = field(n)
+    img = Image.new("L", (n * 4, n * 4), 0)
+    draw = ImageDraw.Draw(img)
+    for _ in range(140):
+        a = rng.uniform(0, 2 * np.pi)
+        r0 = rng.uniform(0, 0.4)
+        r1 = r0 + rng.uniform(0.15, 0.55)
+        bend = rng.normal(0, 0.5)
+        p0 = ((1 + np.cos(a) * r0) * n * 2, (1 + np.sin(a) * r0) * n * 2)
+        p1 = ((1 + np.cos(a + bend) * min(r1, 0.92)) * n * 2, (1 + np.sin(a + bend) * min(r1, 0.92)) * n * 2)
+        draw.line([p0, p1], fill=255, width=3)
+    fibres = np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
+    r = np.sqrt(x * x + y * y)
+    core = np.clip(1 - r / 0.45, 0, 1) ** 0.7
+    body = np.clip(core * 1.4 + fibres * 0.9, 0, 1)
+    h = 6 * core + 2 * fibres
+    albedo = mix(np.broadcast_to(np.array(tint), (n, n, 3)), np.array([0.85, 0.85, 0.88]), np.clip(fibres * 0.6, 0, 1))
+    color = shade(h, albedo, 0.2, bump=0.8, shine=20, ao=0.3)
+    shadow = shadow_of(core, n, 2, 3, 2, 0.35) * (1 - body)
+    rgb, a = composite(tone(color), body, shadow)
+    return save(rgb, name, a)
+
+
+def gross_more():
+    ingrown("ingrown", 101)
+    blackhead("blackhead", 102)
+    blackhead("pore", 102, emptied=True)
+    gunk("gunk", 103)
+    lint("lint", 104)
+
+
 def main():
     if sys.argv[1:] == ["ground"]:
         return ground()
@@ -943,7 +1040,7 @@ def main():
     if sys.argv[1:] == ["life"]:
         return life()
     if sys.argv[1:] == ["gross"]:
-        return gross()
+        return gross(), gross_more()
     ground()
     macro()
     for i, seed in enumerate([101, 102, 103]):
@@ -966,6 +1063,7 @@ def main():
     events()
     life()
     gross()
+    gross_more()
 
 
 def events():

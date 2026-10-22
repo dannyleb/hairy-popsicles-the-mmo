@@ -8,6 +8,7 @@ import {
   REGIONS,
   PLOT_SIZE,
   RARITY_ORDER,
+  BLACKHEADS,
   REACH,
   SCAB,
   SEEDS,
@@ -262,10 +263,30 @@ export class WorldScene extends Phaser.Scene {
       const avatar = this.avatars.get(by);
       if (avatar) this.drops.grabbed(id, avatar.container);
     });
-    on('gotGlob', ({ scraps, gold }) => {
+    on('gotGlob', ({ scraps, gold, lint, prize }) => {
       const me = this.me();
-      sfx.bloop(gold);
+      sfx.bloop(gold || Boolean(prize));
       if (me) this.fx.float(me.x, me.y - AVATAR_SIZE - 4, `+${scraps}`, { color: gold ? '#ffe08a' : '#f3d27a', size: gold ? 24 : 18 });
+      if (lint && prize) {
+        const found = prize.boil ? 'a Boil Seed!' : prize.fertilizer ? `${prize.fertilizer} doses of fertilizer.` : `${prize.scraps} more scraps.`;
+        this.hud.toast(`Something in the lint: ${found}`, { color: '#ffe08a' });
+        sfx.discover();
+        if (prize.boil) this.hud.selectSeed('boil');
+      }
+    });
+    on('navelGurgle', () => {
+      this.landmarks.heave(this.time.now, 1800);
+      sfx.gurgle();
+    });
+    on('navelCough', () => {
+      const at = this.landmarks.heave(this.time.now);
+      sfx.cough();
+      this.fx.ring(at.x, at.y, { color: 0xc8d0e8, size: 320, duration: 500 });
+      if (!settings.get('calm')) this.cameras.main.shake(200, 0.004);
+    });
+    on('squeezed', ({ id }) => {
+      this.eventViews.squeezed(id);
+      sfx.squelch();
     });
     on('save', ({ token }) => storeProfile(token));
     on('notice', this.onNotice);
@@ -436,6 +457,9 @@ export class WorldScene extends Phaser.Scene {
     const kind = this.state.event?.kind;
     if (kind === 'scab') this.hud.tip('scab', 'The Scab: let it dry, then hold your finger on it to peel a piece. Whoever peels the last piece finds a character under it.');
     if (kind === 'gash') this.hud.tip('gash', 'The Gash: tap the crumbs of crust to pick them out. The dark ones need two players tapping at once.');
+    if (kind === 'ingrown') this.hud.tip('ingrown', 'Ingrown Hair: tap it just as the ring closes in on the throb to tug the hair out. Off the beat, it slips back. Tug in time together and it comes out fast.');
+    if (kind === 'blackheads') this.hud.tip('blackheads', 'Blackheads: hold your finger on one to squeeze it out. Each comes out once, so be quick. The gunk makes fertilizer.');
+    if (kind === 'lint') this.hud.tip('lint', 'The Navel is coughing up lint: grab the balls. The glinting one has something in it.');
     if (kind === 'tick') this.hud.tip('tick', 'The Tick: the crops near it stop growing while it feeds. Tap it to pry it off; the more of you at once, the faster.');
     if (this.private.currency >= 120) this.hud.tip('shop', 'Scraps to spare? The bag (top right) is the shop: fertilizer, candles for your plot, a name color.');
     if (this.private.level >= 2 && Object.keys(this.state.players).length <= 3) {
@@ -580,8 +604,9 @@ export class WorldScene extends Phaser.Scene {
   onPointerDown(pointer) {
     this.pendingTaps ??= new Map();
     this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y });
-    if (!this.hold && this.state && this.private && !this.hud.blocking() && this.eventViews.at(pointer.worldX, pointer.worldY)?.kind === 'scab') {
-      this.hold = { id: pointer.id, x: pointer.worldX, y: pointer.worldY, sx: pointer.x, sy: pointer.y, since: null, peeled: 0 };
+    const held = !this.hold && this.state && this.private && !this.hud.blocking() && this.eventViews.at(pointer.worldX, pointer.worldY);
+    if (held && (held.kind === 'scab' || held.kind === 'blackheads')) {
+      this.hold = { id: pointer.id, kind: held.kind, head: held.head ?? null, x: pointer.worldX, y: pointer.worldY, sx: pointer.x, sy: pointer.y, since: null, peeled: 0 };
     }
     const fingers = this.fingersDown();
     if (fingers.length >= 2 && !this.pinch) {
@@ -687,6 +712,18 @@ export class WorldScene extends Phaser.Scene {
       if (!this.heldPeels) this.hud.toast('Hold your finger on The Scab to peel a piece off.');
       return;
     }
+    if (hit.kind === 'blackheads') {
+      if (!this.heldPeels) this.hud.toast('Hold your finger on a blackhead to squeeze it out.');
+      return;
+    }
+    if (hit.kind === 'ingrown') {
+      // A tug only once you're there, judged against the beat on this screen.
+      if (Date.now() < this.arrivesAt) return;
+      const beat = this.eventViews.judgeTug(this.now());
+      this.room.send('tug', beat ? { beat } : { miss: true });
+      (beat ? sfx.tug : sfx.slip)();
+      return;
+    }
     this.eventViews.nudge(hit);
     if (hit.kind === 'gash') {
       sfx.crunch();
@@ -697,22 +734,23 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  // A finger held still on The Scab: once you're beside it, a ring fills, and
-  // each time it does a piece comes off.
+  // A finger held still on The Scab or a blackhead: once you're beside it, a
+  // ring fills, and when it's full a piece of scab comes off (and again, for as
+  // long as the finger stays) or the blackhead is squeezed out.
   updateHold(time) {
     const hold = this.hold;
     if (!hold) return;
     const pointer = [this.input.pointer1, this.input.pointer2, this.input.mousePointer].find((p) => p?.id === hold.id);
     const moved = pointer && Phaser.Math.Distance.Between(pointer.x, pointer.y, hold.sx, hold.sy) > TAP_SLOP * renderScale();
-    if (!pointer?.isDown || moved || this.pinch || this.eventViews.kind() !== 'scab' || this.hud.blocking()) {
-      this.hold = null;
+    if (!pointer?.isDown || moved || this.pinch || this.eventViews.kind() !== hold.kind || hold.done || hold.head?.out || this.hud.blocking()) {
       this.eventViews.holding(null);
+      if (!pointer?.isDown || moved || this.pinch) this.hold = null;
       return;
     }
-    const at = this.eventViews.position();
+    const at = hold.head ?? this.eventViews.position();
     const me = this.myTarget();
     if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 15) {
-      this.walkNear(at, 85);
+      this.walkNear(at, hold.head ? 30 : 85);
       hold.since = null;
     }
     if (Date.now() < this.arrivesAt) {
@@ -720,12 +758,16 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     hold.since ??= time;
-    const k = (time - hold.since) / SCAB.holdMs;
+    const k = (time - hold.since) / (hold.kind === 'scab' ? SCAB.holdMs : BLACKHEADS.holdMs);
     this.eventViews.holding({ x: hold.x, y: hold.y }, k);
-    if (k >= 1) {
+    if (k < 1) return;
+    hold.peeled++;
+    if (hold.kind === 'scab') {
       this.room.send('peel');
-      hold.peeled++;
       hold.since = time;
+    } else {
+      this.room.send('squeeze', { id: hold.head.id });
+      hold.done = true;
     }
   }
 
@@ -1511,9 +1553,10 @@ export class WorldScene extends Phaser.Scene {
     this.syncAvatars();
   }
 
-  onEventReward({ text, scraps, xp, seeds }) {
-    const parts = [`+${scraps} scraps`, `+${xp} xp`];
+  onEventReward({ text, scraps, xp, seeds, fertilizer }) {
+    const parts = [...(scraps ? [`+${scraps} scraps`] : []), `+${xp} xp`];
     if (seeds) parts.push(`+${seeds} Boil Seed`);
+    if (fertilizer) parts.push(`+${fertilizer} fertilizer`);
     this.hud.announce(`${text} ${parts.join(' · ')}`, seeds ? 'legendary' : 'quest');
     if (seeds) {
       this.hud.selectSeed('boil');
@@ -1660,6 +1703,13 @@ export class WorldScene extends Phaser.Scene {
     this.bossView.update(time);
     this.eventViews.update(time, now, calm);
     this.updateHold(time);
+    // A soft knock on each beat of an Ingrown Hair, while it's in view.
+    const beat = this.eventViews.beat(now);
+    if (beat !== null && beat !== this.lastBeat) {
+      this.lastBeat = beat;
+      const at = this.eventViews.position();
+      if (beat > 0 && camera.worldView.contains(at.x, at.y)) sfx.beat();
+    }
     this.drops.update(time);
     for (const { candles } of this.plots.values()) {
       for (const c of candles ?? []) {
