@@ -2,7 +2,8 @@
 // coming back gets this rather than the save their device sends, which can be
 // older: the last update before leaving may not have arrived, or a player may
 // keep an old copy to replay (say, to give the same character away twice).
-// Kept in memory, so a server restart forgets it and the device's save is used.
+// Kept in memory, so a server restart forgets it; after that the database's
+// copy (db.js) is used if it's newer than the device's.
 const KEEP_MS = 3 * 24 * 60 * 60_000;
 // Players who got somewhere, and those who haven't yet, kept apart: a flood of
 // throwaway players can only push out each other, never anyone with progress.

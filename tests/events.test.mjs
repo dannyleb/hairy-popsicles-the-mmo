@@ -15,7 +15,7 @@ const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'} 
 // ---- The Tick's head, without a server: pried alone with others around, it's back soon
 function tickWorld(players) {
   const room = { players: {}, plots: {}, said: [], over: [], announce(t) { this.said.push(t); }, markDirty() {}, finishTick(r) { this.over.push(r); } };
-  for (const id of players) room.players[id] = { id, profileId: `save-${id}`, x: 0, y: 0 };
+  for (const id of players) room.players[id] = { id, profileId: `save-${id}`, x: 0, y: 0, activeAt: Date.now() };
   let ended = null;
   const tick = createTick(room, 1, (now, opts) => { ended = opts ?? {}; });
   let now = Date.now();

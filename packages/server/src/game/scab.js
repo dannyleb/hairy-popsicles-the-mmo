@@ -1,6 +1,7 @@
 import { REACH, SCAB } from '@hptm/shared';
 import { pick } from './roll.js';
 import { clearOfPlots, present, spotNear } from './spots.js';
+import { addTo } from './tally.js';
 
 const CLEARANCE = 110;  // px from its middle to the nearest plot
 const PEEL_GAP_MS = SCAB.holdMs - 80;  // a finger held on it for holdMs, allowing for the network
@@ -41,8 +42,6 @@ export function createScab(room, scale, done) {
       return scab && { kind: 'scab', x: scab.x, y: scab.y, pieces: scab.pieces, ripeAt: scab.ripeAt, expiresAt: scab.expiresAt };
     },
 
-    position: () => scab,
-
     tick(now) {
       if (!scab || now < scab.expiresAt) return;
       room.announce('The Scab flaked off on its own.', 'boss');
@@ -53,7 +52,7 @@ export function createScab(room, scale, done) {
 
     renamePlayer(oldId, newId) {
       if (!scab?.peelers.has(oldId)) return;
-      scab.peelers.set(newId, (scab.peelers.get(newId) ?? 0) + scab.peelers.get(oldId));
+      addTo(scab.peelers, newId, scab.peelers.get(oldId));
       scab.peelers.delete(oldId);
     },
 
@@ -77,7 +76,7 @@ export function createScab(room, scale, done) {
       player.lastPeelAt = now;
       const torn = now < scab.ripeAt;
       scab.pieces[piece] = torn ? 2 : 1;
-      scab.peelers.set(player.id, (scab.peelers.get(player.id) ?? 0) + 1);
+      addTo(scab.peelers, player.id);
       const at = { x: scab.x, y: scab.y };
       const last = !scab.pieces.includes(0);
       room.peeledScab(player, { piece, torn, at });

@@ -1,6 +1,7 @@
 import { INGROWN, REACH } from '@hptm/shared';
 import { spotInRegion } from './regionSpot.js';
 import { present } from './spots.js';
+import { addTo } from './tally.js';
 
 const CLEARANCE = 80;     // px from its middle to the nearest plot
 const LATE_MS = 600;      // a tug may arrive this long after its beat (the trip here)
@@ -61,10 +62,14 @@ export function createIngrown(room, scale, done) {
     // { tugged } or { slipped }, or null for nothing.
     tug(player, { beat, miss }, now) {
       if (!hair || Math.hypot(player.x - hair.x, player.y - hair.y) > REACH) return null;
+      // A slip takes back one of your own tugs, so nobody can hold the hair in
+      // for everyone else.
       if (miss === true) {
         const beatNow = Math.round((now - hair.startAt) / INGROWN.beatMs);
-        if ((hair.lastSlip.get(player.profileId) ?? -1) >= beatNow) return null;
+        const own = hair.tuggers.get(player.profileId) ?? 0;
+        if (own <= 0 || (hair.lastSlip.get(player.profileId) ?? -1) >= beatNow) return null;
         hair.lastSlip.set(player.profileId, beatNow);
+        hair.tuggers.set(player.profileId, own - 1);
         hair.pulled = Math.max(0, hair.pulled - 1);
         room.markDirty();
         return { slipped: true };
@@ -74,7 +79,7 @@ export function createIngrown(room, scale, done) {
       if (now < at - INGROWN.window - 100 || now > at + INGROWN.window + LATE_MS) return null;
       if ((hair.lastBeat.get(player.profileId) ?? 0) >= beat) return null;
       hair.lastBeat.set(player.profileId, beat);
-      hair.tuggers.set(player.profileId, (hair.tuggers.get(player.profileId) ?? 0) + 1);
+      addTo(hair.tuggers, player.profileId);
       hair.pulled += 1;
       if (hair.pulled >= hair.need) finish(now, player);
       else room.markDirty();

@@ -30,7 +30,8 @@ import {
   TEND_MAX,
   TEND_SCRAPS,
   TEND_SHARE,
-  TILE_SIZE,
+  PLOT_PX,
+  slotCenter,
   ARRIVAL_SLACK_MS,
   travelMs,
   WORLD_HEIGHT_PLOTS,
@@ -73,6 +74,7 @@ import { cleanName, inviteCode, newProfileId, publicIdOf, readInviteCode, readTo
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
 import { clientAddress } from '../net.js';
+import { topOf } from '../game/tally.js';
 import { recordArrival, recordJoin, recordOnline, recordSession, recordStage } from '../stats.js';
 
 const { Room, ServerError } = colyseus;
@@ -117,11 +119,16 @@ const BLOOD_MOON = { firstMs: 150_000, everyMs: 9 * 60_000, lastsMs: 90_000 };
 // Pretend it's this (UTC) day for seasons, e.g. SEASON_DAY=2026-10-25 for testing.
 const today = () => process.env.SEASON_DAY || dayOf(Date.now());
 
+// Into the database from level 2: a throwaway player who planted once can't
+// fill it up.
+const worthStoring = (player) => levelFor(player.xp) >= 2;
+
 const rank = (characterId) => RARITY_ORDER.indexOf(CHARACTER_BY_ID[characterId].rarity);
 
-// v1: state is a plain object broadcast in full when it changes (at most every
-// BROADCAST_MS). Per-player data (scraps, collection, quests) goes only to that
-// player. Swap for @colyseus/schema delta sync once crowds make this expensive.
+// v1: state is a plain object broadcast when it changes (at most every
+// BROADCAST_MS), plots only when they changed (see flush). Per-player data
+// (scraps, collection, quests) goes only to that player. Swap for
+// @colyseus/schema delta sync once crowds make this expensive.
 export class WorldRoom extends Room {
   maxClients = 300;
 
@@ -161,6 +168,7 @@ export class WorldRoom extends Room {
     const on = (type, handler) => this.onMessage(type, (client, message) => {
       const player = this.players[client.sessionId];
       if (!player || !this.withinBudget(player)) return;
+      player.activeAt = Date.now();  // see present() in game/spots.js
       try {
         handler(player, message !== null && typeof message === 'object' ? message : {}, client);
       } catch (error) {
@@ -212,12 +220,15 @@ export class WorldRoom extends Room {
   }
 
   // Seats are shared out by network, so one person can't fill the world with
-  // players of their own. (A reconnection skips this, but keeps the address.)
+  // players of their own. Players held while their phone is away count too:
+  // they keep their seat. (Coming back to one of them doesn't take another,
+  // and a reconnection skips this altogether, keeping the network.)
   onAuth(client, options, request) {
-    const { address } = clientAddress(request);
-    const here = this.clients.filter((c) => c.auth?.address === address).length;
+    const { network } = clientAddress(request);
+    const returning = readToken(options?.profile)?.id;
+    const here = Object.values(this.players).filter((p) => p.network === network && p.profileId !== returning).length;
     if (here >= SEATS_PER_ADDRESS) throw new ServerError(429, 'Too many players from your network right now. Try again later.');
-    return { address };
+    return { network };
   }
 
   guarded(name, run) {
@@ -232,14 +243,21 @@ export class WorldRoom extends Room {
     let save = readToken(options?.profile);
     // If this player left earlier, the server's copy of their save is the
     // newest: in memory while the server's been up, or else in the database
-    // if that's newer than the one the device sent.
-    const latest = save && (takeDeparture(save.id) ?? await this.storedNewerThan(save));
+    // if that's newer than the one the device sent. Memory is looked at again
+    // once the database answers: the player may have left in the meantime
+    // (say, a gift and then a leave), and their save from then is the newest.
+    let latest = save && takeDeparture(save.id);
+    if (save && !latest) {
+      const stored = await this.storedNewerThan(save);
+      latest = takeDeparture(save.id) ?? stored;
+    }
     if (latest) save = readToken(latest) ?? save;
     // (Nothing below waits, so two joins with one save can't both get past this.)
     // The same save already in the world (a reload, a second tab, or a dropped
     // phone coming back as a new connection): carry on as that player.
     const existing = save && Object.values(this.players).find((p) => p.profileId === save.id);
     const player = existing ? this.takeOver(existing, client) : this.createPlayer(client, save);
+    player.network = client.auth?.network ?? null;
     const name = cleanName(options?.name);
     if (name) this.rename(player, name);
     noteName(player.pid, player.name);
@@ -278,7 +296,7 @@ export class WorldRoom extends Room {
   store(player) {
     player.unstored = false;
     player.storedAt = Date.now();
-    if (player.xp <= 0) return Promise.resolve();
+    if (!worthStoring(player)) return Promise.resolve();
     const [key, plot] = this.plotOf(player);
     return storeSave(player.profileId, saveToken(player, plot, key));
   }
@@ -377,6 +395,7 @@ export class WorldRoom extends Room {
       arrivesAt: 0,
       budget: MESSAGES.burst,
       budgetAt: Date.now(),
+      activeAt: Date.now(),
       away: false,
     };
     if (save) {
@@ -422,9 +441,8 @@ export class WorldRoom extends Room {
     if (!held) this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots, candles: save.plot.candles };
     const plot = this.plots[key];
     const [px, py] = key.split(',').map(Number);
-    const plotPx = PLOT_SIZE * TILE_SIZE;
-    player.x = px * plotPx + plotPx / 2;
-    player.y = (py + 1) * plotPx + 26;
+    player.x = px * PLOT_PX + PLOT_PX / 2;
+    player.y = (py + 1) * PLOT_PX + 26;
 
     const now = Date.now();
     const crops = plot.slots.filter(Boolean);
@@ -499,7 +517,7 @@ export class WorldRoom extends Room {
     player.reconnection?.reject?.();
     this.clients.getById(oldId)?.leave(REPLACED);
     delete this.players[oldId];
-    Object.assign(player, { id: newId, away: false, awaySince: null, reconnection: null, synced: false });
+    Object.assign(player, { id: newId, away: false, awaySince: null, reconnection: null, synced: false, activeAt: Date.now() });
     this.players[newId] = player;
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
@@ -620,7 +638,7 @@ export class WorldRoom extends Room {
     const [plotKey, plot] = this.plotOf(player);
     const token = saveToken(player, plot, plotKey);
     rememberDeparture(player.profileId, token, player.xp > 0);
-    if (player.xp > 0) storeSave(player.profileId, token);
+    if (worthStoring(player)) storeSave(player.profileId, token);
     delete this.players[client.sessionId];
     recordSession((player.awaySince ?? Date.now()) - player.joinedAt);
     recordOnline(Object.keys(this.players).length);
@@ -796,15 +814,6 @@ export class WorldRoom extends Room {
     }
   }
 
-  slotCenter(plotKey, slot) {
-    const [px, py] = plotKey.split(',').map(Number);
-    const plotPx = PLOT_SIZE * TILE_SIZE;
-    return {
-      x: px * plotPx + (slot % PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2,
-      y: py * plotPx + Math.floor(slot / PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2,
-    };
-  }
-
   plotAt(plotKey, slot) {
     const plot = typeof plotKey === 'string' && Object.hasOwn(this.plots, plotKey) ? this.plots[plotKey] : null;
     if (!plot || !Number.isInteger(slot) || slot < 0 || slot >= plot.slots.length) return null;
@@ -813,14 +822,25 @@ export class WorldRoom extends Room {
 
   // ---------- handlers ----------
 
+  // A walk is timed from wherever they are along the last one, not from its
+  // end: otherwise a string of short hops would count as there already.
   handleMove(player, { x, y }) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const now = Date.now();
+    const from = this.walkingAt(player, now);
     const toX = Math.min(WORLD_PX, Math.max(0, x));
     const toY = Math.min(WORLD_PX, Math.max(0, y));
-    player.arrivesAt = Date.now() + travelMs(Math.hypot(toX - player.x, toY - player.y));
+    Object.assign(player, { fromX: from.x, fromY: from.y, leftAt: now, arrivesAt: now + travelMs(Math.hypot(toX - from.x, toY - from.y)) });
     player.x = toX;
     player.y = toY;
     this.markDirty();
+  }
+
+  walkingAt(player, now) {
+    const span = player.arrivesAt - player.leftAt;
+    if (!(span > 0) || now >= player.arrivesAt) return { x: player.x, y: player.y };
+    const k = Math.max(0, (now - player.leftAt) / span);
+    return { x: player.fromX + (player.x - player.fromX) * k, y: player.fromY + (player.y - player.fromY) * k };
   }
 
   // Still walking over? Then you can't grab, squeeze or hit anything there yet.
@@ -964,7 +984,7 @@ export class WorldRoom extends Room {
     // Squeezers are remembered by save (its public id, as everyone sees these), not
     // connection, so leaving and coming back doesn't reset it.
     if (crop.tendedBy.includes(player.pid) || crop.tendedBy.length >= TEND_MAX) return;
-    const at = this.slotCenter(plotKey, slot);
+    const at = slotCenter(plotKey, slot);
     if (Math.hypot(player.x - at.x, player.y - at.y) > REACH || !this.arrived(player)) return;
 
     crop.readyAt -= (crop.readyAt - now) * TEND_SHARE;
@@ -1066,7 +1086,7 @@ export class WorldRoom extends Room {
       plot.candles = (plot.candles ?? 0) + 1;
       this.markDirty();
     } else if (item === 'color') {
-      if (!Object.hasOwn(NAME_COLORS, color) || SEASON_COLORS.has(color) || player.colors.includes(color)) return;
+      if (typeof color !== 'string' || !Object.hasOwn(NAME_COLORS, color) || SEASON_COLORS.has(color) || player.colors.includes(color)) return;
       player.colors.push(color);
       player.nameColor = color;
       this.markDirty();
@@ -1180,7 +1200,7 @@ export class WorldRoom extends Room {
   }
 
   finishGash({ x, y, angle, pickers }) {
-    const [topId] = [...pickers.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+    const topId = topOf(pickers);
     this.broadcast('eventOver', { kind: 'gash', x, y, angle });
     this.announce(`The Gash is clean and closing up! ${this.players[topId]?.name ?? 'Someone'} picked the most.`, 'boss');
     for (const [id, picked] of pickers) {
@@ -1207,14 +1227,14 @@ export class WorldRoom extends Room {
   finishTick({ x, y, pries, pried, headIn }) {
     this.broadcast('eventOver', { kind: 'tick', x, y, pried });
     if (!pried) return;
-    const [topId] = [...pries.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
-    const { scraps, xp, perPry, max } = TICK.reward;
+    const topId = topOf(pries);
+    const { scraps, xp, perPry, max, maxXp } = TICK.reward;
     for (const [profileId, n] of pries) {
       const player = this.playerByProfile(profileId);
       if (!player) continue;
       if (!headIn) this.bump(player, 'ticks');
       this.rewardEvent(player, {
-        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: xp + perPry * n,
+        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: Math.min(maxXp, xp + perPry * n),
         seeds: !headIn && profileId === topId && n >= 5 ? 1 : 0,
         text: headIn ? `The Tick is off, but its head stayed in. You pried ${n}×.`
           : `The Tick is off. You pried ${n}×${profileId === topId && pries.size > 1 ? ', the most' : ''}.`,
@@ -1237,14 +1257,14 @@ export class WorldRoom extends Room {
   finishIngrown({ x, y, last, tuggers }) {
     this.broadcast('eventOver', { kind: 'ingrown', x, y });
     this.announce(`${last.name} gave the last tug: out came a hair as long as your arm!`, 'boss');
-    const [topId] = [...tuggers.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
-    const { scraps, xp, perTug, max } = INGROWN.reward;
+    const topId = topOf(tuggers);
+    const { scraps, xp, perTug, max, maxXp } = INGROWN.reward;
     for (const [profileId, n] of tuggers) {
       const player = this.playerByProfile(profileId);
-      if (!player) continue;
+      if (!player || n <= 0) continue;  // every tug they made slipped back
       if (n >= 2) this.bump(player, 'hairs');
       this.rewardEvent(player, {
-        kind: 'ingrown', scraps: Math.min(max, scraps + perTug * n), xp: xp + perTug * n, seeds: profileId === topId && n >= 6 ? 1 : 0,
+        kind: 'ingrown', scraps: Math.min(max, scraps + perTug * n), xp: Math.min(maxXp, xp + perTug * n), seeds: profileId === topId && n >= 6 ? 1 : 0,
         text: `The Ingrown Hair is out. You tugged ${n}×${profileId === topId && tuggers.size > 1 ? ', the most' : ''}.`,
       });
     }

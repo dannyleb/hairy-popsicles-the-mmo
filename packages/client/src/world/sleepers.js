@@ -1,6 +1,7 @@
+import { PLOT_PX } from '@hptm/shared';
 import { textResolution } from '../display.js';
 import { isPal } from '../ui/pals.js';
-import { FONT, PLOT_PIXELS } from './layout.js';
+import { FONT } from './layout.js';
 
 // Players who are away nap beside the plot the world is keeping for them:
 // lying on their side, breathing, with a z drifting up now and then. Even with
@@ -15,8 +16,8 @@ export function createSleepers(scene) {
   function make(key, plot) {
     const [px, py] = key.split(',').map(Number);
     // At the plot's front edge, toward the right, out of the way of its holes.
-    const x = px * PLOT_PIXELS + PLOT_PIXELS * 0.7;
-    const y = (py + 1) * PLOT_PIXELS + 16;
+    const x = px * PLOT_PX + PLOT_PX * 0.7;
+    const y = (py + 1) * PLOT_PX + 16;
     const shadow = scene.add.image(0, 0, 'world:glow').setTint(0x000000).setAlpha(0.5).setDisplaySize(58, 12);
     // Lying on their side: the texture's feet are at its bottom, so it tips over onto its back edge.
     const image = scene.add.image(0, -4, `char:${plot.ownerAvatar}`).setOrigin(0.5, 0.75).setRotation(-Math.PI / 2 + 0.12)

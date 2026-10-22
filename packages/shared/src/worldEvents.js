@@ -1,3 +1,5 @@
+import { slotCenter } from './constants.js';
+
 // World events: one at a time, taking turns, a few minutes apart. The Boil
 // comes round every third turn; the rest in between. Everyone nearby joins in.
 export const WORLD_EVENT = {
@@ -46,8 +48,25 @@ export const TICK = {
   pry: { base: 30, perPlayer: 15 },
   crowdMs: 2500,
   lastsMs: 120_000,
-  reward: { scraps: 10, xp: 20, perPry: 2, max: 60 },
+  reward: { scraps: 10, xp: 20, perPry: 2, max: 60, maxXp: 70 },
 };
+
+// The crops The Tick (at `at`) feeds on: those of players who are here, within
+// its reach and still growing as of `since`. Server and client both work it
+// out, so they agree on it: [{ crop, owner, x, y }].
+export function tickFeedsOn(plots, players, at, since) {
+  const crops = [];
+  for (const [key, plot] of Object.entries(plots)) {
+    const owner = players[plot.ownerId];
+    if (!owner || owner.away) continue;
+    plot.slots.forEach((crop, slot) => {
+      if (!crop || crop.readyAt <= since) return;
+      const { x, y } = slotCenter(key, slot);
+      if (Math.hypot(x - at.x, y - at.y) <= TICK.reach) crops.push({ crop, owner, x, y });
+    });
+  }
+  return crops;
+}
 
 // An Ingrown Hair bulges up in the Scalp. It throbs to a beat: a tug on the
 // beat draws the hair out a little; one off the beat lets it slip back. Every
@@ -57,7 +76,7 @@ export const INGROWN = {
   window: 170,           // ms either side of a beat that still counts as on it
   tugs: { base: 12, perPlayer: 6 },
   lastsMs: 120_000,
-  reward: { scraps: 8, xp: 15, perTug: 2, max: 50 },
+  reward: { scraps: 8, xp: 15, perTug: 2, max: 50, maxXp: 60 },
 };
 
 // A patch of Blackheads in the Armpit. Hold a finger on one to squeeze it out

@@ -8,7 +8,9 @@ const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm:
 
 function load() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') };
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? '{}');
+    delete stored.sharp;  // the old name for fullSharpness, not carried over
+    return { ...DEFAULTS, ...stored };
   } catch {
     return { ...DEFAULTS };
   }

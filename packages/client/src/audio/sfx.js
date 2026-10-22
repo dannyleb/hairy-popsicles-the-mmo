@@ -168,10 +168,6 @@ const SOUNDS = {
     burst(1800, 4, 0.05, 0.3, 'bandpass');
     tone('sine', 900, 300, 0.05, 0.12);
   },
-  // A flea springing off.
-  boing() {
-    tone('sine', 500, 1600, 0.09, 0.14);
-  },
   // Someone napping, poked.
   snore() {
     burst(220, 3, 0.45, 0.22, 'bandpass');

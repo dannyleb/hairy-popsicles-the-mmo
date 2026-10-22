@@ -1,24 +1,13 @@
 import { CHARACTERS, CHARACTER_BY_ID, INVITE, NAME_COLORS, RARITIES, SEASONS, SEASON_COLORS, SHOP, TITLES, TITLE_BY_ID, titleProgress } from '@hptm/shared';
-import { hasHaptics, sfx } from '../audio/sfx.js';
+import { sfx } from '../audio/sfx.js';
 import { fullQuality, resetQuality } from '../display.js';
-import { settings } from '../settings.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { isPal, togglePal } from './pals.js';
 import { shareAlbum } from './sharecard.js';
+import { settingToggles } from './toggles.js';
 import { inviteLink } from '../net/invite.js';
 import { savedProfile } from '../net/profile.js';
-
-const SETTINGS = [
-  { name: 'sound', label: 'Sound effects' },
-  { name: 'music', label: 'Music' },
-  { name: 'bubbles', label: 'Speech bubbles' },
-  ...(hasHaptics ? [{ name: 'haptics', label: 'Vibration' }] : []),
-  { name: 'calm', label: 'Reduce motion' },
-  // On by default: never lighten the graphics on its own, even if that costs
-  // some smoothness. Off lets a struggling device trade sharpness for speed.
-  { name: 'fullSharpness', label: 'Always full sharpness', reload: true },
-];
 
 // The share sheet on phones; a copied link elsewhere. The link is this
 // player's own invite: whoever comes by it starts next to them.
@@ -306,23 +295,7 @@ export function createSheets(actions) {
 
   function settingsSheet() {
     showing = { kind: 'settings' };
-    const list = el('div', 'settings-list');
-    for (const { name, label, reload } of SETTINGS) {
-      const row = el('label', 'setting');
-      const toggle = el('input');
-      toggle.type = 'checkbox';
-      toggle.checked = settings.get(name);
-      toggle.addEventListener('change', () => {
-        settings.set(name, toggle.checked);
-        sfx.click();
-        if (reload && toggle.checked) {
-          resetQuality();
-          window.location.reload();
-        }
-      });
-      row.append(el('span', null, label), toggle);
-      list.append(row);
-    }
+    const list = settingToggles('settings-list', 'setting');
     const rules = el('details', 'sheet-rules');
     const rulesList = el('ul');
     rulesList.append(...HOW_TO_PLAY.map((line) => el('li', null, line)));
@@ -343,7 +316,7 @@ export function createSheets(actions) {
     });
     move.append(
       el('summary', null, 'Move to another phone'),
-      el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. Play on one phone at a time: each phone keeps its own copy, so progress on one won\'t show up on the other.'),
+      el('p', 'overlay-hint', 'Copy this code, then on the other phone choose "Load a save" on the title screen and paste it. After that both phones are you, and whichever you open picks up your latest progress. Play on one phone at a time.'),
       el('p', 'overlay-hint warn', 'This code is your save. Anyone who has it can play as you, so never post it or send it to anyone. Nobody from the game will ever ask for it.'),
       code,
       copy,

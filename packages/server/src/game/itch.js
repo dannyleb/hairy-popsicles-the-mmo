@@ -1,5 +1,6 @@
 import { ITCH, itchTarget } from '@hptm/shared';
 import { pick } from './roll.js';
+import { addTo } from './tally.js';
 
 // The Itch: a goal for the whole world at once. Progress comes from the same
 // actions as quests (see the room's progress()); helpers are counted by save,
@@ -50,7 +51,7 @@ export function createItch(room, scale) {
     progress(player, kind, amount) {
       if (!itch || itch.kind !== kind || Date.now() >= itch.endsAt) return null;
       itch.progress = Math.min(itch.target, itch.progress + amount);
-      itch.helpers.set(player.profileId, (itch.helpers.get(player.profileId) ?? 0) + amount);
+      addTo(itch.helpers, player.profileId, amount);
       room.markDirty();
       if (itch.progress < itch.target) return null;
       const { helpers } = itch;

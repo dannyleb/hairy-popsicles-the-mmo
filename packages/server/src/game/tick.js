@@ -1,8 +1,8 @@
-import { PLOT_SIZE, REACH, TICK, TILE_SIZE } from '@hptm/shared';
+import { PLOT_PX, REACH, TICK, tickFeedsOn } from '@hptm/shared';
 import { pick } from './roll.js';
 import { clearOfPlots, present, spotNear } from './spots.js';
+import { addTo } from './tally.js';
 
-const PLOT_PX = PLOT_SIZE * TILE_SIZE;
 const PRY_GAP_MS = 250;
 const NEARBY = 800;  // px: anyone this close could have come and helped pry
 
@@ -13,22 +13,7 @@ const NEARBY = 800;  // px: anyone this close could have come and helped pry
 export function createTick(room, scale, done) {
   let tick = null;
 
-  // Crops of players who are here, within its reach and still growing as of `since`: [{ crop, owner }].
-  function fedOn(since) {
-    const crops = [];
-    for (const [key, plot] of Object.entries(room.plots)) {
-      const owner = room.players[plot.ownerId];
-      if (!owner || owner.away) continue;
-      const [px, py] = key.split(',').map(Number);
-      plot.slots.forEach((crop, slot) => {
-        if (!crop || crop.readyAt <= since) return;
-        const x = px * PLOT_PX + (slot % PLOT_SIZE + 0.5) * TILE_SIZE;
-        const y = py * PLOT_PX + (Math.floor(slot / PLOT_SIZE) + 0.5) * TILE_SIZE;
-        if (Math.hypot(x - tick.x, y - tick.y) <= TICK.reach) crops.push({ crop, owner });
-      });
-    }
-    return crops;
-  }
+  const fedOn = (since) => tickFeedsOn(room.plots, room.players, tick, since);
 
   // Hold back what grew since the last feed (a crop planted since then, only since it went in).
   function feed(now) {
@@ -114,7 +99,7 @@ export function createTick(room, scale, done) {
       if (!tick || Math.hypot(player.x - tick.x, player.y - tick.y) > REACH) return 0;
       if (now - (tick.hands.get(player.profileId) ?? 0) < PRY_GAP_MS) return 0;
       tick.hands.set(player.profileId, now);
-      tick.pries.set(player.profileId, (tick.pries.get(player.profileId) ?? 0) + 1);
+      addTo(tick.pries, player.profileId);
       const crowd = [...tick.hands.values()].filter((t) => now - t <= TICK.crowdMs).length;
       tick.pried += crowd;
       if (tick.pried >= tick.need) {

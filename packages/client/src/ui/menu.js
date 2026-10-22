@@ -2,10 +2,10 @@ import { CHARACTERS, CHARACTER_BY_ID, INVITE, NAME_MAX, RARITIES, featuredFor, l
 import { inviter, pendingInvite } from '../net/invite.js';
 import { forgetProfile, peekProfile, readSaveCode, storeProfile } from '../net/profile.js';
 import { worldStatus } from '../net/status.js';
-import { hasHaptics } from '../audio/sfx.js';
-import { remember, remembered, settings } from '../settings.js';
+import { remember, remembered } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
+import { settingToggles } from './toggles.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
@@ -190,20 +190,7 @@ export function createMenu({ onPlay }) {
   };
   link('How to play', () => showPanel('How to play', list(PANELS['How to play'])));
   link('Settings', () => {
-    const toggles = el('div', 'menu-settings');
-    const options = [['sound', 'Sound effects'], ['music', 'Music'], ['bubbles', 'Speech bubbles']];
-    if (hasHaptics) options.push(['haptics', 'Vibration']);
-    options.push(['calm', 'Reduce motion']);
-    for (const [name, label] of options) {
-      const row = el('label', 'menu-setting');
-      const box = el('input');
-      box.type = 'checkbox';
-      box.checked = settings.get(name);
-      box.addEventListener('change', () => settings.set(name, box.checked));
-      row.append(el('span', null, label), box);
-      toggles.append(row);
-    }
-    showPanel('Settings', toggles);
+    showPanel('Settings', settingToggles('menu-settings', 'menu-setting'));
   });
   // A dot on What's new until this version's list has been read.
   const newsLink = link("What's new", () => {

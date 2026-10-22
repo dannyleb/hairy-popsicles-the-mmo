@@ -1,8 +1,7 @@
-import { PLOT_SIZE, TILE_SIZE, WORLD_HEIGHT_PLOTS, WORLD_WIDTH_PLOTS } from '@hptm/shared';
+import { PLOT_PX, WORLD_HEIGHT_PLOTS, WORLD_WIDTH_PLOTS } from '@hptm/shared';
 
-export const PLOT_PIXELS = TILE_SIZE * PLOT_SIZE;
-export const WORLD_W = WORLD_WIDTH_PLOTS * PLOT_PIXELS;
-export const WORLD_H = WORLD_HEIGHT_PLOTS * PLOT_PIXELS;
+export const WORLD_W = WORLD_WIDTH_PLOTS * PLOT_PX;
+export const WORLD_H = WORLD_HEIGHT_PLOTS * PLOT_PX;
 
 // Must match HOLE_OFFSET in tools/world.py, which draws the holes into the plot art.
 export const HOLE_OFFSET = 7;

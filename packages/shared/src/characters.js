@@ -1,5 +1,3 @@
-// Grow times are short while nothing persists: a plot is lost when you close
-// the tab or the server sleeps, so a long timer just means losing the plant.
 // The odds of each rarity depend on the seed (see SEEDS in progression.js).
 export const RARITIES = {
   common: { label: 'Common', growMs: 30_000, scraps: 7, color: '#d9c7b8' },

@@ -3,9 +3,15 @@ export const PLOT_SIZE = 3; // tiles per side — each plot is PLOT_SIZE x PLOT_
 export const WORLD_WIDTH_PLOTS = 20;
 export const WORLD_HEIGHT_PLOTS = 20;
 export const WORLD_PX = WORLD_WIDTH_PLOTS * PLOT_SIZE * TILE_SIZE;
+export const PLOT_PX = PLOT_SIZE * TILE_SIZE;  // a plot's side
+
+// The middle of a hole in a plot ("x,y" in plots): slots run across, then down.
+export function slotCenter(plotKey, slot) {
+  const [px, py] = plotKey.split(',').map(Number);
+  return { x: px * PLOT_PX + (slot % PLOT_SIZE + 0.5) * TILE_SIZE, y: py * PLOT_PX + (Math.floor(slot / PLOT_SIZE) + 0.5) * TILE_SIZE };
+}
 
 export const STARTING_CURRENCY = 20;
-export const CURRENCY_NAME = 'scraps';
 export const NAME_MAX = 20;
 
 // How close you have to be to squeeze a neighbor's crop or hit the boss.

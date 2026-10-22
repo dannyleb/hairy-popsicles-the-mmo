@@ -68,6 +68,13 @@ a.room.send('tug', { miss: true });
 a.room.send('tug', { miss: true });
 await sleep(250);
 check("and only once a beat (nobody can hold it in by mashing)", a.state.event.progress >= slipped - 1 / 24 - 1e-9);
+beat = await onBeat(a);
+a.room.send('tug', { beat });
+await sleep(250);
+const held = a.state.event.progress;
+b.room.send('tug', { miss: true });
+await sleep(250);
+check("someone who hasn't tugged can't make it slip back", held > 0 && a.state.event.progress === held, `${held}`);
 for (let i = 0; i < 40 && a.state.event?.kind === 'ingrown'; i++) {
   beat = await onBeat(a);
   a.room.send('tug', { beat });
@@ -110,7 +117,7 @@ await sleep(300);
 const balls = (a.state.drops ?? []).filter((d) => d.lint);
 const navel = LANDMARKS.navel;
 check('balls of lint all over its plaza, one with something in it', balls.length > 0 && balls.every((d) => Math.hypot(d.x - navel.x, d.y - navel.y) <= LINT.radius + 1) && balls.filter((d) => d.prize).length === 1, `${balls.length}`);
-const before = { scraps: a.me.currency, quests: a.me.quests.map((q) => q.progress).join() };
+const scrapsBefore = a.me.currency;
 for (let round = 0; round < 3; round++) {
   for (const ball of (a.state.drops ?? []).filter((d) => d.lint)) {
     const p = ball.id % 2 ? a : b;
@@ -132,7 +139,8 @@ for (let sweep = 0; sweep < 3 && !lintOver(); sweep++) {
 }
 const grabbed = [...a.ev.gotGlob, ...b.ev.gotGlob].filter((g) => g.lint);
 check('it coughs three times', a.ev.navelCough.length === LINT.coughs);
-check('grabbed lint pays, and counts toward Lint Picker (not as Pus Rain globs)', grabbed.length > 0 && a.me.stats.lint + b.me.stats.lint === grabbed.length && a.me.stats.globs === 0 && b.me.stats.globs === 0, `${grabbed.length} grabbed`);
+const grabbedByA = a.ev.gotGlob.filter((g) => g.lint).length;
+check('grabbed lint pays, and counts toward Lint Picker (not as Pus Rain globs)', grabbed.length > 0 && a.me.currency >= scrapsBefore + grabbedByA * LINT.scraps && a.me.stats.lint + b.me.stats.lint === grabbed.length && a.me.stats.globs === 0 && b.me.stats.globs === 0, `${grabbed.length} grabbed`);
 check('the special one had something in it', grabbed.some((g) => g.prize));
 check('all grabbed, the Navel settles down', lintOver() && a.state.event?.kind !== 'lint' && !(a.state.drops ?? []).some((d) => d.lint));
 

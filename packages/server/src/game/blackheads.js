@@ -1,6 +1,7 @@
 import { BLACKHEADS, REACH } from '@hptm/shared';
 import { spotInRegion } from './regionSpot.js';
 import { clearOfPlots, present } from './spots.js';
+import { addTo } from './tally.js';
 
 const CLEARANCE = 150;  // px from the patch's middle to the nearest plot
 const HEAD_CLEARANCE = 30;  // and from each blackhead (a tap on one mustn't land on someone's crop)
@@ -66,7 +67,7 @@ export function createBlackheads(room, scale, done) {
       if (now - (player.lastSqueezeAt ?? 0) < SQUEEZE_GAP_MS) return false;
       player.lastSqueezeAt = now;
       head.by = player.profileId;
-      patch.squeezers.set(player.profileId, (patch.squeezers.get(player.profileId) ?? 0) + 1);
+      addTo(patch.squeezers, player.profileId);
       room.squeezedBlackhead(player, { id });
       if (patch.heads.every((h) => h.by)) finish(now);
       else room.markDirty();

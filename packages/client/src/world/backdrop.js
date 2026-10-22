@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { LANDMARKS, REGIONS, SCAB, regionAt } from '@hptm/shared';
-import { DEPTH, NIGHT_TINT, PLOT_PIXELS, WORLD_H, WORLD_W, seededRandom } from './layout.js';
+import { LANDMARKS, PLOT_PX, REGIONS, SCAB, regionAt } from '@hptm/shared';
+import { DEPTH, NIGHT_TINT, WORLD_H, WORLD_W, seededRandom } from './layout.js';
 
 // Art from tools/world.py, all lit from the upper left like the character renders.
 const PROPS = [
@@ -206,11 +206,11 @@ export function createBackdrop(scene) {
   const candles = [];
   const candleScale = CANDLE_WIDTH / 96;
   const onLandmark = (i, j) => Object.values(LANDMARKS).some(({ plots: [x0, y0, w, h] }) => i > x0 && i < x0 + w && j > y0 && j < y0 + h);
-  for (let i = 0; i <= WORLD_W / PLOT_PIXELS; i++) {
-    for (let j = 0; j <= WORLD_H / PLOT_PIXELS; j++) {
+  for (let i = 0; i <= WORLD_W / PLOT_PX; i++) {
+    for (let j = 0; j <= WORLD_H / PLOT_PX; j++) {
       if (rand() > CANDLE_CHANCE || onLandmark(i, j)) continue;
-      const x = i * PLOT_PIXELS + between(-6, 6);
-      const y = j * PLOT_PIXELS + between(-6, 6);
+      const x = i * PLOT_PX + between(-6, 6);
+      const y = j * PLOT_PX + between(-6, 6);
       const glow = scene.add.image(x, y - 18, 'world:glow')
         .setTint(CANDLE_LIGHT).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.light);
       still(scene.add.image(x, y, 'world:candle').setOrigin(0.5, 0.86).setScale(candleScale).setDepth(y));

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { INGROWN, PLOT_SIZE, SCAB, TICK, TILE_SIZE } from '@hptm/shared';
+import { INGROWN, SCAB, TICK, tickFeedsOn } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { DEPTH, FONT, PLOT_PIXELS } from './layout.js';
+import { DEPTH, FONT } from './layout.js';
 
 // The world events after The Boil (see worldEvents.js in @hptm/shared), as
 // everyone sees them: The Scab, peeled piece by piece off raw skin; The Gash,
@@ -121,21 +121,7 @@ export function createEventViews(scene, fx) {
   ];
 
   // Crops of players who are here, near The Tick: it's feeding on them.
-  function fedOn(state, now) {
-    const crops = [];
-    for (const [key, plot] of Object.entries(state.plots ?? {})) {
-      const owner = state.players[plot.ownerId];
-      if (!owner || owner.away) continue;
-      const [px, py] = key.split(',').map(Number);
-      plot.slots.forEach((crop, slot) => {
-        if (!crop || crop.readyAt <= now) return;
-        const x = px * PLOT_PIXELS + (slot % PLOT_SIZE + 0.5) * TILE_SIZE;
-        const y = py * PLOT_PIXELS + (Math.floor(slot / PLOT_SIZE) + 0.5) * TILE_SIZE;
-        if (Math.hypot(x - event.x, y - event.y) <= TICK.reach) crops.push({ x, y });
-      });
-    }
-    return crops;
-  }
+  const fedOn = (state, now) => tickFeedsOn(state.plots ?? {}, state.players, event, now);
 
   return {
     // `next`: the state's event, or null; `state` for The Tick's view of the plots.

@@ -14,8 +14,9 @@
     "build": "npm run build -w @hptm/client",
     "test": "node tests/run.mjs"
   },
-  "dependencies": {
+  "devDependencies": {
     "@neon/config": "^1.9.3",
-    "@neon/env": "^1.6.4"
+    "colyseus.js": "^0.15.28",
+    "pg": "^8.23.1"
   }
 }

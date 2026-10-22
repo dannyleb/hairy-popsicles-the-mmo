@@ -69,6 +69,9 @@ check('a seat frees up when one of them leaves', Boolean(again.room), String(aga
 const token = seated[0].room.reconnectionToken;
 seated[0].room.connection.close();
 await sleep(300);
+// While they're away the world holds their place, seat and all.
+const sixth = await refusal(join({ name: 'Six' }));
+check('a player whose phone dropped still holds their seat', sixth?.code === 429, String(sixth?.message));
 seated[0] = listen(await new Client(WS).reconnect(token));
 await sleep(200);
 const fifth = await refusal(join({ name: 'Five' }));

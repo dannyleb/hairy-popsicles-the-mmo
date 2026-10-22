@@ -9,7 +9,8 @@ export const QUEST_KINDS = {
   tend: { counts: [1, 3], needsOthers: true, text: (n) => (n === 1 ? "Squeeze a neighbor's crop" : `Squeeze ${n} of your neighbors' crops`), scraps: 6, xp: 12 },
   chat: { counts: [1], text: () => 'Say something in chat', scraps: 5, xp: 10 },
   emote: { counts: [2, 3], text: (n) => `Emote ${n} times`, scraps: 2, xp: 5 },
-  // Anything done at a world event: a hit on The Boil, a piece of The Scab, a crumb, a pry.
+  // Anything done at a world event: a hit on The Boil, a piece of The Scab, a crumb,
+  // a pry, a tug, a squeeze, a ball of lint.
   boss: { counts: [5, 12], text: (n) => `Help at world events ${n} times`, scraps: 2, xp: 4 },
   grab: { counts: [5, 10], text: (n) => `Grab ${n} globs in a Pus Rain`, scraps: 2, xp: 3 },
   wear: { counts: [1], text: () => 'Play as a different character', scraps: 5, xp: 10 },

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { strayPosition } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { DEPTH, FONT } from './layout.js';
+import { FONT } from './layout.js';
 
 // Strays: characters loose in the world (see STRAYS in @hptm/shared). The
 // server sends each one's current leg; this walks them along it. A little

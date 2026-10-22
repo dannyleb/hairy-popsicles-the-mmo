@@ -51,6 +51,10 @@ for (let i = 0; i < 5; i++) a.room.send('buy', { item: 'candle' });
 await sleep(300);
 check('candles stop at 4', a.state.plots['6,6'].candles === 4 && a.me.currency === 370 - 5 - 4 * 50);
 
+const scraps = a.me.currency;
+a.room.send('buy', { item: 'color', color: ['pumpkin'] });
+await sleep(250);
+check('a color has to be asked for by name (no season color for scraps)', !a.me.colors.length && a.me.currency === scraps, `${a.me.currency} scraps, ${JSON.stringify(a.me.colors)}`);
 a.room.send('buy', { item: 'color', color: 'gold' });
 await sleep(250);
 check('name color bought and worn', a.me.colors.includes('gold') && a.me.nameColor === 'gold' && a.pub().color === NAME_COLORS.gold);

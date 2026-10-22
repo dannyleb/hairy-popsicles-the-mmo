@@ -1,10 +1,9 @@
-import { PLOT_SIZE, TILE_SIZE, WORLD_PX } from './constants.js';
+import { PLOT_PX, WORLD_PX } from './constants.js';
 
 // The world's places. The Navel is the middle; around it the skin changes from
 // one quarter to the next. Their borders wander a little so they don't look
 // ruled. Landmarks stand on blocks of plots nobody can claim.
 const MID = WORLD_PX / 2;
-const PLOT_PX = PLOT_SIZE * TILE_SIZE;
 const NAVEL_REACH = 210;  // px from the middle that still counts as the Navel
 
 export const REGIONS = {

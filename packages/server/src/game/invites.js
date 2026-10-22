@@ -1,7 +1,8 @@
 import { INVITE } from '@hptm/shared';
 
-// Invite links, as far as the server needs to remember them. In memory, like
-// the rest of the server's state: a restart forgets names and waiting rewards.
+// Invite links, as far as the server needs to remember them. In memory, so a
+// restart forgets names and rewards waiting on an inviter who's away. (What
+// the inviter's save keeps is who they've been paid for, so none pays twice.)
 const MAX_KEPT = 10_000;
 const OWED_MS = 7 * 24 * 60 * 60_000;
 const names = new Map();   // public id → name, so a link can say who it's from

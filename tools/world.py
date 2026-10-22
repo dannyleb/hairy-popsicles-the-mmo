@@ -1,4 +1,4 @@
-"""Usage: python tools/world.py [ground|events|life]
+"""Usage: python tools/world.py [ground|events|life|gross]
 Generates the world art into packages/client/public/world/. Deterministic (fixed seeds).
 Everything is a height map + color + gloss, shaded with one warm key light from the
 upper left, like the character renders, so ground, plots and props read as one scene.
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.fft import fft2, fftfreq, ifft2
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 
@@ -188,7 +188,7 @@ def field(n):
     return (xx + 0.5) / n * 2 - 1, (yy + 0.5) / n * 2 - 1
 
 
-def shadow_of(alpha, n, dx, dy, blur, strength):
+def shadow_of(alpha, dx, dy, blur, strength):
     a = np.roll(np.roll(alpha, dy, 0), dx, 1)
     return gaussian_filter(a, blur) * strength
 
@@ -216,7 +216,7 @@ def pimple(name, seed, size=1.0, head=None, n=96):
         gloss = gloss + 0.4 * cap
     color = shade(h, albedo, gloss, bump=1.0, shine=90, ao=0.0)
     alpha = np.clip((1.15 - r) * 2.2, 0, 1)                             # fades into the ground
-    shadow = shadow_of(np.clip(dome * 1.5, 0, 1), n, 3, 4, 2.5, 0.25) * (1 - alpha)
+    shadow = shadow_of(np.clip(dome * 1.5, 0, 1), 3, 4, 2.5, 0.25) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -247,7 +247,7 @@ def mole(name, seed, n=96):
     alpha = np.clip(np.maximum(body * 1.2, hair) + np.clip((1.3 - r) * 1.5, 0, 1) * 0.0, 0, 1)
     alpha = np.maximum(alpha, np.clip((1.25 - r) * 3, 0, 1) * 0.6)
     color = shade(h, albedo, 0.4 + 0.3 * hair, bump=1.0, shine=60, ao=0.0)
-    shadow = shadow_of(np.maximum(body, hair), n, 2, 3, 1.5, 0.35) * (1 - alpha)
+    shadow = shadow_of(np.maximum(body, hair), 2, 3, 1.5, 0.35) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -285,7 +285,7 @@ def hair(name, seed, n=192, curl=0.22, length=40, width=7):
     root[int(pts[0][1] / s), int(pts[0][0] / s)] = 1
     follicle = gaussian_filter(root, 2.5) * 60
     alpha = np.clip(mask + follicle, 0, 1)
-    shadow = shadow_of(mask, n, 3, 4, 2.0, 0.45) * (1 - alpha)
+    shadow = shadow_of(mask, 3, 4, 2.0, 0.45) * (1 - alpha)
     rgb, a = composite(tone(color, 1.2), alpha, shadow)
     return save(rgb, name, a)
 
@@ -464,7 +464,7 @@ def boil(name, seed, n=384):
     gloss = 0.4 + 1.6 * dome + 0.8 * head
     color = shade(h, albedo, gloss, bump=0.9, shine=140, ao=0.05)
     alpha = np.clip((1.45 - r) * 3, 0, 1)
-    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 10, 14, 10, 0.5) * (1 - alpha)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), 10, 14, 10, 0.5) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -482,7 +482,7 @@ def scab(name, seed, n=64):
     albedo = mix(np.broadcast_to(np.array([0.36, 0.12, 0.08]), (n, n, 3)), np.array([0.55, 0.26, 0.14]), np.clip(0.5 + 0.4 * spectral(n, rng, 2.6, fmax=12 / n), 0, 1))
     albedo = mix(albedo, np.array([0.12, 0.03, 0.03]), cracks * 0.8)
     color = shade(h, albedo, 0.15 + 0.1 * body, bump=1.0, shine=30, ao=0.3)
-    shadow = shadow_of(body, n, 2, 3, 2, 0.4) * (1 - body)
+    shadow = shadow_of(body, 2, 3, 2, 0.4) * (1 - body)
     rgb, a = composite(tone(color), body, shadow)
     return save(rgb, name, a)
 
@@ -514,7 +514,7 @@ def seed_icon(name, seed, albedo, head=None, rough=0.0, n=128):
         gloss = gloss + 0.6 * cap
     color = shade(h, alb, gloss, bump=1.0, shine=90, ao=0.1)
     alpha = np.clip((1 - r) * 8, 0, 1)
-    shadow = shadow_of(alpha, n, 4, 6, 4, 0.55) * (1 - alpha)
+    shadow = shadow_of(alpha, 4, 6, 4, 0.55) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -556,7 +556,7 @@ def mite(name, seed, frame, n=96):
     albedo = mix(albedo, np.array([0.40, 0.22, 0.16]), legs)
     color = shade(h, albedo, 0.9 * body + 0.3 * legs, bump=1.0, shine=70, ao=0.2, sss=1.2)
     alpha = np.clip(body + legs, 0, 1)
-    shadow = shadow_of(alpha, n, 3, 4, 2.0, 0.45) * (1 - alpha)
+    shadow = shadow_of(alpha, 3, 4, 2.0, 0.45) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -576,7 +576,7 @@ def flea(name, seed, n=96):
     albedo = mix(albedo, np.array([0.30, 0.16, 0.08]), legs)
     color = shade(h, albedo, 1.4 * body + 0.4 * legs, bump=1.2, shine=110, ao=0.1, sss=0.4)
     alpha = np.clip(body + legs, 0, 1)
-    shadow = shadow_of(alpha, n, 3, 4, 2.0, 0.5) * (1 - alpha)
+    shadow = shadow_of(alpha, 3, 4, 2.0, 0.5) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -596,7 +596,7 @@ def worm(name, seed, head=False, n=96):
         albedo = mix(albedo, np.array([0.30, 0.04, 0.06]), np.clip(mouth * 2, 0, 1))
     color = shade(h, albedo, 0.9 + 0.5 * dome, bump=0.8, shine=80, ao=0.2, sss=1.4)
     alpha = np.clip((1 - r) * 8, 0, 1)
-    shadow = shadow_of(alpha, n, 4, 6, 3.0, 0.45) * (1 - alpha)
+    shadow = shadow_of(alpha, 4, 6, 3.0, 0.45) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -644,7 +644,7 @@ def wart(name, seed, n=128):
     albedo = mix(albedo, np.array([0.50, 0.30, 0.28]), (1 - knobs) * dome * 0.6)
     color = shade(h, albedo, 0.15 + 0.1 * knobs, bump=1.0, shine=25, ao=0.5)
     alpha = np.clip((1.02 - r) * 6, 0, 1)
-    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 4, 6, 3, 0.35) * (1 - alpha)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), 4, 6, 3, 0.35) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -894,7 +894,7 @@ def crust(name, seed, tint, dark, n=64):
     h = 9 * body + 30 * facets * body
     albedo = mix(np.broadcast_to(np.array(tint), (n, n, 3)), np.array(dark), np.clip(0.5 + 0.5 * spectral(n, rng, 2.2, fmax=10 / n), 0, 1))
     color = shade(h, albedo, 0.5 + 0.5 * body, bump=1.2, shine=90, ao=0.2)
-    shadow = shadow_of(body, n, 2, 3, 2, 0.45) * (1 - body)
+    shadow = shadow_of(body, 2, 3, 2, 0.45) * (1 - body)
     rgb, a = composite(tone(color), body, shadow)
     return save(rgb, name, a)
 
@@ -919,7 +919,7 @@ def tick(name, seed, n=256):
     albedo = np.where((legs > 0.02)[..., None] & (dome < 0.05)[..., None], np.array([0.32, 0.14, 0.10]), albedo)
     color = shade(h, albedo, 0.3 + 1.4 * dome, bump=0.8, shine=120, ao=0.2)
     alpha = np.maximum(np.clip(dome * 8, 0, 1), np.maximum(np.clip(scutum * 6, 0, 1), np.maximum(np.clip(head * 6, 0, 1), legs)))
-    shadow = shadow_of(alpha, n, 6, 9, 6, 0.5) * (1 - alpha)
+    shadow = shadow_of(alpha, 6, 9, 6, 0.5) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -961,7 +961,7 @@ def ingrown(name, seed, n=192):
     albedo = mix(albedo, np.array([0.16, 0.09, 0.08]), np.clip(coil * 0.75 + tip, 0, 1))
     color = shade(h, albedo, 0.4 + 1.2 * dome, bump=0.8, shine=110, ao=0.05, sss=0.8)
     alpha = np.clip((1.35 - r) * 3, 0, 1)
-    shadow = shadow_of(np.clip(dome * 2, 0, 1), n, 5, 7, 5, 0.4) * (1 - alpha)
+    shadow = shadow_of(np.clip(dome * 2, 0, 1), 5, 7, 5, 0.4) * (1 - alpha)
     rgb, a = composite(tone(color), alpha, shadow)
     return save(rgb, name, a)
 
@@ -981,9 +981,8 @@ def blackhead(name, seed, n=64, emptied=False):
     return save(tone(color), name, alpha)
 
 
-def gunk(name, seed, w=128, h=48):
+def gunk(name, w=128, h=48):
     """What comes out of a blackhead: a curled worm of waxy yellow-white gunk with a dark tip."""
-    rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[0:h, 0:w].astype(float)
     u = xx / w
     path = h / 2 + 0.22 * h * np.sin(u * np.pi * 1.6 + 0.4)
@@ -1019,7 +1018,7 @@ def lint(name, seed, n=64, tint=(0.58, 0.62, 0.74)):
     h = 6 * core + 2 * fibres
     albedo = mix(np.broadcast_to(np.array(tint), (n, n, 3)), np.array([0.85, 0.85, 0.88]), np.clip(fibres * 0.6, 0, 1))
     color = shade(h, albedo, 0.2, bump=0.8, shine=20, ao=0.3)
-    shadow = shadow_of(core, n, 2, 3, 2, 0.35) * (1 - body)
+    shadow = shadow_of(core, 2, 3, 2, 0.35) * (1 - body)
     rgb, a = composite(tone(color), body, shadow)
     return save(rgb, name, a)
 
@@ -1028,7 +1027,7 @@ def gross_more():
     ingrown("ingrown", 101)
     blackhead("blackhead", 102)
     blackhead("pore", 102, emptied=True)
-    gunk("gunk", 103)
+    gunk("gunk")
     lint("lint", 104)
 
 

@@ -92,7 +92,7 @@ async function report(you) {
   const liveIds = new Set(world.players.map((p) => p.profileId));
   return {
     at: Date.now(),
-    you,  // the address this server sees for you, and where it got it: the lockout goes by it
+    you,  // the address this server sees for you, and where it got it: the lockout goes by its network
     stats: statsReport(),
     funnel: funnelReport(),
     database: await databaseStatus(),
@@ -119,16 +119,16 @@ export function handleAdmin(req, res) {
     return true;
   }
   const you = clientAddress(req);
-  if (failures.blocked(you.address)) {
+  if (failures.blocked(you.network)) {
     send(res, 429, 'application/json', JSON.stringify({ error: 'Too many wrong keys. Try again in a few minutes.' }));
     return true;
   }
   if (!authorized(req)) {
-    failures.take(you.address);
+    failures.take(you.network);
     send(res, 401, 'application/json', JSON.stringify({ error: 'Wrong key.' }));
     return true;
   }
-  failures.clear(you.address);
+  failures.clear(you.network);
   report(you).then(
     (body) => send(res, 200, 'application/json', JSON.stringify(body)),
     (error) => send(res, 500, 'application/json', JSON.stringify({ error: error.message })),

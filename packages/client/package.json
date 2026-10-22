@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@hptm/shared": "*",
-    "colyseus.js": "^0.15.23",
-    "phaser": "^3.80.1"
+    "colyseus.js": "^0.15.28",
+    "phaser": "^3.90.0"
   },
   "devDependencies": {
-    "vite": "^5.4.11",
+    "vite": "^5.4.21",
     "vite-plugin-pwa": "^0.20.5"
   }
 }

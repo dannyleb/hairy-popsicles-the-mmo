@@ -1,6 +1,7 @@
 import { GASH, REACH } from '@hptm/shared';
 import { pick } from './roll.js';
 import { clearOfPlots, present, spotNear } from './spots.js';
+import { addTo } from './tally.js';
 
 const CLEARANCE = 50;      // px from any point along it to the nearest plot
 const PICK_GAP_MS = 200;
@@ -16,7 +17,7 @@ export function createGash(room, scale, done) {
   }
 
   function credit(id, n = 1) {
-    gash.pickers.set(id, (gash.pickers.get(id) ?? 0) + n);
+    addTo(gash.pickers, id, n);
   }
 
   return {
@@ -60,8 +61,6 @@ export function createGash(room, scale, done) {
       const crumbs = gash.crumbs.filter((c) => !c.picked).map(({ id, x, y, deep, loose }) => ({ id, x, y, deep, loose: loose?.until ?? 0 }));
       return { kind: 'gash', x: gash.x, y: gash.y, angle: gash.angle, length: GASH.length, crumbs, total: gash.crumbs.length, expiresAt: gash.expiresAt };
     },
-
-    position: () => gash,
 
     tick(now) {
       if (!gash || now < gash.expiresAt) return;

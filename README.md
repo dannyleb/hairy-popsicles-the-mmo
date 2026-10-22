@@ -37,7 +37,7 @@ character you've grown. Rarer characters take longer and pay more.
 | Bone | 40 | level 6 | 0 / 35 / 50 / 15 % |
 | Boil | drop only | from The Boil | 0 / 0 / 70 / 30 % |
 
-Timers are short on purpose while nothing persists. Rarities live in
+Rarities live in
 `packages/shared/src/characters.js`; seeds, levels and XP in
 `packages/shared/src/progression.js`; quests in `quests.js`.
 
@@ -49,9 +49,10 @@ Timers are short on purpose while nothing persists. Rarities live in
   unlock at levels 3 and 6. Past level 7, when every hole is open, each
   level makes your crops grow 3% faster (24% at level 15). Every 5th level
   is announced to the world.
-- **Quests.** Three at a time, dealt from ten kinds (harvest, rarity,
-  plant, discover something new, squeeze a neighbor, chat, emote, help at
-  world events, change character). Finishing one pays scraps and XP and
+- **Quests.** Three at a time, dealt from eleven kinds (harvest, harvest
+  an Uncommon, harvest a Rare, plant, discover something new, squeeze a
+  neighbor, chat, emote, help at world events, grab Pus Rain globs, change
+  character). Finishing one pays scraps and XP and
   deals the next. Squeeze quests only show up while there's a neighbor to
   squeeze. On top of those, one bigger daily quest (pinned in gold) pays 60
   scraps, 120 XP and a Boil Seed. On a phone (700px wide or less) the quest
@@ -173,7 +174,7 @@ Timers are short on purpose while nothing persists. Rarities live in
   bringing an existing save to a new device skips all of it.
 - **Hooks.** Full-screen reveal for every new character and every Rare+
   pull, a level-up splash listing what just unlocked, floating rewards,
-  a guided first minute (below), an album
+  a guided first minute (above), an album
   with silhouettes of everyone you haven't found (tap one you have for a
   close-up with its stars, bonus and copies to the next star, and to play
   as it), a minimap, and an arrow to the world event when it's off screen.
@@ -308,7 +309,7 @@ game's `src/roster.js` (characters without lines fall back to its grunts).
 
 **Flow:** an HTML loading screen (shows before the JavaScript arrives) → a
 title menu over the drifting world (name, Play, How to play, Settings,
-Credits) → connecting (with a "waking the server" message after a few
+What's new, Credits, Load a save) → connecting (with a "waking the server" message after a few
 seconds, and a retry) → the world.
 
 **Phone niceties:** a short buzz with harvests, hits, squeezes, grabs and
@@ -403,10 +404,14 @@ packages/
   shared/   characters, rarities, seeds, levels, quests, chat/emote rules: imported by client and server
   server/   Colyseus room: authoritative state, lives on a Node host
     src/rooms/WorldRoom.js   players, plots, planting, harvesting, squeezing, chat, gifts, events
-    src/game/                saves, daily streak, quests, The Boil, Pus Rain, The Itch, rolls, chat filter
+    src/game/                saves, daily streak, quests, rolls, chat filter, invites, strays, and the
+                             world events (worldEvents.js schedules boss, scab, gash, tick, ingrown,
+                             blackheads, lint), Pus Rain, The Itch
+    src/db.js                Postgres saves (Neon); src/admin.js the admin page
   client/   Phaser 3 + Vite: the actual game, runs in the browser
     src/scenes/   Boot (loads assets) → Menu → World
-    src/world/    backdrop, The Boil, effects, layout constants
+    src/world/    backdrop, landmarks, weather, critters, strays, sleepers, trails, drops,
+                  The Boil and the other world events, effects, layout constants
     src/ui/       HTML overlays: loading, menu, HUD, chat, album, sheets, reveals, minimap, coach
     src/audio/    procedural sound effects (and vibration), music
 tests/      server test suites and their runner
@@ -423,7 +428,8 @@ npm run dev:client   # starts Vite on http://localhost:5173
 Open the client URL on your phone (same network) or in a desktop browser
 with devtools in mobile emulation. To test without waiting, speed things up:
 `GROW_SCALE=0.05` makes every grow timer 20x faster, `EVENT_SCALE=0.2` makes
-The Boil, the Blood Moon and the Pus Rain come (and go) 5x sooner, e.g.
+the world events, the Blood Moon, the Pus Rain and The Itch come (and go) 5x
+sooner (`WORLD_EVENTS=scab,tick` picks which world events, in order), e.g.
 `GROW_SCALE=0.05 EVENT_SCALE=0.2 npm run dev:server`. `SHINY_BOOST=40`
 makes every crop shiny.
 
@@ -444,8 +450,12 @@ squeezes and boss damage across reloads), `reconnect`, `saves` (signing,
 restore, takeover, daily streak and quest), `shinies` (plus stars and wear
 bonuses), `rain`, `itch`, `rows` (album row rewards), `season` (in and out
 of season), `held` (offline players' plots), `admin` (key, lockout, what it
-shows), `invites` (invite links, rewards, the daily cap), `limits` (joins and seats per address, request sizes, invisible
-characters, lockout by real address), `titles`, `gifts`, `hardening`
+shows), `invites` (invite links, rewards, the daily cap), `limits` (joins
+and seats per address, request sizes, invisible characters, lockout by real
+address), `life` (day and night, weather, strays, sleepers, landmarks, the
+statue), `events` (The Scab, The Gash, The Tick and the event rotation),
+`events2` (Ingrown Hair, Blackheads, Navel Lint), `database` (Postgres
+saves, restarts, the database being down), `titles`, `gifts`, `hardening`
 (filter, rate limits) and `filter`.
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
@@ -505,8 +515,9 @@ What protects what, and what's still open.
 - **Known gaps, by design for now:**
   - The save code is the account. Anyone holding it can play as that player,
     and there's no way to revoke one; the game warns players never to share it.
-  - The server's memory of saves resets when it restarts or sleeps, so after
-    that a player could restore an older save of their own.
+  - Without `DATABASE_URL` (or for a player still at level 1, who isn't
+    stored), the server's memory of saves resets when it restarts or sleeps,
+    so after that a player could restore an older save of their own.
   - Movement is trusted within walking speed (anyone can be anywhere within
     about 1.4 seconds), which is fine for a game with no combat between players.
   - The game shares the `dannyleb.github.io` origin with any other Pages site on
@@ -521,7 +532,7 @@ What protects what, and what's still open.
   restart). On join the newer of the stored copy and the device's wins, so an
   old save can't be replayed after a restart, and at startup the plots of
   players who left in the last 24 hours go back into the world. Only players
-  with some XP are stored. If the database is down the game carries on from
+  from level 2 are stored, so throwaway players can't fill it. If the database is down the game carries on from
   memory and the device's saves (`packages/server/src/db.js`). Still missing:
   accounts, so progress moves to another phone only by copying the save
   code, clearing site data loses it, and a leaked code can't be cut off.
@@ -576,6 +587,6 @@ What protects what, and what's still open.
 
 1. Real names for `spoon-nana`, `bat-rat` and `head-bloom`, and more
    characters (each new one deepens the album).
-2. Server-side saves and accounts, so progress follows a player across
-   devices and offline players' plots survive a server restart.
+2. Accounts, so progress follows a player across devices without copying
+   a save code, and a leaked code can be cut off.
 3. Real art for the world (ground, plots, props, The Boil).

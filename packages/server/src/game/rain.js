@@ -19,6 +19,9 @@ const RAIN = {
   bloodValue: 1,
 };
 
+// Drops land inside the world, clear of its very edge.
+const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
+
 export function createRain(room, scale) {
   let rain = null;
   let nextAt = Date.now() + RAIN.firstMs * scale;
@@ -29,7 +32,6 @@ export function createRain(room, scale) {
     if (drops.size - lintLeft() >= RAIN.maxDrops) return;  // (a Navel's lint doesn't stop the rain)
     const angle = Math.random() * Math.PI * 2;
     const dist = 60 + Math.random() * RAIN.spread;
-    const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
     const gold = Math.random() < RAIN.goldChance;
     const id = nextId++;
     drops.set(id, {
@@ -61,7 +63,6 @@ export function createRain(room, scale) {
     // Globs of blood spilled from something torn open (a scab peeled too soon), for anyone to grab.
     spill(x, y, count) {
       const now = Date.now();
-      const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
       for (let i = 0; i < count && drops.size - lintLeft() < RAIN.maxDrops; i++) {
         const angle = Math.random() * Math.PI * 2;
         const dist = 50 + Math.random() * 90;
@@ -107,7 +108,6 @@ export function createRain(room, scale) {
     // Balls of lint coughed up by the Navel (Navel Lint), around (x, y). One has
     // something in it, picked from LINT.prizes.
     cough(x, y, count, now) {
-      const clamp = (v) => Math.min(WORLD_PX - RAIN.margin, Math.max(RAIN.margin, v));
       const special = Math.floor(Math.random() * count);
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;

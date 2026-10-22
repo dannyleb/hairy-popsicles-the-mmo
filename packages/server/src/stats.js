@@ -8,6 +8,8 @@ const day = () => dayOf(Date.now());
 // How far today's new players got, in order: the admin page's funnel.
 export const STAGES = ['plot', 'plant', 'harvest', 'level2', 'level3', 'level5'];
 const MAX_SESSIONS = 1000;
+const MAX_PER_DAY = 100_000;  // players counted a day: the counts stop growing past this
+const note = (set, profileId) => { if (set.size < MAX_PER_DAY) set.add(profileId); };
 
 const fresh = () => ({
   joins: 0, players: new Set(), peak: 0,
@@ -28,16 +30,16 @@ function rollOver() {
 export function recordArrival(profileId, { isNew, invited, savedAt, startedAt }) {
   rollOver();
   if (isNew) {
-    stats.newPlayers.add(profileId);
-    if (invited) stats.invited.add(profileId);
+    note(stats.newPlayers, profileId);
+    if (invited) note(stats.invited, profileId);
     return;
   }
   if (!savedAt || dayOf(savedAt) === stats.day) return;
-  stats.returning.add(profileId);
+  note(stats.returning, profileId);
   const startedYesterday = startedAt && dayOf(startedAt) === dayOf(Date.now() - DAY_MS);
-  if (startedYesterday || stats.yesterdayNew?.has(profileId)) stats.fromYesterday.add(profileId);
+  if (startedYesterday || stats.yesterdayNew?.has(profileId)) note(stats.fromYesterday, profileId);
   // Of the new players this server saw yesterday (it may have been down for some).
-  if (stats.yesterdayNew?.has(profileId)) stats.fromYesterdayNew.add(profileId);
+  if (stats.yesterdayNew?.has(profileId)) note(stats.fromYesterdayNew, profileId);
 }
 
 // A new player got this far today.
@@ -73,7 +75,7 @@ export function funnelReport() {
 export function recordJoin(profileId, online) {
   rollOver();
   stats.joins += 1;
-  stats.players.add(profileId);
+  note(stats.players, profileId);
   stats.online = online;
   stats.peak = Math.max(stats.peak, online);
 }

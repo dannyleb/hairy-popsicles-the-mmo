@@ -54,7 +54,6 @@ const expected = Math.round(RARITIES[CHARACTER_BY_ID[next.characterId].rarity].s
 check('worn character boosts scraps by its bonus', paid.scraps === expected, `${paid.scraps} vs ${expected}`);
 
 // Grow three of one character for a star: plant until a character repeats 3 times.
-const counts = {};
 let starUp = null;
 for (let round = 0; round < 40 && !starUp; round++) {
   if (a.me.currency < 5) break;

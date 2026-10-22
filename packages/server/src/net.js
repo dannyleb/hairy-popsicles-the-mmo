@@ -3,15 +3,30 @@
 // X-Forwarded-For the client sends is kept and appended to, so only its last
 // entry (added by the nearest proxy) can be trusted. Locally there are no
 // proxies, and the socket's own address is used.
+//
+// Limits go by `network`: one home or phone on IPv6 gets a whole /64 of
+// addresses to pick from, so those count as one.
 export function clientAddress(req) {
   const headers = req?.headers ?? {};
   const edge = headers['cf-connecting-ip'];
-  if (typeof edge === 'string' && edge.trim()) return { address: edge.trim().slice(0, 64), source: 'CF-Connecting-IP' };
   const forwarded = headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return { address: forwarded.split(',').at(-1).trim().slice(0, 64), source: 'X-Forwarded-For (last entry)' };
-  }
-  return { address: String(req?.socket?.remoteAddress ?? 'unknown').slice(0, 64), source: 'socket' };
+  let found = { address: String(req?.socket?.remoteAddress ?? 'unknown'), source: 'socket' };
+  if (typeof edge === 'string' && edge.trim()) found = { address: edge.trim(), source: 'CF-Connecting-IP' };
+  else if (typeof forwarded === 'string' && forwarded.trim()) found = { address: forwarded.split(',').at(-1).trim(), source: 'X-Forwarded-For (last entry)' };
+  const address = found.address.slice(0, 64);
+  return { address, network: networkOf(address), source: found.source };
+}
+
+// An IPv4 address as it is; an IPv6 one as its /64.
+export function networkOf(address) {
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+  if (mapped) return mapped[1];
+  if (!address.includes(':')) return address;
+  const [head, tail] = address.split('%')[0].split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right];
+  return `${groups.slice(0, 4).map((g) => (parseInt(g, 16) || 0).toString(16)).join(':')}::/64`;
 }
 
 // At most `limit` events per address per `windowMs`. Remembers at most

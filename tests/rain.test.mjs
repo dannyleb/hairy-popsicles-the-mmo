@@ -50,6 +50,16 @@ b.room.send('grab', { id: far.id });
 await sleep(200);
 check('a glob can only be grabbed once', !b.got.length);
 
+// Short hops one after another are timed as one walk, so nobody gets there sooner.
+const at = a.pub();
+const next = [...a.state.drops].sort((x, y) => Math.hypot(y.x - at.x, y.y - at.y) - Math.hypot(x.x - at.x, x.y - at.y))[0];
+const hops = next ? Math.ceil(Math.hypot(next.x - at.x, next.y - at.y) / 50) : 0;
+for (let i = 1; i <= hops; i++) a.room.send('move', { x: at.x + ((next.x - at.x) * i) / hops, y: at.y + ((next.y - at.y) * i) / hops });
+const gotSoFar = a.got.length;
+a.room.send('grab', { id: next?.id });
+await sleep(200);
+check('a string of short hops arrives no sooner than one walk', hops >= 5 && a.got.length === gotSoFar && a.state.drops.some((d) => d.id === next.id), `${hops} hops`);
+
 await a.room.leave(true);
 await b.room.leave(true);
 console.log(failures ? `\n${failures} FAILED` : '\nall passed');

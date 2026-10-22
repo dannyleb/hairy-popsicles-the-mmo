@@ -6,6 +6,7 @@ import {
   INVITE,
   MAX_LEVEL,
   REGIONS,
+  PLOT_PX,
   PLOT_SIZE,
   RARITY_ORDER,
   BLACKHEADS,
@@ -49,7 +50,7 @@ import { createDropsView } from '../world/drops.js';
 import { createEventViews } from '../world/worldEvents.js';
 import { createFx } from '../world/fx.js';
 import { createLandmarks } from '../world/landmarks.js';
-import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, PLOT_PIXELS, WORLD_H, WORLD_W } from '../world/layout.js';
+import { DEPTH, FONT, HOLE_OFFSET, PLOT_ART_SIZE, WORLD_H, WORLD_W } from '../world/layout.js';
 import { createSleepers } from '../world/sleepers.js';
 import { createStraysView } from '../world/strays.js';
 import { createTrails } from '../world/trails.js';
@@ -110,8 +111,8 @@ function plotVariant(key) {
 function holeCenter(plotKey, slot) {
   const [px, py] = plotKey.split(',').map(Number);
   return {
-    x: px * PLOT_PIXELS + (slot % PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2,
-    y: py * PLOT_PIXELS + Math.floor(slot / PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2 + HOLE_OFFSET,
+    x: px * PLOT_PX + (slot % PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2,
+    y: py * PLOT_PX + Math.floor(slot / PLOT_SIZE) * TILE_SIZE + TILE_SIZE / 2 + HOLE_OFFSET,
   };
 }
 
@@ -140,7 +141,7 @@ export class WorldScene extends Phaser.Scene {
     this.bossView = createBossView(this, this.fx);
     this.drops = createDropsView(this, this.fx);
     this.eventViews = createEventViews(this, this.fx);
-    this.hold = null;  // a finger held on The Scab: { id, x, y, sx, sy, since, peeled }
+    this.hold = null;  // a finger held on The Scab or a blackhead: { id, kind, head, x, y, sx, sy, since, peeled }
     this.trails = createTrails(this);
     this.critters = createCritters(this);
     this.sleepers = createSleepers(this);
@@ -514,7 +515,7 @@ export class WorldScene extends Phaser.Scene {
     if (step === 'claim') {
       const me = this.me();
       const spot = me && this.freePlotNear(me.x, me.y);
-      return spot && { x: (spot[0] + 0.5) * PLOT_PIXELS, y: (spot[1] + 0.5) * PLOT_PIXELS };
+      return spot && { x: (spot[0] + 0.5) * PLOT_PX, y: (spot[1] + 0.5) * PLOT_PX };
     }
     const key = this.myPlotKey();
     const plot = key && this.state.plots[key];
@@ -544,17 +545,17 @@ export class WorldScene extends Phaser.Scene {
     const spot = this.freePlotNear(me.x, me.y);
     if (!spot) return;  // the coach's "tap open ground" still works
     const [plotX, plotY] = spot;
-    this.walk((plotX + 0.5) * PLOT_PIXELS, (plotY + 1) * PLOT_PIXELS + FRONT_OF_PLOT);
+    this.walk((plotX + 0.5) * PLOT_PX, (plotY + 1) * PLOT_PX + FRONT_OF_PLOT);
     this.room.send('claimPlot', { plotX, plotY });
     sfx.claim();
   }
 
   // The nearest grid spot with no plot on it, nearest first.
   freePlotNear(x, y) {
-    const cols = WORLD_W / PLOT_PIXELS;
-    const rows = WORLD_H / PLOT_PIXELS;
-    const cx = Phaser.Math.Clamp(Math.floor(x / PLOT_PIXELS), 0, cols - 1);
-    const cy = Phaser.Math.Clamp(Math.floor(y / PLOT_PIXELS), 0, rows - 1);
+    const cols = WORLD_W / PLOT_PX;
+    const rows = WORLD_H / PLOT_PX;
+    const cx = Phaser.Math.Clamp(Math.floor(x / PLOT_PX), 0, cols - 1);
+    const cy = Phaser.Math.Clamp(Math.floor(y / PLOT_PX), 0, rows - 1);
     for (let r = 0; r < Math.max(cols, rows); r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {
@@ -696,7 +697,7 @@ export class WorldScene extends Phaser.Scene {
     if (!this.myPlotKey() && !isReservedPlot(hit.plotKey)) {
       const [plotX, plotY] = hit.plotKey.split(',').map(Number);
       // Stand at the new plot's front edge, not on top of the holes.
-      this.walk(x, (plotY + 1) * PLOT_PIXELS + FRONT_OF_PLOT);
+      this.walk(x, (plotY + 1) * PLOT_PX + FRONT_OF_PLOT);
       this.room.send('claimPlot', { plotX, plotY });
       sfx.claim();
       return;
@@ -704,8 +705,8 @@ export class WorldScene extends Phaser.Scene {
     this.walk(x, y);
   }
 
-  // The Scab is peeled by holding a finger on it (see updateHold); a crumb of The
-  // Gash is picked, and The Tick pried at, a tap at a time.
+  // The Scab and a blackhead are held (see updateHold); a crumb of The Gash is
+  // picked, The Tick pried at and an ingrown hair tugged, a tap at a time.
   tapEvent(hit, downAt) {
     const at = hit.crumb ?? hit.head ?? this.eventViews.position();
     const me = this.myTarget();
@@ -854,10 +855,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   holeAt(x, y) {
-    const plotX = Math.floor(x / PLOT_PIXELS);
-    const plotY = Math.floor(y / PLOT_PIXELS);
-    const col = Phaser.Math.Clamp(Math.floor((x - plotX * PLOT_PIXELS) / TILE_SIZE), 0, PLOT_SIZE - 1);
-    const row = Phaser.Math.Clamp(Math.floor((y - plotY * PLOT_PIXELS) / TILE_SIZE), 0, PLOT_SIZE - 1);
+    const plotX = Math.floor(x / PLOT_PX);
+    const plotY = Math.floor(y / PLOT_PX);
+    const col = Phaser.Math.Clamp(Math.floor((x - plotX * PLOT_PX) / TILE_SIZE), 0, PLOT_SIZE - 1);
+    const row = Phaser.Math.Clamp(Math.floor((y - plotY * PLOT_PX) / TILE_SIZE), 0, PLOT_SIZE - 1);
     return { plotKey: `${plotX},${plotY}`, slot: row * PLOT_SIZE + col };
   }
 
@@ -1098,15 +1099,15 @@ export class WorldScene extends Phaser.Scene {
   // A new plot opens up out of the skin.
   openPlot(key, plot) {
     const [px, py] = key.split(',').map(Number);
-    const x0 = px * PLOT_PIXELS;
-    const y0 = py * PLOT_PIXELS;
+    const x0 = px * PLOT_PX;
+    const y0 = py * PLOT_PX;
     const mine = plot.ownerId === this.myId();
-    const art = this.add.image(x0 + PLOT_PIXELS / 2, y0 + PLOT_PIXELS / 2, `world:plot-${plotVariant(key)}`)
+    const art = this.add.image(x0 + PLOT_PX / 2, y0 + PLOT_PX / 2, `world:plot-${plotVariant(key)}`)
       .setDepth(DEPTH.plot);
     const scale = PLOT_ART_SIZE / art.width;
     art.setScale(scale * 0.4).setAlpha(0);
     this.tweens.add({ targets: art, scale, alpha: 1, duration: 650, ease: 'Back.out' });
-    if (mine) this.fx.droplets(x0 + PLOT_PIXELS / 2, y0 + PLOT_PIXELS / 2, { count: 14, key: 'drop-blood', speed: [80, 200] });
+    if (mine) this.fx.droplets(x0 + PLOT_PX / 2, y0 + PLOT_PX / 2, { count: 14, key: 'drop-blood', speed: [80, 200] });
 
     // On the plot's top rim, under the crops: growing characters cover it rather than the other way round.
     const label = this.add.text(x0 + 8, y0 + 2, plot.ownerName, textStyle(14, mine ? TEXT : '#d9b8a8'))
@@ -1148,8 +1149,8 @@ export class WorldScene extends Phaser.Scene {
     const corners = [[0, 0], [1, 0], [0, 1], [1, 1]];
     while (entry.candles.length < count) {
       const [cx, cy] = corners[entry.candles.length];
-      const x = px * PLOT_PIXELS + cx * PLOT_PIXELS + (cx ? -6 : 6);
-      const y = py * PLOT_PIXELS + cy * PLOT_PIXELS + (cy ? 4 : 10);
+      const x = px * PLOT_PX + cx * PLOT_PX + (cx ? -6 : 6);
+      const y = py * PLOT_PX + cy * PLOT_PX + (cy ? 4 : 10);
       const glow = this.add.image(x, y - 18, 'world:glow').setTint(0xffa65c).setBlendMode(Phaser.BlendModes.ADD)
         .setDepth(DEPTH.light).setScale(220 / 256).setAlpha(0.45);
       const candle = this.add.image(x, y, 'world:candle').setOrigin(0.5, 0.86).setScale(20 / 96).setDepth(y);

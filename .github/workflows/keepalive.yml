@@ -27,11 +27,4 @@ jobs:
         run: curl -fsS --retry 3 --retry-delay 15 --retry-all-errors --max-time 90 "$SERVER/" -o /dev/null
 
       - name: Which build is live
-        run: |
-          curl -fsS --max-time 30 "$SERVER/stats" | jq -c '{version, database, online, upSinceMinutes}'
-          # Builds from before invite links answer /invite with plain "ok".
-          if curl -fsS --max-time 30 "$SERVER/invite?with=x" | jq -e 'has("name")' > /dev/null 2>&1; then
-            echo "invite links: yes"
-          else
-            echo "invite links: no (an older build)"
-          fi
+        run: curl -fsS --max-time 30 "$SERVER/stats" | jq -c '{version, database, online, upSinceMinutes}'

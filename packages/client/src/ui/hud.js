@@ -1,4 +1,4 @@
-import { CHARACTERS, ITCH, QUEST_KINDS, RARITIES, SEEDS, TITLE_BY_ID, WORLD_EVENT, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { ITCH, QUEST_KINDS, SEEDS, TITLE_BY_ID, WORLD_EVENT, levelProgress, MAX_LEVEL } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -17,7 +17,8 @@ const BANNER_MS = 3800;
 const MAX_BANNERS = 2;
 
 // Everything drawn over the world: DOM, so text stays crisp and taps are easy to hit.
-// `actions` are the scene's callbacks: wear, chat, emote, goTo, goToBoss, travel, leave.
+// `actions` are the scene's callbacks (WorldScene's create): moving about, chatting,
+// wearing, titles, gifts, the shop, leaving.
 export function createHud(actions) {
   const root = el('div', 'hud');
 
@@ -430,8 +431,6 @@ export function createHud(actions) {
     chatHistory: chat.history,
     isMuted: sheets.isMuted,
     inspect: sheets.inspect,
-    rarityColor: (rarity) => RARITIES[rarity].color,
-    albumSize: CHARACTERS.length,
 
     // True while a panel covers the world, so taps don't fall through to it.
     blocking() {

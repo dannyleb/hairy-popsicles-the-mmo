@@ -42,7 +42,7 @@ httpServer.on('request', (req, res) => {
   }
   if (url.pathname === '/invite') {
     const pid = readInviteCode(url.searchParams.get('with'));
-    const known = pid && lookups.take(clientAddress(req).address);
+    const known = pid && lookups.take(clientAddress(req).network);
     return json(res, known ? { name: nameOf(pid), here: Boolean(getWorld()?.isHere(pid)) } : { name: null, here: false });
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -81,7 +81,7 @@ gameServer.handleMatchMakeRequest = (req, res) => {
   const length = Number(req.headers['content-length']);
   if (req.headers['transfer-encoding'] || !Number.isInteger(length)) return refuse(411, 'Length required.');
   if (length > MATCHMAKE_BODY_MAX) return refuse(413, 'Too big.');
-  if (!joins.take(clientAddress(req).address)) return refuse(429, 'Too many joins from your network. Wait a minute and try again.');
+  if (!joins.take(clientAddress(req).network)) return refuse(429, 'Too many joins from your network. Wait a minute and try again.');
   return handleMatchMake(req, res);
 };
 

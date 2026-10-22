@@ -1,6 +1,4 @@
-import { LANDMARKS, PLOT_SIZE, TILE_SIZE, WORLD_PX } from '@hptm/shared';
-
-const PLOT_PX = PLOT_SIZE * TILE_SIZE;
+import { LANDMARKS, PLOT_PX, WORLD_PX } from '@hptm/shared';
 
 // px from a point to a rectangle of plots ([x, y, width, height] in plots).
 function distanceToBlock(x, y, [px, py, w, h]) {
@@ -33,5 +31,9 @@ export function spotNear(near, { dist = [220, 340], margin = 160, tries = 16, fi
   return spot;
 }
 
-// Players who are actually here (not dropped and waiting to reconnect).
-export const present = (room) => Object.values(room.players).filter((p) => !p.away);
+// Players who are actually here and playing: not dropped and waiting to
+// reconnect, and done something in the last few minutes. World events start
+// near them and size themselves by them, so connections left sitting idle
+// can't make one bigger (and pay more).
+const ACTIVE_MS = 3 * 60_000;
+export const present = (room, now = Date.now()) => Object.values(room.players).filter((p) => !p.away && now - p.activeAt < ACTIVE_MS);

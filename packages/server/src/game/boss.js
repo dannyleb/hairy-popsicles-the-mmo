@@ -1,6 +1,7 @@
 import { REACH } from '@hptm/shared';
 import { pick } from './roll.js';
 import { clearOfPlots, present, spotNear } from './spots.js';
+import { addTo } from './tally.js';
 
 // The Boil: a giant pustule that swells up near someone (when it's its turn
 // among the world events). Everyone nearby taps it; when it bursts, everyone
@@ -55,7 +56,7 @@ export function createBoss(room, scale, done) {
         damage,
         top: id === topId,
         scraps: Math.min(80, 8 + 2 * damage),
-        xp: 20 + 2 * damage,
+        xp: Math.min(100, 20 + 2 * damage),
         seeds: damage >= 3 ? (id === topId ? 2 : 1) : 0,
       };
       room.rewardBoss(player, reward);
@@ -92,7 +93,7 @@ export function createBoss(room, scale, done) {
     // A player who reloaded carries on under a new session id; so does their damage.
     renamePlayer(oldId, newId) {
       if (!boss?.damage.has(oldId)) return;
-      boss.damage.set(newId, (boss.damage.get(newId) ?? 0) + boss.damage.get(oldId));
+      addTo(boss.damage, newId, boss.damage.get(oldId));
       boss.damage.delete(oldId);
     },
 
@@ -103,7 +104,7 @@ export function createBoss(room, scale, done) {
       player.lastHitAt = now;
       const damage = Math.random() < BOSS.critChance ? BOSS.critDamage : 1;
       boss.hp = Math.max(0, boss.hp - damage);
-      boss.damage.set(player.id, (boss.damage.get(player.id) ?? 0) + damage);
+      addTo(boss.damage, player.id, damage);
       hpDirty = true;
       if (boss.hp === 0) burst(now);
       return damage;

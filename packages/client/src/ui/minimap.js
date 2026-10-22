@@ -1,8 +1,7 @@
-import { LANDMARKS, REGIONS, WORLD_EVENT, WORLD_PX, PLOT_SIZE, TILE_SIZE, regionAt } from '@hptm/shared';
+import { LANDMARKS, PLOT_PX, REGIONS, WORLD_EVENT, WORLD_PX, regionAt } from '@hptm/shared';
 import { el, iconButton } from './dom.js';
 
 const SIZE = 92;  // CSS px
-const PLOT_PX = PLOT_SIZE * TILE_SIZE;
 const EVENT_COLORS = { scab: '#d08a50', gash: '#ff6a7a', tick: '#c8a0f0', ingrown: '#e8b080', blackheads: '#e8e070', lint: '#c8d4f0' };
 const REGION_COLORS = { navel: [74, 34, 38], scalp: [34, 22, 28], armpit: [48, 44, 26], freckles: [58, 32, 22], warts: [46, 24, 38] };
 // Brighter, for the big map, where the regions are what you're looking at.
