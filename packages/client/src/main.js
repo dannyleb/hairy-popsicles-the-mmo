@@ -27,6 +27,9 @@ const game = new Phaser.Game({
     mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
     // On laptops with two GPUs, the faster one.
     powerPreference: 'high-performance',
+    // Smoothed polygon edges cost several copies of the screen in GPU memory,
+    // and on a phone's dense screen they make no visible difference.
+    antialiasGL: renderScale() < 2,
   },
   // 120 Hz laptop screens would otherwise draw every frame twice as often as a
   // phone does. Just over 60, so a 60 Hz screen never skips one.

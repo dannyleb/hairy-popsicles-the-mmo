@@ -86,6 +86,7 @@ function groundCast(scene) {
 }
 
 // Veins under the skin, from the Navel out to each region and landmark.
+const GROUND_TILE = 512;  // world px of one repeat of the ground (its 1024px tile at half scale)
 const VEIN = { step: 26, tint: 0x9a7e86, alpha: 0.55 };  // a dull plum, in the world's warm light
 // Phaser draws everything in a scene every frame, on screen or not, so the
 // ground's still things are grouped into cells and only the cells near the
@@ -125,8 +126,22 @@ export function createBackdrop(scene) {
   let shown = [];   // keys of the cells on show
   let shownRange = '';
 
-  const ground = scene.add.tileSprite(0, 0, WORLD_W, WORLD_H, 'world:ground')
+  // The ground: its one tile repeated, as a tiled sprite a little bigger than
+  // the view and kept under it (coverView). Phaser keeps a canvas as big as a
+  // tiled sprite, and a world-sized one held ~33 MB, enough to crash a phone's
+  // browser. Its tile is made now, while it's tiny, so that canvas stays tiny.
+  const ground = scene.add.tileSprite(0, 0, 64, 64, 'world:ground')
     .setOrigin(0).setTileScale(0.5).setTint(NIGHT_TINT).setDepth(DEPTH.ground);
+  ground.updateTileTexture();
+  // Whole tiles from the view's corner, so the pattern never shifts to stay put in the world.
+  const coverView = (view) => {
+    const x = Math.max(0, Math.floor(view.x / GROUND_TILE) * GROUND_TILE);
+    const y = Math.max(0, Math.floor(view.y / GROUND_TILE) * GROUND_TILE);
+    const w = Math.max(1, Math.min(WORLD_W, Math.ceil(view.right / GROUND_TILE) * GROUND_TILE) - x);
+    const h = Math.max(1, Math.min(WORLD_H, Math.ceil(view.bottom / GROUND_TILE) * GROUND_TILE) - y);
+    if (ground.x !== x || ground.y !== y) ground.setPosition(x, y);
+    if (ground.width !== w || ground.height !== h) ground.setSize(w, h);
+  };
   // The color drift and each region's cast of color, in one layer (groundCast).
   // It deepens and fades very slowly: the skin breathing. The Navel glows faintly warm.
   const macro = groundCast(scene);
@@ -298,6 +313,7 @@ export function createBackdrop(scene) {
     // `walkers`: things moving about, which brush the hairs aside; `calm`: reduce motion.
     update(time, delta, camera, walkers = [], calm = false) {
       const view = camera.worldView;
+      coverView(view);
       // Show the cells near the view, hide the rest (only when that changes).
       const x0 = Math.floor((view.x - CULL_MARGIN) / CELL);
       const x1 = Math.floor((view.right + CULL_MARGIN) / CELL);
