@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { INGROWN, SCAB, TICK, tickFeedsOn } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { DEPTH, FONT } from './layout.js';
+import { BAR_H, DEPTH, FONT, drawBar } from './layout.js';
 
 // The world events after The Boil (see worldEvents.js in @hptm/shared), as
 // everyone sees them: The Scab, peeled piece by piece off raw skin; The Gash,
@@ -17,11 +17,13 @@ const INGROWN_SIZE = 120;
 const HAIR_OUT = 150;     // px of hair drawn out when it's all but out
 const HEAD_SIZE = 40;
 const GUNK_LENGTH = 54;
-const BAR_W = 110;
-const BAR_H = 9;
 const LABEL = { fontFamily: FONT, fontSize: '16px', color: '#ffd9c0', stroke: '#1a0a0d', strokeThickness: 4 };
 
 export function createEventViews(scene, fx) {
+  // Fade things out, then let them go.
+  const gone = (things, duration = 900) => scene.tweens.add({
+    targets: things, alpha: 0, duration, onComplete: () => things.forEach((t) => t.destroy()),
+  });
   let event = null;   // the server's view of it, as last synced
   let view = null;    // what's drawn: { kind, x, y, parts..., destroy() }
 
@@ -198,9 +200,6 @@ export function createEventViews(scene, fx) {
       const dying = view;
       view = null;
       event = null;
-      const gone = (things, duration = 900) => scene.tweens.add({
-        targets: things, alpha: 0, duration, onComplete: () => things.forEach((t) => t.destroy()),
-      });
       if (kind === 'scab') {
         fx.ring(dying.x, dying.y, { color: 0xff9a8a, size: 260, duration: 600 });
         gone([dying.label, dying.ring, dying.glisten, ...dying.pieces], 300);
@@ -247,7 +246,7 @@ export function createEventViews(scene, fx) {
         fx.ring(dying.x, dying.y, { color: 0xffd0a0, size: 220, duration: 500 });
       }
       scene.tweens.killTweensOf(things);
-      scene.tweens.add({ targets: things, alpha: 0, duration: kind === 'blackheads' ? 2500 : 900, onComplete: () => things.forEach((t) => t.destroy()) });
+      gone(things, kind === 'blackheads' ? 2500 : 900);
     },
 
     // Gone without a proper ending (we missed it while away): fade out.
@@ -256,7 +255,7 @@ export function createEventViews(scene, fx) {
       const things = allThings(view);
       view = null;
       scene.tweens.killTweensOf(things);
-      scene.tweens.add({ targets: things, alpha: 0, duration: 600, onComplete: () => things.forEach((t) => t.destroy()) });
+      gone(things, 600);
     },
 
     kind: () => view?.kind ?? null,
@@ -350,9 +349,7 @@ export function createEventViews(scene, fx) {
         view.hair.strokePath();
         const top = view.y - INGROWN_SIZE * 0.55;
         view.label.setPosition(view.x, top - BAR_H - 4);
-        view.bar.clear();
-        view.bar.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(view.x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
-        view.bar.fillStyle(0xd8a070, 1).fillRoundedRect(view.x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * event.progress), BAR_H, 4);
+        drawBar(view.bar, view.x, top, event.progress, 0xd8a070);
         return;
       }
       if (view.kind === 'blackheads' || view.kind === 'lint') return;
@@ -389,10 +386,7 @@ export function createEventViews(scene, fx) {
         const top = view.y - size * 0.35 - 10;
         view.label.setPosition(view.x, top - BAR_H - 4);
         view.hands.setPosition(view.x, top - BAR_H - 24).setText(event.hands > 1 ? `${event.hands} hands ×${event.hands}` : '');
-        const left = 1 - event.progress;
-        view.bar.clear();
-        view.bar.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(view.x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
-        view.bar.fillStyle(0xb48cd8, 1).fillRoundedRect(view.x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * left), BAR_H, 4);
+        drawBar(view.bar, view.x, top, 1 - event.progress, 0xb48cd8);
         // A red thread to each crop it's feeding on, with drops of it flowing back to The Tick.
         view.drain.clear();
         const pulse = calm ? 0.75 : 0.6 + 0.25 * Math.sin(time * 0.006);

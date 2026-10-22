@@ -1,10 +1,8 @@
 // Things a player could get wrong (or exploit) around saves and reconnects.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2577';
 const today = new Date().toISOString().slice(0, 10);
 
@@ -87,5 +85,4 @@ if (boss) {
   await reloaded.room.leave(true);
 }
 await taker.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

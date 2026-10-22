@@ -35,7 +35,7 @@ export function createBoss(room, scale, done) {
       hp: maxHp,
       maxHp,
       expiresAt: now + BOSS.lastsMs * scale,
-      damage: new Map(),
+      damage: new Map(),  // by save, so a reload or a new connection carries on with it
     };
     room.announce('A Boil is swelling! Go pop it.', 'boss');
     room.markDirty();
@@ -50,7 +50,7 @@ export function createBoss(room, scale, done) {
     boss = null;
     done(now);
     for (const [id, damage] of ranked) {
-      const player = room.players[id];
+      const player = room.playerByProfile(id);
       if (!player) continue;
       const reward = {
         damage,
@@ -62,7 +62,7 @@ export function createBoss(room, scale, done) {
       room.rewardBoss(player, reward);
     }
     room.broadcast('bossPopped', { x, y });
-    room.announce(`The Boil burst! ${room.players[topId]?.name ?? 'Someone'} squeezed hardest.`, 'boss');
+    room.announce(`The Boil burst! ${room.playerByProfile(topId)?.name ?? 'Someone'} squeezed hardest.`, 'boss');
     room.markDirty();
   }
 
@@ -90,13 +90,6 @@ export function createBoss(room, scale, done) {
       return { hp: boss.hp, maxHp: boss.maxHp };
     },
 
-    // A player who reloaded carries on under a new session id; so does their damage.
-    renamePlayer(oldId, newId) {
-      if (!boss?.damage.has(oldId)) return;
-      addTo(boss.damage, newId, boss.damage.get(oldId));
-      boss.damage.delete(oldId);
-    },
-
     hit(player, now) {
       if (!boss) return 0;
       if (Math.hypot(player.x - boss.x, player.y - boss.y) > REACH) return 0;
@@ -104,7 +97,7 @@ export function createBoss(room, scale, done) {
       player.lastHitAt = now;
       const damage = Math.random() < BOSS.critChance ? BOSS.critDamage : 1;
       boss.hp = Math.max(0, boss.hp - damage);
-      addTo(boss.damage, player.id, damage);
+      addTo(boss.damage, player.profileId, damage);
       hpDirty = true;
       if (boss.hp === 0) burst(now);
       return damage;

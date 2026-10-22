@@ -1,11 +1,9 @@
 // High levels: every hole open, and crops growing faster for each level past 7.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { CHARACTER_BY_ID, RARITIES, greenThumb, levelFor } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 
 const XP = 2900;  // level 11
 const today = new Date().toISOString().slice(0, 10);
@@ -32,5 +30,4 @@ const thumb = greenThumb(level);
 const ok = slots.every((c) => Math.abs((c.readyAt - c.plantedAt) - RARITIES[CHARACTER_BY_ID[c.characterId].rarity].growMs * 0.01 * (1 - thumb)) < 2);
 check(`level ${level} crops grow ${Math.round(thumb * 100)}% faster`, thumb > 0 && ok);
 await room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

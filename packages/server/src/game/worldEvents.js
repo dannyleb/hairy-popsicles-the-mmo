@@ -45,9 +45,5 @@ export function createWorldEvents(scale, makers) {
         nextAt = now + 30_000 * scale;  // nobody here: try again in a bit
       }
     },
-
-    renamePlayer(oldId, newId) {
-      for (const event of Object.values(events)) event.renamePlayer?.(oldId, newId);
-    },
   };
 }

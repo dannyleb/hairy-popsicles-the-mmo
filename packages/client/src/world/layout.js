@@ -36,3 +36,13 @@ export function seededRandom(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+// A world event's bar (The Boil's health, The Tick's grip, the hair coming out):
+// `k` (0-1) of it filled in `color`, centred on x, its bottom edge at `top`.
+export const BAR_H = 9;
+const BAR_W = 110;
+export function drawBar(g, x, top, k, color) {
+  g.clear();
+  g.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
+  g.fillStyle(color, 1).fillRoundedRect(x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * k), BAR_H, 4);
+}

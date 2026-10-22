@@ -38,7 +38,7 @@ function silhouette(image, color) {
   return canvas;
 }
 
-export async function drawShareCard({ name, title, level, avatar, collection, shinies, nameColor }) {
+async function drawShareCard({ name, title, level, avatar, collection, shinies, nameColor }) {
   await Promise.all([
     document.fonts.load('96px "Rubik Wet Paint"'),
     document.fonts.load('48px "Patrick Hand"'),

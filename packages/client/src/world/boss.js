@@ -1,12 +1,10 @@
 import Phaser from 'phaser';
 import { textResolution } from '../display.js';
 import { settings } from '../settings.js';
-import { DEPTH, FONT } from './layout.js';
+import { BAR_H, DEPTH, FONT, drawBar } from './layout.js';
 
 const SIZE = 170;           // on-screen width at full health
 const SWELL = 0.3;          // it swells this much bigger as it nears bursting
-const BAR_W = 110;
-const BAR_H = 9;
 const HIT_RADIUS = 80;
 
 // The Boil, as everyone sees it: swelling up out of the skin, throbbing,
@@ -136,9 +134,7 @@ export function createBossView(scene, fx) {
 
       const top = boss.y - sprite.displayHeight * 0.62 - 10;
       label.setPosition(boss.x, top - BAR_H - 4);
-      bar.clear();
-      bar.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(boss.x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
-      bar.fillStyle(health() > 0.3 ? 0xf6c25b : 0xff5a3c, 1).fillRoundedRect(boss.x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * health()), BAR_H, 4);
+      drawBar(bar, boss.x, top, health(), health() > 0.3 ? 0xf6c25b : 0xff5a3c);
     },
   };
 }

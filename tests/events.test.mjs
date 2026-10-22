@@ -2,15 +2,13 @@
 // soon and it tears and bleeds; the last piece hides a character), The Gash
 // (pick the crumbs of crust; deep ones need two hands) and The Tick (crops near
 // it stop growing; a crowd pries it off faster; alone, the head stays in).
+import { check, finish, sleep, waitFor, walk } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { createTick } = await import('../packages/server/src/game/tick.js');
 const { createWorldEvents } = await import('../packages/server/src/game/worldEvents.js');
 const { Client } = await import('colyseus.js');
 const { GASH, REACH, SCAB, TICK } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 
 // ---- The Tick's head, without a server: pried alone with others around, it's back soon
 function tickWorld(players) {
@@ -74,8 +72,6 @@ const veteran = (id, name) => saveToken({
   profileId: id, name, avatar: 'pimples', xp: 2000, currency: 300, collection: { pimples: 1 }, shinies: {},
   inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
 }, null, null);
-const waitFor = async (test, ms) => { for (let t = 0; t < ms && !test(); t += 100) await sleep(100); return test(); };
-const walk = async (p, x, y) => { p.room.send('move', { x, y }); await sleep(1500); };
 
 const a = await join({ profile: veteran(`ev-a-${Date.now()}`, 'Ada') });
 const b = await join({ profile: veteran(`ev-b-${Date.now()}`, 'Bo') });
@@ -180,5 +176,4 @@ check('it all counts toward world-event quests', a.ev.announce.length > 0);
 
 await a.room.leave(true);
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

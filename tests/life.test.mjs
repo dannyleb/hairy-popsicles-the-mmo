@@ -1,13 +1,11 @@
 // Life in the world: strays wandering on their own (the day's featured one
 // catchable once a day), players who are away napping by their plots, and the
 // landmarks: plots kept free for them, and the statue of the top collector.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { CHARACTERS, LANDMARKS, SKY, STRAYS, WEATHER, daylight, isReservedPlot, strayPosition, weatherAt } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2593';
 
 async function join(options) {
@@ -48,7 +46,8 @@ const kinds = Object.fromEntries(Object.keys(WEATHER).map((k) => [k, windows.fil
 check('the weather comes in every kind, about as often as meant', Object.entries(WEATHER).every(([k, { share }]) => Math.abs(kinds[k] - share) < 0.08), JSON.stringify(kinds));
 const wet = windows.findIndex((w) => w.kind !== 'clear');
 const start = firstWindow + wet * SKY.weatherMs;
-check('weather is the same whenever it is asked for', JSON.stringify(weatherAt(start + 1000)) === JSON.stringify(weatherAt(start + 1000)));
+const asked = [weatherAt(start + 1000), weatherAt(start + 1000)].map((w) => JSON.stringify(w));  // (worked out, not rolled)
+check('weather is the same whenever it is asked for', asked[0] === asked[1]);
 check('and fades in and out at the edges of its window', weatherAt(start + 1).strength < 0.01 && weatherAt(start + SKY.weatherMs / 2).strength === 1 && weatherAt(start + SKY.weatherMs - 1).strength < 0.01);
 
 // ---- strays wander
@@ -148,5 +147,4 @@ await Promise.all([settler, collector, lesser].map((p) => p.room.leave(true)));
 
 await woke.room.leave(true);
 await watcher.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

@@ -1,13 +1,11 @@
 // Limits that keep one person from spoiling the world for everyone: joins and
 // seats per address, request sizes, repeat syncs, invisible characters, and the
 // admin lockout going by an address that can't be faked.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const http = await import('node:http');
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const PORT = 2585;
 const HTTP = `http://localhost:${PORT}`;
 const WS = `ws://localhost:${PORT}`;
@@ -156,5 +154,4 @@ check('a player over the limit is told why', blocked?.code === 429 && /wait a mi
 
 await seated[0].room.leave(true);
 await again.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

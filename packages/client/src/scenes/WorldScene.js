@@ -148,6 +148,15 @@ export class WorldScene extends Phaser.Scene {
     this.strays = createStraysView(this);
     this.weather = createWeather(this);
     this.ambience = createAmbience();
+    this.initFields();
+    this.hud = createHud(this.hudActions());
+    this.bindInput();
+    this.bindRoom(this.room);
+    offerInstallLater();
+    this.checkRenderer();
+  }
+
+  initFields() {
     this.walkers = [];  // everything walking about this frame: players and strays
     this.lastTarget = null;   // where I last walked to, which is where the server has me
     this.arrivesAt = 0;
@@ -175,8 +184,11 @@ export class WorldScene extends Phaser.Scene {
     this.introShown = false;
     this.pendingDaily = null;
     this.pointerTarget = null;
+  }
 
-    this.hud = createHud({
+  // What the HUD can ask of the world.
+  hudActions() {
+    return {
       wear: (characterId) => {
         this.coached.albumOpened = true;
         this.room.send('setAvatar', { characterId });
@@ -184,7 +196,7 @@ export class WorldScene extends Phaser.Scene {
       chat: (text) => this.room.send('chat', { text }),
       emote: (emote) => this.room.send('emote', { emote }),
       goTo: (id) => this.walkToPlayer(id),
-      goToBoss: () => this.walkToEvent(),
+      goToEvent: () => this.walkToEvent(),
       travel: (x, y) => this.walk(x, y),
       albumOpened: () => { this.coached.albumOpened = true; },
       setTitle: (id) => this.room.send('setTitle', { id }),
@@ -197,9 +209,11 @@ export class WorldScene extends Phaser.Scene {
       },
       leave: () => this.leave(),
       palsChanged: () => this.redrawNames(),
-    });
+    };
+  }
 
-    // A tap acts when the finger lifts, so a second finger landing turns it into a pinch instead.
+  // A tap acts when the finger lifts, so a second finger landing turns it into a pinch instead.
+  bindInput() {
     this.input.addPointer(1);
     this.input.on('pointerdown', (pointer) => this.onPointerDown(pointer));
     this.input.on('pointermove', () => this.onPinchMove());
@@ -210,9 +224,6 @@ export class WorldScene extends Phaser.Scene {
       this.setUserZoom(this.userZoom * Phaser.Math.Clamp(Math.exp(-dy * 0.0015), 0.8, 1.25));
       settings.set('zoom', this.userZoom);
     });
-    this.bindRoom(this.room);
-    offerInstallLater();
-    this.checkRenderer();
   }
 
   // ---------- connection ----------
@@ -236,86 +247,99 @@ export class WorldScene extends Phaser.Scene {
     on('tendDone', this.onTendDone);
     on('bossHp', this.onBossHp);
     on('bossPopped', this.onBossPopped);
-    on('bossGone', () => {
-      this.bossView.sink();
-      if (this.state) this.state.boss = null;
-    });
+    on('bossGone', this.onBossGone);
     on('bossReward', this.onBossReward);
-    on('peeled', ({ torn }) => {
-      if (torn) {
-        sfx.tear();
-        this.hud.tip('scab-torn', "That piece tore: it wasn't dry yet. Torn pieces pay less, and the blood spills out as globs anyone can grab.");
-      } else sfx.peel();
-    });
+    on('peeled', this.onPeeled);
     on('crumbPicked', ({ id }) => this.eventViews.picked(id));
-    on('eventOver', (over) => {
-      this.eventViews.over(over);
-      if (this.state) this.state.event = null;
-      if (over.kind === 'gash') sfx.zip();
-      else if (over.kind === 'tick') (over.pried ? sfx.pop : sfx.splat)();
-    });
+    on('eventOver', this.onEventOver);
     on('eventReward', this.onEventReward);
-    on('eventPrize', ({ characterId, isNew }) => {
-      const copies = (this.private?.collection[characterId] ?? 0) + 1;  // the 'me' with it follows
-      this.hud.reveal(characterId, { isNew, found: 'Under The Scab', bonus: describeBonus(wearBonus(characterId, copies)) });
-      sfx.discover();
-      if (isNew) this.hud.markNew();
-    });
-    on('grabbed', ({ id, by }) => {
-      const avatar = this.avatars.get(by);
-      if (avatar) this.drops.grabbed(id, avatar.container);
-    });
-    on('gotGlob', ({ scraps, gold, lint, prize }) => {
-      const me = this.me();
-      sfx.bloop(gold || Boolean(prize));
-      if (me) this.fx.float(me.x, me.y - AVATAR_SIZE - 4, `+${scraps}`, { color: gold ? '#ffe08a' : '#f3d27a', size: gold ? 24 : 18 });
-      if (lint && prize) {
-        const found = prize.boil ? 'a Boil Seed!' : prize.fertilizer ? `${prize.fertilizer} doses of fertilizer.` : `${prize.scraps} more scraps.`;
-        this.hud.toast(`Something in the lint: ${found}`, { color: '#ffe08a' });
-        sfx.discover();
-        if (prize.boil) this.hud.selectSeed('boil');
-      }
-    });
-    on('navelGurgle', () => {
-      this.landmarks.heave(this.time.now, 1800);
-      sfx.gurgle();
-    });
-    on('navelCough', () => {
-      const at = this.landmarks.heave(this.time.now);
-      sfx.cough();
-      this.fx.ring(at.x, at.y, { color: 0xc8d0e8, size: 320, duration: 500 });
-      if (!settings.get('calm')) this.cameras.main.shake(200, 0.004);
-    });
-    on('squeezed', ({ id }) => {
-      this.eventViews.squeezed(id);
-      sfx.squelch();
-    });
+    on('eventPrize', ({ characterId, isNew }) => this.revealGot(characterId, isNew, { found: 'Under The Scab' }));
+    on('grabbed', this.onGrabbed);
+    on('gotGlob', this.onGotGlob);
+    on('navelGurgle', this.onNavelGurgle);
+    on('navelCough', this.onNavelCough);
+    on('squeezed', this.onSqueezed);
     on('save', ({ token }) => storeProfile(token));
     on('notice', this.onNotice);
     on('titleEarned', ({ id }) => this.hud.titleEarned(id));
-    on('gifted', ({ from, characterId, isNew }) => {
-      this.hud.reveal(characterId, { isNew, giftFrom: from });
-      sfx.discover();
-      if (isNew) this.hud.markNew();
-    });
-    on('bought', ({ item }) => {
-      sfx.quest();
-      if (item === 'fertilizer') this.hud.toast('Fertilizer: your next 3 crops grow twice as fast.');
-      else if (item === 'candle') this.hud.toast('A new candle on your plot.');
-      else this.hud.toast('New name color. Looking good.');
-    });
-    on('caughtStray', ({ characterId, isNew }) => {
-      const copies = (this.private?.collection[characterId] ?? 0) + 1;  // the 'me' with it follows
-      this.hud.reveal(characterId, { isNew, caught: true, bonus: describeBonus(wearBonus(characterId, copies)) });
-      sfx.discover();
-      if (isNew) this.hud.markNew();
-    });
-    on('gave', ({ to, characterId }) => {
-      this.hud.toast(`You gave ${to} a ${CHARACTER_BY_ID[characterId].name}.`, { characterId });
-      sfx.quest();
-    });
+    on('gifted', ({ from, characterId, isNew }) => this.revealGot(characterId, isNew, { giftFrom: from }));
+    on('bought', this.onBought);
+    on('caughtStray', ({ characterId, isNew }) => this.revealGot(characterId, isNew, { caught: true }));
+    on('gave', this.onGave);
     room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
+  }
+
+  onBossGone() {
+    this.bossView.sink();
+    if (this.state) this.state.boss = null;
+  }
+
+  onPeeled({ torn }) {
+    if (!torn) return sfx.peel();
+    sfx.tear();
+    this.hud.tip('scab-torn', "That piece tore: it wasn't dry yet. Torn pieces pay less, and the blood spills out as globs anyone can grab.");
+  }
+
+  onEventOver(over) {
+    this.eventViews.over(over);
+    if (this.state) this.state.event = null;
+    if (over.kind === 'gash') sfx.zip();
+    else if (over.kind === 'tick') (over.pried ? sfx.pop : sfx.splat)();
+  }
+
+  // A character just got (dug up, given, caught): shown off with the bonus it
+  // gives at its new count.
+  revealGot(characterId, isNew, details) {
+    const copies = (this.private?.collection[characterId] ?? 0) + 1;  // the 'me' with it follows
+    this.hud.reveal(characterId, { isNew, bonus: describeBonus(wearBonus(characterId, copies)), ...details });
+    sfx.discover();
+    if (isNew) this.hud.markNew();
+  }
+
+  onGrabbed({ id, by }) {
+    const avatar = this.avatars.get(by);
+    if (avatar) this.drops.grabbed(id, avatar.container);
+  }
+
+  onGotGlob({ scraps, gold, lint, prize }) {
+    const me = this.me();
+    sfx.bloop(gold || Boolean(prize));
+    if (me) this.fx.float(me.x, me.y - AVATAR_SIZE - 4, `+${scraps}`, { color: gold ? '#ffe08a' : '#f3d27a', size: gold ? 24 : 18 });
+    if (!lint || !prize) return;
+    const found = prize.boil ? 'a Boil Seed!' : prize.fertilizer ? `${prize.fertilizer} doses of fertilizer.` : `${prize.scraps} more scraps.`;
+    this.hud.toast(`Something in the lint: ${found}`, { color: '#ffe08a' });
+    sfx.discover();
+    if (prize.boil) this.hud.selectSeed('boil');
+  }
+
+  onNavelGurgle() {
+    this.landmarks.heave(this.time.now, 1800);
+    sfx.gurgle();
+  }
+
+  onNavelCough() {
+    const at = this.landmarks.heave(this.time.now);
+    sfx.cough();
+    this.fx.ring(at.x, at.y, { color: 0xc8d0e8, size: 320, duration: 500 });
+    if (!settings.get('calm')) this.cameras.main.shake(200, 0.004);
+  }
+
+  onSqueezed({ id }) {
+    this.eventViews.squeezed(id);
+    sfx.squelch();
+  }
+
+  onBought({ item }) {
+    sfx.quest();
+    if (item === 'fertilizer') this.hud.toast('Fertilizer: your next 3 crops grow twice as fast.');
+    else if (item === 'candle') this.hud.toast('A new candle on your plot.');
+    else this.hud.toast('New name color. Looking good.');
+  }
+
+  onGave({ to, characterId }) {
+    this.hud.toast(`You gave ${to} a ${CHARACTER_BY_ID[characterId].name}.`, { characterId });
+    sfx.quest();
   }
 
   async onDisconnect(code) {
@@ -1661,11 +1685,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // While The Boil is off screen, an arrow at the screen edge points the way.
-  pointAtBoss() {
+  pointAtEvent() {
     const boss = this.bossView.position() ?? this.eventViews.position();
     const view = this.cameras.main.worldView;
     if (!boss || (boss.x > view.x + 20 && boss.x < view.right - 20 && boss.y > view.y + 40 && boss.y < view.bottom + 20)) {
-      this.hud.pointAtBoss(null);
+      this.hud.pointAtEvent(null);
       return;
     }
     const scale = window.innerWidth / view.width;
@@ -1674,7 +1698,7 @@ export class WorldScene extends Phaser.Scene {
     const halfW = window.innerWidth / 2 - 30;
     const halfH = dy < 0 ? window.innerHeight / 2 - 170 : window.innerHeight / 2 - 130;
     const t = Math.min(halfW / Math.abs(dx || 1e-6), halfH / Math.abs(dy || 1e-6));
-    this.hud.pointAtBoss({
+    this.hud.pointAtEvent({
       x: window.innerWidth / 2 + dx * t,
       y: window.innerHeight / 2 + dy * t,
       angle: Math.atan2(dy, dx),
@@ -1708,14 +1732,35 @@ export class WorldScene extends Phaser.Scene {
     this.bossView.update(time);
     this.eventViews.update(time, now, calm);
     this.updateHold(time);
-    // A soft knock on each beat of an Ingrown Hair, while it's in view.
-    const beat = this.eventViews.beat(now);
-    if (beat !== null && beat !== this.lastBeat) {
-      this.lastBeat = beat;
-      const at = this.eventViews.position();
-      if (beat > 0 && camera.worldView.contains(at.x, at.y)) sfx.beat();
-    }
+    this.updateBeat(now, camera.worldView);
     this.drops.update(time);
+    this.updateCandles(time);
+    if (this.state.rain && time > this.nextRainDrop) {
+      this.nextRainDrop = time + RAIN_DROP_MS;
+      this.fx.rainDrop(camera.worldView);
+    }
+    this.pointAtEvent();
+
+    const mine = this.avatars.get(this.myId());
+    if (mine) this.ambience.update(time, { at: mine.container, region: this.regionHere, light, weather });
+    this.updateAvatars(time, camera.worldView, mine);
+    this.updateChatter(time);
+    if (time > this.nextSlowTick) {
+      this.nextSlowTick = time + SLOW_TICK_MS;
+      this.slowTick(time, now, camera.worldView);
+    }
+  }
+
+  // A soft knock on each beat of an Ingrown Hair, while it's in view.
+  updateBeat(now, view) {
+    const beat = this.eventViews.beat(now);
+    if (beat === null || beat === this.lastBeat) return;
+    this.lastBeat = beat;
+    const at = this.eventViews.position();
+    if (beat > 0 && view.contains(at.x, at.y)) sfx.beat();
+  }
+
+  updateCandles(time) {
     for (const { candles } of this.plots.values()) {
       for (const c of candles ?? []) {
         const flicker = 0.88 + 0.08 * Math.sin(time * 0.011 + c.phase) + 0.05 * Math.sin(time * 0.037 + c.phase * 2.3);
@@ -1723,20 +1768,15 @@ export class WorldScene extends Phaser.Scene {
         c.flame.setScale((10 / 64) * (0.9 + 0.1 * flicker), (10 / 64) * flicker);
       }
     }
-    if (this.state.rain && time > this.nextRainDrop) {
-      this.nextRainDrop = time + RAIN_DROP_MS;
-      this.fx.rainDrop(camera.worldView);
-    }
-    this.pointAtBoss();
+  }
 
-    const mine = this.avatars.get(this.myId());
-    if (mine) this.ambience.update(time, { at: mine.container, region: this.regionHere, light, weather });
+  updateAvatars(time, view, mine) {
     for (const avatar of this.avatars.values()) {
       avatar.container.setDepth(avatar.container.y + 1);
       // A little hop in each step.
       if (avatar.moving) avatar.image.y = -Math.abs(Math.sin(time * 0.017 + avatar.x)) * 5;
       else if (!this.tweens.isTweening(avatar.image)) avatar.image.y = 0;
-      if (avatar.moving && time > (avatar.nextTrail ?? 0)) this.trail(avatar, time, camera.worldView);
+      if (avatar.moving && time > (avatar.nextTrail ?? 0)) this.trail(avatar, time, view);
     }
     if (time > this.nextSparkle) {
       this.nextSparkle = time + SPARKLE_MS;
@@ -1746,7 +1786,10 @@ export class WorldScene extends Phaser.Scene {
       sfx.step();
       this.nextStep = time + STEP_MS;
     }
+  }
 
+  // Speech bubbles follow their speakers; now and then someone mutters a line.
+  updateChatter(time) {
     for (const { bubble, follow, offset } of this.bubbles) {
       if (follow.active) bubble.setPosition(follow.x, follow.y - offset);
     }
@@ -1754,14 +1797,15 @@ export class WorldScene extends Phaser.Scene {
       if (this.nextMutter) this.mutter();
       this.nextMutter = time + Phaser.Math.Between(...MUTTER_GAP);
     }
-    if (time > this.nextSlowTick) {
-      this.nextSlowTick = time + SLOW_TICK_MS;
-      this.hud.minimap.draw(this.state, this.myId(), camera.worldView, time, this.caughtStrayToday() ? null : this.strays.featured());
-      this.hud.setEvents(this.state, this.now());
-      this.updateCoach();
-      this.updateRegion(time);
-      this.updateSky(now);
-      if (this.private) this.updateTips();
-    }
+  }
+
+  // What needn't happen every frame.
+  slowTick(time, now, view) {
+    this.hud.minimap.draw(this.state, this.myId(), view, time, this.caughtStrayToday() ? null : this.strays.featured());
+    this.hud.setEvents(this.state, this.now());
+    this.updateCoach();
+    this.updateRegion(time);
+    this.updateSky(now);
+    if (this.private) this.updateTips();
   }
 }

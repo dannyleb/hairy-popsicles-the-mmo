@@ -1,11 +1,9 @@
 // The shop: fertilizer, candles for your plot, name colors, all saved.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { CHARACTER_BY_ID, RARITIES, NAME_COLORS, SHOP } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2576';
 const today = new Date().toISOString().slice(0, 10);
 
@@ -78,5 +76,4 @@ await a.room.leave(true);
 const b = await join(token);
 check('restored: candles, colors, fertilizer', b.state.plots['6,6']?.candles === 4 && b.me.nameColor === 'gold' && b.me.inventory.fertilizer === 2);
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

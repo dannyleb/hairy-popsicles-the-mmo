@@ -1,11 +1,11 @@
 // The day's featured character: the same all day, and it sprouts more often.
+import { check, finish } from './lib.mjs';
 const { CHARACTERS, CHARACTER_BY_ID, FEATURED_BOOST, SEED_BY_ID, featuredFor } = await import('@hptm/shared');
 const { rollCharacter } = await import('../packages/server/src/game/roll.js');
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 
 const days = Array.from({ length: 60 }, (_, i) => new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10));
-check('the same day always features the same character', featuredFor(days[0]) === featuredFor(days[0]));
+const asked = [featuredFor(days[0]), featuredFor(days[0])];  // (it's worked out, not rolled)
+check('the same day always features the same character', asked[0] === asked[1]);
 check('every pick is a real character', days.every((d) => Object.hasOwn(CHARACTER_BY_ID, featuredFor(d))));
 const distinct = new Set(days.map(featuredFor)).size;
 check('it moves around over two months', distinct >= 15, `${distinct} different`);
@@ -30,5 +30,4 @@ const rares = [];
 for (let i = 0; i < 4000; i++) rares.push(rollCharacter(SEED_BY_ID.boil, false, featured));
 check('other rarities are untouched', rares.every((c) => c.rarity === 'rare' || c.rarity === 'legendary'));
 
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

@@ -1,7 +1,5 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2568';
 
 const client = new Client(URL);
@@ -49,5 +47,4 @@ await room.leave(true);
 await sleep(300);
 check('consented leave removes the player and, at level 1, the plot', !obs.state.players[id] && !obs.state.plots['3,3']);
 await observer.leave();
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

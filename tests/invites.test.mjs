@@ -2,13 +2,11 @@
 // reach INVITE.level both are paid (the inviter at most INVITE.perDay a day,
 // and later if they're away when it happens). A second server stands in for
 // the first one restarted: same secret, nothing in memory.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { INVITE } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const PORT = 2586;
 const URL = `ws://localhost:${PORT}`;
 const RESTARTED = 'ws://localhost:2587';
@@ -143,5 +141,4 @@ for (const [i, name] of ['Bea', 'Cal', 'Dot'].entries()) {
 }
 check("the day's count carries over a restart, in the inviter's save", paid2().join(',') === 'Bea,Cal', JSON.stringify(paid2()));
 for (const p of [host2, replay, ...later]) await p.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

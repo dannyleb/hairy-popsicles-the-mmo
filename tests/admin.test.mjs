@@ -1,10 +1,8 @@
 // The admin page: there only with ADMIN_KEY set, data only for that key.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const HTTP = 'http://localhost:2583';
 const KEY = 'test-admin-key';
 const get = (path, key, headers = {}) => fetch(`${HTTP}${path}`, { headers: { ...(key ? { Authorization: `Bearer ${key}` } : {}), ...headers } });
@@ -57,5 +55,4 @@ check('but not anyone else', (await get('/admin/data', KEY, { 'X-Forwarded-For':
 check('without ADMIN_KEY there is no admin page', (await fetch('http://localhost:2584/admin')).status === 404 && (await fetch('http://localhost:2584/admin/data', { headers: { Authorization: 'Bearer anything' } })).status === 404);
 
 await here.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

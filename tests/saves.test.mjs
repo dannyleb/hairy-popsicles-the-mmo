@@ -1,9 +1,7 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
 import { checkIn, dayOf } from '../packages/server/src/game/daily.js';
 import { advanceDaily, dealDaily, restoreDaily } from '../packages/server/src/game/quests.js';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2569';
 
 async function join(name, profile) {
@@ -108,5 +106,4 @@ const all = Object.values(a4.state.players).filter((p) => p.name === 'Alice Agai
 check('held player taken over, not duplicated', all.length === 1 && !all[0].away && a4.state.plots['5,5']?.ownerId === a4.room.sessionId);
 await a4.room.leave(true);
 
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

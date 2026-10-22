@@ -87,13 +87,13 @@ export function createHud(actions) {
   const events = el('div', 'hud-events');
   corner.append(buttons, minimap.root, events);
 
-  const bossPill = button('event-pill boss', null, () => actions.goToBoss());
-  const bossLabel = el('span', 'event-label', 'The Boil');
-  const bossHpFill = el('div', 'event-hp-fill');
-  const bossHp = el('div', 'event-hp');
-  bossHp.append(bossHpFill);
-  const bossTime = el('span', 'event-time');
-  bossPill.append(bossLabel, bossTime, bossHp);
+  const eventPill = button('event-pill world', null, () => actions.goToEvent());
+  const eventLabel = el('span', 'event-label', 'The Boil');
+  const eventHpFill = el('div', 'event-hp-fill');
+  const eventHp = el('div', 'event-hp');
+  eventHp.append(eventHpFill);
+  const eventTime = el('span', 'event-time');
+  eventPill.append(eventLabel, eventTime, eventHp);
   const moonPill = el('div', 'event-pill moon');
   const moonTime = el('span', 'event-time');
   moonPill.append(el('span', 'event-label', 'Blood Moon'), moonTime);
@@ -105,15 +105,15 @@ export function createHud(actions) {
   const seasonLabel = el('span', 'event-label');
   const seasonTime = el('span', 'event-time');
   seasonPill.append(seasonLabel, seasonTime);
-  bossPill.hidden = true;
+  eventPill.hidden = true;
   moonPill.hidden = true;
   rainPill.hidden = true;
   seasonPill.hidden = true;
-  events.append(bossPill, moonPill, rainPill, seasonPill);
+  events.append(eventPill, moonPill, rainPill, seasonPill);
 
   // Points at the boss while it's off screen.
-  const bossArrow = el('div', 'boss-arrow');
-  bossArrow.hidden = true;
+  const eventArrow = el('div', 'event-arrow');
+  eventArrow.hidden = true;
 
   // ---- bottom: seeds, chat, emotes
   const dock = el('div', 'dock');
@@ -158,7 +158,7 @@ export function createHud(actions) {
   const reveal = createReveal({ onWear: (id) => actions.wear(id) });
   const coach = createCoach();
 
-  root.append(seasonVeil, bloodMoon, card, quests, corner, toasts, coach.root, chat.log, banners, bossArrow, dock, chat.bar, chat.emotes);
+  root.append(seasonVeil, bloodMoon, card, quests, corner, toasts, coach.root, chat.log, banners, eventArrow, dock, chat.bar, chat.emotes);
   document.body.append(root, album.root, sheets.root, reveal.root);
 
   let me = null;      // private data from the server
@@ -327,12 +327,12 @@ export function createHud(actions) {
           : event.kind === 'lint' ? (event.coughsLeft ? 1 : event.left / Math.max(1, event.total))
           : 1 - event.progress,
       };
-      bossPill.hidden = !going;
+      eventPill.hidden = !going;
       if (going) {
-        bossPill.dataset.kind = going.kind;
-        bossLabel.textContent = WORLD_EVENT.names[going.kind];
-        bossTime.textContent = formatClock(going.endsAt - now);
-        bossHpFill.style.width = `${going.left * 100}%`;
+        eventPill.dataset.kind = going.kind;
+        eventLabel.textContent = WORLD_EVENT.names[going.kind];
+        eventTime.textContent = formatClock(going.endsAt - now);
+        eventHpFill.style.width = `${going.left * 100}%`;
       }
       moonPill.hidden = !moon;
       bloodMoon.hidden = !moon;
@@ -370,10 +370,10 @@ export function createHud(actions) {
     },
 
     // Screen position (CSS px) of an off-screen boss, or null to hide the arrow.
-    pointAtBoss(at) {
-      bossArrow.hidden = !at;
+    pointAtEvent(at) {
+      eventArrow.hidden = !at;
       if (!at) return;
-      bossArrow.style.transform = `translate(${at.x}px, ${at.y}px) rotate(${at.angle}rad)`;
+      eventArrow.style.transform = `translate(${at.x}px, ${at.y}px) rotate(${at.angle}rad)`;
     },
 
     minimap,

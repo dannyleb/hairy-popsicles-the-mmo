@@ -82,7 +82,7 @@ export function drawingInSoftware(game) {
 
 // Bigger screens see the world closer, so a desktop or tablet doesn't shrink
 // everyone to ants. Phones (about 360-430 px across) stay at 1.
-export function worldZoom() {
+function worldZoom() {
   return Math.min(2.2, Math.max(1, Math.min(window.innerWidth, window.innerHeight) / 420));
 }
 

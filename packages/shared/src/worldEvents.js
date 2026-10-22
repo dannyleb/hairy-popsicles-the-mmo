@@ -48,7 +48,8 @@ export const TICK = {
   pry: { base: 30, perPlayer: 15 },
   crowdMs: 2500,
   lastsMs: 120_000,
-  reward: { scraps: 10, xp: 20, perPry: 2, max: 60, maxXp: 70 },
+  // Paid by pries (`each`), up to `max` scraps and `maxXp`; the most a seed from `seedAt`.
+  reward: { scraps: 10, xp: 20, each: 2, max: 60, maxXp: 70, seedAt: 5 },
 };
 
 // The crops The Tick (at `at`) feeds on: those of players who are here, within
@@ -76,7 +77,7 @@ export const INGROWN = {
   window: 170,           // ms either side of a beat that still counts as on it
   tugs: { base: 12, perPlayer: 6 },
   lastsMs: 120_000,
-  reward: { scraps: 8, xp: 15, perTug: 2, max: 50, maxXp: 60 },
+  reward: { scraps: 8, xp: 15, each: 2, max: 50, maxXp: 60, seedAt: 6 },  // by tugs, as TICK's by pries
 };
 
 // A patch of Blackheads in the Armpit. Hold a finger on one to squeeze it out

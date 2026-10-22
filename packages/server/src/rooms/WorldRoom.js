@@ -125,6 +125,86 @@ const worthStoring = (player) => levelFor(player.xp) >= 2;
 
 const rank = (characterId) => RARITY_ORDER.indexOf(CHARACTER_BY_ID[characterId].rarity);
 
+// A player as they start out: one common character, so they have an avatar
+// and a first album entry, somewhere near the middle of the world.
+function newPlayer(id, profileId, name) {
+  const starter = randomCommon();
+  return {
+    id,
+    profileId,
+    pid: publicIdOf(profileId),
+    name: name || `Guest${Math.floor(Math.random() * 10000)}`,
+    // Near the middle of the world, so new players land near each other.
+    x: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
+    y: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
+    avatar: starter.id,
+    level: 1,
+    xp: 0,
+    currency: STARTING_CURRENCY,
+    collection: { [starter.id]: 1 },
+    shinies: {},
+    inventory: { boil: 0, fertilizer: 0, teeth: 0 },
+    colors: [],
+    nameColor: null,
+    quests: [],
+    daily: { last: null, streak: 0 },
+    dailyQuest: null,
+    stats: Object.fromEntries(STAT_NAMES.map((stat) => [stat, 0])),
+    titles: [],
+    title: null,
+    rows: [],            // album rows (rarities) completed and paid for
+    invitedBy: null,     // public id of whoever's invite brought them, until it pays out
+    inviteLog: { day: null, count: 0, paid: [] },  // as an inviter: see creditInvite
+    strayDay: null,      // the day they last caught the featured stray
+    startedAt: Date.now(),  // when this save was first made (null for saves from before it was kept)
+    notices: [],         // shown once the client is listening ('sync')
+    synced: false,
+    saveDirty: true,
+    lastSaveAt: 0,
+    unstored: false,     // changed since it last went into the database
+    storedAt: Date.now(),
+    reconnection: null,  // while away: the pending reconnection, so a takeover can cancel it
+    lastChatAt: 0,
+    lastEmoteAt: 0,
+    lastHitAt: 0,
+    lastGiftAt: 0,
+    joinedAt: Date.now(),
+    arrivesAt: 0,
+    budget: MESSAGES.burst,
+    budgetAt: Date.now(),
+    activeAt: Date.now(),
+    away: false,
+  };
+}
+
+// What a save brings back, over a new player.
+function applySave(player, save) {
+  Object.assign(player, {
+    xp: save.xp,
+    level: save.level,
+    currency: save.currency,
+    shinies: save.shinies,
+    inventory: save.inventory,
+    colors: save.colors,
+    nameColor: save.nameColor,
+    quests: restoreQuests(save.quests),
+    daily: save.daily,
+    dailyQuest: restoreDaily(save.dailyQuest, dayOf(Date.now())),
+    stats: save.stats,
+    titles: save.titles,
+    title: save.title,
+    rows: save.rows,
+    invitedBy: save.invitedBy,
+    inviteLog: save.inviteLog,
+    strayDay: save.strayDay,
+    startedAt: save.startedAt,
+  });
+  if (Object.keys(save.collection).length) {
+    player.collection = save.collection;
+    player.avatar = save.avatar;
+  }
+}
+
 // v1: state is a plain object broadcast when it changes (at most every
 // BROADCAST_MS), plots only when they changed (see flush). Per-player data
 // (scraps, collection, quests) goes only to that player. Swap for
@@ -350,81 +430,8 @@ export class WorldRoom extends Room {
   }
 
   createPlayer(client, save) {
-    // Everyone starts with one common character, so they have an avatar and a first album entry.
-    const starter = randomCommon();
-    const player = {
-      id: client.sessionId,
-      profileId: save?.id ?? newProfileId(),
-      pid: null,  // public id, set below
-      name: save?.name || `Guest${Math.floor(Math.random() * 10000)}`,
-      // Near the middle of the world, so new players land near each other.
-      x: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
-      y: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
-      avatar: starter.id,
-      level: 1,
-      xp: 0,
-      currency: STARTING_CURRENCY,
-      collection: { [starter.id]: 1 },
-      shinies: {},
-      inventory: { boil: 0, fertilizer: 0, teeth: 0 },
-      colors: [],
-      nameColor: null,
-      quests: [],
-      daily: { last: null, streak: 0 },
-      dailyQuest: null,
-      stats: Object.fromEntries(STAT_NAMES.map((name) => [name, 0])),
-      titles: [],
-      title: null,
-      rows: [],            // album rows (rarities) completed and paid for
-      invitedBy: null,     // public id of whoever's invite brought them, until it pays out
-      inviteLog: { day: null, count: 0, paid: [] },  // as an inviter: see creditInvite
-      strayDay: null,      // the day they last caught the featured stray
-      startedAt: Date.now(),  // when this save was first made (null for saves from before it was kept)
-      notices: [],         // shown once the client is listening ('sync')
-      synced: false,
-      saveDirty: true,
-      lastSaveAt: 0,
-      unstored: false,     // changed since it last went into the database
-      storedAt: Date.now(),
-      reconnection: null,  // while away: the pending reconnection, so a takeover can cancel it
-      lastChatAt: 0,
-      lastEmoteAt: 0,
-      lastHitAt: 0,
-      lastGiftAt: 0,
-      joinedAt: Date.now(),
-      arrivesAt: 0,
-      budget: MESSAGES.burst,
-      budgetAt: Date.now(),
-      activeAt: Date.now(),
-      away: false,
-    };
-    if (save) {
-      Object.assign(player, {
-        xp: save.xp,
-        level: save.level,
-        currency: save.currency,
-        shinies: save.shinies,
-        inventory: save.inventory,
-        colors: save.colors,
-        nameColor: save.nameColor,
-        quests: restoreQuests(save.quests),
-        daily: save.daily,
-        dailyQuest: restoreDaily(save.dailyQuest, dayOf(Date.now())),
-        stats: save.stats,
-        titles: save.titles,
-        title: save.title,
-        rows: save.rows,
-        invitedBy: save.invitedBy,
-        inviteLog: save.inviteLog,
-        strayDay: save.strayDay,
-        startedAt: save.startedAt,
-      });
-      if (Object.keys(save.collection).length) {
-        player.collection = save.collection;
-        player.avatar = save.avatar;
-      }
-    }
-    player.pid = publicIdOf(player.profileId);
+    const player = newPlayer(client.sessionId, save?.id ?? newProfileId(), save?.name);
+    if (save) applySave(player, save);
     player.inviteCode = inviteCode(player.pid);
     this.players[player.id] = player;
     if (save?.plot || this.heldPlots.has(player.profileId)) this.restorePlot(player, save);
@@ -522,7 +529,6 @@ export class WorldRoom extends Room {
     for (const plot of Object.values(this.plots)) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
     }
-    this.worldEvents.renamePlayer(oldId, newId);
     return player;
   }
 
@@ -1177,7 +1183,7 @@ export class WorldRoom extends Room {
     this.broadcast('eventOver', { kind: 'scab', x, y });
     this.announce(`${last.name} peeled the last of The Scab and found ${character.name} underneath!`, character.rarity);
     for (const [id, pieces] of peelers) {
-      const player = this.players[id];
+      const player = this.playerByProfile(id);
       if (player) this.rewardEvent(player, { kind: 'scab', ...SCAB.done, text: `The Scab is off. You peeled ${pieces} of it.` });
     }
   }
@@ -1202,9 +1208,9 @@ export class WorldRoom extends Room {
   finishGash({ x, y, angle, pickers }) {
     const topId = topOf(pickers);
     this.broadcast('eventOver', { kind: 'gash', x, y, angle });
-    this.announce(`The Gash is clean and closing up! ${this.players[topId]?.name ?? 'Someone'} picked the most.`, 'boss');
+    this.announce(`The Gash is clean and closing up! ${this.playerByProfile(topId)?.name ?? 'Someone'} picked the most.`, 'boss');
     for (const [id, picked] of pickers) {
-      const player = this.players[id];
+      const player = this.playerByProfile(id);
       if (!player) continue;
       const top = id === topId;
       this.rewardEvent(player, {
@@ -1227,17 +1233,27 @@ export class WorldRoom extends Room {
   finishTick({ x, y, pries, pried, headIn }) {
     this.broadcast('eventOver', { kind: 'tick', x, y, pried });
     if (!pried) return;
-    const topId = topOf(pries);
-    const { scraps, xp, perPry, max, maxXp } = TICK.reward;
-    for (const [profileId, n] of pries) {
+    this.payByCount(pries, {
+      kind: 'tick', reward: TICK.reward, seeds: !headIn, title: headIn ? null : 'ticks',
+      text: (n, most) => (headIn ? `The Tick is off, but its head stayed in. You pried ${n}×.` : `The Tick is off. You pried ${n}×${most ? ', the most' : ''}.`),
+    });
+  }
+
+  // Everyone paid by how many times they did it (counts: save → n), up to the
+  // reward's caps; whoever did the most gets a Boil Seed, from `seedAt`.
+  payByCount(counts, { kind, reward, seeds = true, title = null, titleAt = 1, text }) {
+    const topId = topOf(counts);
+    for (const [profileId, n] of counts) {
       const player = this.playerByProfile(profileId);
-      if (!player) continue;
-      if (!headIn) this.bump(player, 'ticks');
+      if (!player || n <= 0) continue;  // (an Ingrown Hair's slips can take someone back to none)
+      const top = profileId === topId;
+      if (title && n >= titleAt) this.bump(player, title);
       this.rewardEvent(player, {
-        kind: 'tick', scraps: Math.min(max, scraps + perPry * n), xp: Math.min(maxXp, xp + perPry * n),
-        seeds: !headIn && profileId === topId && n >= 5 ? 1 : 0,
-        text: headIn ? `The Tick is off, but its head stayed in. You pried ${n}×.`
-          : `The Tick is off. You pried ${n}×${profileId === topId && pries.size > 1 ? ', the most' : ''}.`,
+        kind,
+        scraps: Math.min(reward.max, reward.scraps + reward.each * n),
+        xp: Math.min(reward.maxXp, reward.xp + reward.each * n),
+        seeds: seeds && top && n >= reward.seedAt ? 1 : 0,
+        text: text(n, top && counts.size > 1),
       });
     }
   }
@@ -1257,17 +1273,10 @@ export class WorldRoom extends Room {
   finishIngrown({ x, y, last, tuggers }) {
     this.broadcast('eventOver', { kind: 'ingrown', x, y });
     this.announce(`${last.name} gave the last tug: out came a hair as long as your arm!`, 'boss');
-    const topId = topOf(tuggers);
-    const { scraps, xp, perTug, max, maxXp } = INGROWN.reward;
-    for (const [profileId, n] of tuggers) {
-      const player = this.playerByProfile(profileId);
-      if (!player || n <= 0) continue;  // every tug they made slipped back
-      if (n >= 2) this.bump(player, 'hairs');
-      this.rewardEvent(player, {
-        kind: 'ingrown', scraps: Math.min(max, scraps + perTug * n), xp: Math.min(maxXp, xp + perTug * n), seeds: profileId === topId && n >= 6 ? 1 : 0,
-        text: `The Ingrown Hair is out. You tugged ${n}×${profileId === topId && tuggers.size > 1 ? ', the most' : ''}.`,
-      });
-    }
+    this.payByCount(tuggers, {
+      kind: 'ingrown', reward: INGROWN.reward, title: 'hairs', titleAt: 2,
+      text: (n, most) => `The Ingrown Hair is out. You tugged ${n}×${most ? ', the most' : ''}.`,
+    });
   }
 
   handleSqueeze(player, { id }) {

@@ -6,7 +6,7 @@ const dayOf = (time) => new Date(time).toISOString().slice(0, 10);
 const day = () => dayOf(Date.now());
 
 // How far today's new players got, in order: the admin page's funnel.
-export const STAGES = ['plot', 'plant', 'harvest', 'level2', 'level3', 'level5'];
+const STAGES = ['plot', 'plant', 'harvest', 'level2', 'level3', 'level5'];
 const MAX_SESSIONS = 1000;
 const MAX_PER_DAY = 100_000;  // players counted a day: the counts stop growing past this
 const note = (set, profileId) => { if (set.size < MAX_PER_DAY) set.add(profileId); };

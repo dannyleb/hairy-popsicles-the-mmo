@@ -2,6 +2,7 @@
 // restart the newest copy beats an older one from the device, and absent
 // players' plots are back in the world. Starts and stops its own servers.
 // Needs a database it may wipe: TEST_DATABASE_URL (skipped without one).
+import { check, finish, sleep } from './lib.mjs';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,9 +17,6 @@ const { default: pg } = await import('pg');
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { CHARACTERS, LANDMARKS, isReservedPlot } = await import('@hptm/shared');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const SERVER = path.join(path.dirname(fileURLToPath(import.meta.url)), '../packages/server/src/index.js');
 
 const sql = new pg.Client({ connectionString: DB });
@@ -153,5 +151,4 @@ c.kill('SIGTERM');
 await c.exited;
 
 await sql.end();
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

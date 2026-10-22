@@ -443,7 +443,8 @@ TEST_DATABASE_URL=postgres://... npm test -- database   # with a Postgres it may
 
 `tests/run.mjs` starts fresh game servers for each suite (timers sped up
 with `GROW_SCALE`/`EVENT_SCALE`, `PROFILE_SECRET=test`) and drives them with
-real Colyseus clients. Suites: `featured` (no server: the day's pick and its
+real Colyseus clients; `tests/lib.mjs` has what the suites share (`check`,
+`finish`, the waits). Suites: `featured` (no server: the day's pick and its
 odds), `game` (planting, levels, quests, chat, squeezing, The Boil, Blood
 Moon), `levels` (high-level growth), `shop`, `integrity` (old saves,
 squeezes and boss damage across reloads), `reconnect`, `saves` (signing,

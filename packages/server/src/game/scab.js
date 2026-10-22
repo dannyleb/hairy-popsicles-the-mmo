@@ -31,7 +31,7 @@ export function createScab(room, scale, done) {
         pieces: Array(SCAB.pieces).fill(0),
         ripeAt: now + SCAB.ripeMs * scale,
         expiresAt: now + SCAB.lastsMs * scale,
-        peelers: new Map(),  // player id → pieces peeled
+        peelers: new Map(),  // save → pieces peeled
       };
       room.announce('A Scab has crusted over! Let it dry, then hold on it to peel.', 'boss');
       room.markDirty();
@@ -48,12 +48,6 @@ export function createScab(room, scale, done) {
       scab = null;
       done(now);
       room.markDirty();
-    },
-
-    renamePlayer(oldId, newId) {
-      if (!scab?.peelers.has(oldId)) return;
-      addTo(scab.peelers, newId, scab.peelers.get(oldId));
-      scab.peelers.delete(oldId);
     },
 
     // A piece off, from the side they're standing on: { piece, torn, last }, or null.
@@ -76,7 +70,7 @@ export function createScab(room, scale, done) {
       player.lastPeelAt = now;
       const torn = now < scab.ripeAt;
       scab.pieces[piece] = torn ? 2 : 1;
-      addTo(scab.peelers, player.id);
+      addTo(scab.peelers, player.profileId);
       const at = { x: scab.x, y: scab.y };
       const last = !scab.pieces.includes(0);
       room.peeledScab(player, { piece, torn, at });

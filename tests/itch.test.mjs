@@ -1,11 +1,9 @@
 // The Itch: a goal for the whole world, paid to everyone who helped.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { CHARACTERS, ITCH, RARITY_ORDER, itchTarget } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2578';
 
 function listen(room) {
@@ -117,5 +115,4 @@ check('and counts it', back.me?.stats.itches === 2);
 
 await back.room.leave(true);
 await c.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

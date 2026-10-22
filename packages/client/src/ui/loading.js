@@ -7,7 +7,7 @@ const status = root.querySelector('.load-status');
 const retry = root.querySelector('.load-retry');
 const quote = root.querySelector('.load-quote');
 
-export function randomQuote() {
+function randomQuote() {
   const speakers = CHARACTERS.filter((c) => c.lines);
   const who = speakers[Math.floor(Math.random() * speakers.length)];
   return { text: who.lines[Math.floor(Math.random() * who.lines.length)], name: who.name };

@@ -37,7 +37,7 @@ const ICONS = {
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 
-export function icon(name) {
+function icon(name) {
   const wrap = el('span', 'icon');
   wrap.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
   return wrap;

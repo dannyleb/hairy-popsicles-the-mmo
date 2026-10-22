@@ -1,12 +1,10 @@
 // Limited-time seasons: teeth from harvests, a name color only sold for teeth,
 // and nothing of it outside the season.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { SEASONS, TITLE_BY_ID } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const ROT = SEASONS.find((s) => s.id === 'rot');
 const today = new Date().toISOString().slice(0, 10);
 
@@ -81,5 +79,4 @@ await farm(b, '3,3', 12);
 check('harvests drop nothing out of season', b.harvested.length >= 12 && b.harvested.every((h) => !h.teeth) && b.me.inventory.teeth === 50);
 await b.room.leave(true);
 
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

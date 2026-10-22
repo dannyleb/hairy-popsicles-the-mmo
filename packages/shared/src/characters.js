@@ -8,7 +8,7 @@ export const RARITIES = {
 export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary'];
 
 // What anyone without lines of their own says (the first game's GRUNTS).
-export const GRUNTS = ['hhhnnngh.', '*drip*', '...', 'go away.', 'hrrk.', 'mm.', "don't.", '*wet noise*'];
+const GRUNTS = ['hhhnnngh.', '*drip*', '...', 'go away.', 'hrrk.', 'mm.', "don't.", '*wet noise*'];
 
 const SNOOT_LINES = ['I can smell how you feel.', "It's not a nose, it's a personality."];
 

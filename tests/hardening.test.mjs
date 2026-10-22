@@ -1,7 +1,5 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2572';
 async function join(name) {
   const room = await new Client(URL).joinOrCreate('world', { name });
@@ -62,5 +60,4 @@ await extra.leave(true);
 await late.room.leave(true);
 await a.room.leave(true);
 await bad.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

@@ -1,7 +1,7 @@
 import { DAILY_QUEST, QUEST_KINDS } from '@hptm/shared';
 import { pick } from './roll.js';
 
-export const QUESTS_ACTIVE = 3;
+const QUESTS_ACTIVE = 3;
 let nextId = 1;
 
 function deal(player, { othersPresent, exclude }) {

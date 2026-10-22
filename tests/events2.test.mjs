@@ -2,13 +2,11 @@
 // it lets the hair back), Blackheads (in the Armpit; squeeze each out once,
 // the gunk makes fertilizer) and Navel Lint (the Navel coughs up lint to grab,
 // one ball a cough with something in it).
+import { check, finish, sleep, waitFor, walk } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { BLACKHEADS, INGROWN, LANDMARKS, LINT, REACH, regionAt } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 
 const URL = 'ws://localhost:2595';
 const EVENTS = ['eventReward', 'eventOver', 'squeezed', 'gotGlob', 'navelCough', 'announce'];
@@ -30,8 +28,6 @@ const veteran = (id, name) => saveToken({
   profileId: id, name, avatar: 'pimples', xp: 2000, currency: 300, collection: { pimples: 1 }, shinies: {},
   inventory: { boil: 0, fertilizer: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
 }, null, null);
-const waitFor = async (test, ms) => { for (let t = 0; t < ms && !test(); t += 100) await sleep(100); return test(); };
-const walk = async (p, x, y) => { p.room.send('move', { x, y }); await sleep(1500); };
 
 const a = await join({ profile: veteran(`ev2-a-${Date.now()}`, 'Ada') });
 const b = await join({ profile: veteran(`ev2-b-${Date.now()}`, 'Bo') });
@@ -146,5 +142,4 @@ check('all grabbed, the Navel settles down', lintOver() && a.state.event?.kind !
 
 await a.room.leave(true);
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

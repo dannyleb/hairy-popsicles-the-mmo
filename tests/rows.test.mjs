@@ -1,11 +1,9 @@
 // Album rows: growing every character of a rarity pays a one-time reward.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { ALBUM_ROWS, CHARACTERS } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2579';
 const today = new Date().toISOString().slice(0, 10);
 
@@ -63,5 +61,4 @@ check('only the rows that are full', veteran.rows.length === 1);
 
 await veteran.room.leave(true);
 await giver.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

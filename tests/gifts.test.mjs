@@ -1,9 +1,7 @@
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2574';
 async function join(name, profile) {
   const room = await new Client(URL).joinOrCreate('world', { name, profile });
@@ -44,5 +42,4 @@ await sleep(300);
 check('last copy, self and strangers refused', giver.me.collection.toad === 1 && giver.me.collection.droopy === 2 && taker.gifted.length === 1);
 await giver.room.leave(true);
 await taker.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

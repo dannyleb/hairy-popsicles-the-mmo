@@ -1,9 +1,7 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
 import { CHARACTER_BY_ID } from '@hptm/shared';
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const PLOT = 144, TILE = 48;
 
 async function join(name, url = 'ws://localhost:2567') {
@@ -168,5 +166,4 @@ waited = 0;
 while (!a.state.bloodMoon && waited < 40) { await sleep(500); waited++; }
 check('blood moon rises and is announced', Boolean(a.state.bloodMoon) && a.ev('announce').some((m) => m.kind === 'bloodMoon'));
 
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

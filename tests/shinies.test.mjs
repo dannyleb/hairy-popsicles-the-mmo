@@ -1,8 +1,6 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
 import { RARITIES, CHARACTER_BY_ID, wearBonus } from '@hptm/shared';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2570';
 
 async function join(name, profile) {
@@ -75,5 +73,4 @@ await a.room.leave(true);
 const b = await join('', token);
 check('shinies restored from the save', JSON.stringify(b.me.shinies) === JSON.stringify(a.me.shinies));
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

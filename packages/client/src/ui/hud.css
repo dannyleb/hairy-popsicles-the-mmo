@@ -34,7 +34,7 @@
 .dock,
 .chat-bar,
 .emote-picker,
-.boss-arrow {
+.event-arrow {
   pointer-events: auto;
 }
 
@@ -381,24 +381,24 @@
   border-radius: 12px;
 }
 
-.event-pill.boss {
+.event-pill.world {
   background: rgba(110, 22, 20, 0.92);
   border: 1px solid #e0614f;
   animation: throb 1.2s ease-in-out infinite;
 }
 
-.event-pill.boss[data-kind="scab"] { background: rgba(78, 34, 18, 0.92); border-color: #b8784a; }
-.event-pill.boss[data-kind="scab"] .event-hp-fill { background: linear-gradient(90deg, #e0a070, #8a4422); }
-.event-pill.boss[data-kind="gash"] { background: rgba(96, 14, 28, 0.92); border-color: #e06a7a; }
-.event-pill.boss[data-kind="gash"] .event-hp-fill { background: linear-gradient(90deg, #f0d080, #c05040); }
-.event-pill.boss[data-kind="tick"] { background: rgba(52, 30, 72, 0.92); border-color: #b48cd8; }
-.event-pill.boss[data-kind="tick"] .event-hp-fill { background: linear-gradient(90deg, #d8c0f0, #8a5ab8); }
-.event-pill.boss[data-kind="ingrown"] { background: rgba(70, 30, 22, 0.92); border-color: #d8a070; }
-.event-pill.boss[data-kind="ingrown"] .event-hp-fill { background: linear-gradient(90deg, #f0d0a0, #a0603a); }
-.event-pill.boss[data-kind="blackheads"] { background: rgba(48, 44, 22, 0.92); border-color: #c8c070; }
-.event-pill.boss[data-kind="blackheads"] .event-hp-fill { background: linear-gradient(90deg, #f0e8b0, #9a9040); }
-.event-pill.boss[data-kind="lint"] { background: rgba(36, 40, 60, 0.92); border-color: #a8b4d8; }
-.event-pill.boss[data-kind="lint"] .event-hp-fill { background: linear-gradient(90deg, #e0e6f6, #7888b8); }
+.event-pill.world[data-kind="scab"] { background: rgba(78, 34, 18, 0.92); border-color: #b8784a; }
+.event-pill.world[data-kind="scab"] .event-hp-fill { background: linear-gradient(90deg, #e0a070, #8a4422); }
+.event-pill.world[data-kind="gash"] { background: rgba(96, 14, 28, 0.92); border-color: #e06a7a; }
+.event-pill.world[data-kind="gash"] .event-hp-fill { background: linear-gradient(90deg, #f0d080, #c05040); }
+.event-pill.world[data-kind="tick"] { background: rgba(52, 30, 72, 0.92); border-color: #b48cd8; }
+.event-pill.world[data-kind="tick"] .event-hp-fill { background: linear-gradient(90deg, #d8c0f0, #8a5ab8); }
+.event-pill.world[data-kind="ingrown"] { background: rgba(70, 30, 22, 0.92); border-color: #d8a070; }
+.event-pill.world[data-kind="ingrown"] .event-hp-fill { background: linear-gradient(90deg, #f0d0a0, #a0603a); }
+.event-pill.world[data-kind="blackheads"] { background: rgba(48, 44, 22, 0.92); border-color: #c8c070; }
+.event-pill.world[data-kind="blackheads"] .event-hp-fill { background: linear-gradient(90deg, #f0e8b0, #9a9040); }
+.event-pill.world[data-kind="lint"] { background: rgba(36, 40, 60, 0.92); border-color: #a8b4d8; }
+.event-pill.world[data-kind="lint"] .event-hp-fill { background: linear-gradient(90deg, #e0e6f6, #7888b8); }
 
 .event-pill.moon {
   background: rgba(80, 6, 16, 0.9);
@@ -429,7 +429,7 @@
   50% { box-shadow: 0 0 14px rgba(224, 97, 79, 0.65); }
 }
 
-.boss-arrow {
+.event-arrow {
   position: absolute;
   top: 0;
   left: 0;
@@ -442,7 +442,7 @@
   pointer-events: none;
 }
 
-.boss-arrow::after {
+.event-arrow::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -1968,7 +1968,7 @@
 .hud.tutorial .hud-quests,
 .hud.tutorial .hud-events,
 .hud.tutorial .banners,
-.hud.tutorial .boss-arrow {
+.hud.tutorial .event-arrow {
   display: none;
 }
 

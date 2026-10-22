@@ -1,9 +1,7 @@
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2573';
 const day = (t) => new Date(t).toISOString().slice(0, 10);
 
@@ -56,5 +54,4 @@ const [body] = p.saves.at(-1).split('.');
 const saved = JSON.parse(Buffer.from(body, 'base64url').toString());
 check('save carries stats and titles', saved.stats.harvests === 25 && saved.titles.includes('picker') && saved.title === 'picker');
 await room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

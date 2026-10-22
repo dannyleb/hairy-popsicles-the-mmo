@@ -1,7 +1,5 @@
+import { check, finish, sleep } from './lib.mjs';
 import { Client } from 'colyseus.js';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2571';
 
 async function join(name) {
@@ -62,5 +60,4 @@ check('a string of short hops arrives no sooner than one walk', hops >= 5 && a.g
 
 await a.room.leave(true);
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();

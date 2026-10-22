@@ -1,12 +1,10 @@
 // Plots of players who've gone stay in the world (for a while) for others to
 // see and squeeze, and are theirs again when they come back.
+import { check, finish, sleep } from './lib.mjs';
 process.env.PROFILE_SECRET = 'test';
 const { saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { TEND_SCRAPS } = await import('@hptm/shared');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let failures = 0;
-const check = (label, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
 const URL = 'ws://localhost:2582';
 const HOLD_MS = 8000;  // PLOT_HOLD_MS for this suite's server
 const today = new Date().toISOString().slice(0, 10);
@@ -115,5 +113,4 @@ check('a plot change does', (b.plotSends ?? 0) === sends + 1);
 
 await again.room.leave(true);
 await b.room.leave(true);
-console.log(failures ? `\n${failures} FAILED` : '\nall passed');
-process.exit(failures ? 1 : 0);
+finish();
