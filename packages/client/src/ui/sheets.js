@@ -15,8 +15,9 @@ const SETTINGS = [
   { name: 'bubbles', label: 'Speech bubbles' },
   ...(hasHaptics ? [{ name: 'haptics', label: 'Vibration' }] : []),
   { name: 'calm', label: 'Reduce motion' },
-  // Never lighten the graphics on its own, even if that costs some smoothness.
-  { name: 'sharp', label: 'Always full sharpness', reload: true },
+  // On by default: never lighten the graphics on its own, even if that costs
+  // some smoothness. Off lets a struggling device trade sharpness for speed.
+  { name: 'fullSharpness', label: 'Always full sharpness', reload: true },
 ];
 
 // The share sheet on phones; a copied link elsewhere. The link is this

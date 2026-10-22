@@ -2,7 +2,9 @@
 const KEY = 'hptm:settings';
 // Calm starts on for anyone whose phone already asks apps for less motion.
 const prefersCalm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm: prefersCalm, zoom: 1, quality: 0, sharp: false };
+// Full sharpness starts on. (It was briefly an opt-in called "sharp", stored off
+// on most devices; the new name lets them all start on.)
+const DEFAULTS = { sound: true, music: true, bubbles: true, haptics: true, calm: prefersCalm, zoom: 1, quality: 0, fullSharpness: true };
 
 function load() {
   try {

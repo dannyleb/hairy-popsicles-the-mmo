@@ -30,21 +30,24 @@ const QUALITY = [
   { scale: Math.min(budgetRatio, 1), lite: true },
   { scale: 0.75, lite: true },
 ];
-// Where it landed last time is remembered, but each visit starts one step
-// sharper: a slow patch once (a busy moment, a hot phone) doesn't mean blurry
-// for good. If it's still slow, it steps back down within seconds.
-// "Always full sharpness" (in Settings) keeps it at the top, smooth or not.
+// "Always full sharpness" (in Settings, on unless the player turns it off) keeps
+// it at the top, smooth or not; only a browser drawing without the graphics
+// card still drops, since it can't keep up at any sharpness.
+// With it off, where it landed last time is remembered, but each visit starts
+// one step sharper: a slow patch once (a busy moment, a hot phone) doesn't mean
+// blurry for good. If it's still slow, it steps back down within seconds.
 const saved = Math.floor(Number(settings.get('quality')) || 0);
-let level = settings.get('sharp') ? 0 : Math.min(QUALITY.length - 1, Math.max(0, saved - 1));
+let level = settings.get('fullSharpness') ? 0 : Math.min(QUALITY.length - 1, Math.max(0, saved - 1));
 
 export const quality = () => QUALITY[level];
 export const renderScale = () => QUALITY[level].scale;
 export const fullQuality = () => level === 0;
 
-// One step down (skipping steps that change nothing here); false at the bottom
-// (or when the player has asked for full sharpness whatever).
+// One step down (skipping steps that change nothing here); false at the bottom,
+// or while full sharpness is on. toLowest (a browser drawing without the
+// graphics card) goes straight to the bottom either way.
 export function lowerQuality(toLowest = false) {
-  if (settings.get('sharp')) return false;
+  if (settings.get('fullSharpness') && !toLowest) return false;
   const before = QUALITY[level];
   while (level < QUALITY.length - 1) {
     level += 1;
