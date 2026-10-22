@@ -65,11 +65,13 @@ const TEXT = '#ffe8d6';
 const MUTTER_GAP = [3500, 7500];
 const FRONT_OF_PLOT = 26;
 const BUBBLE_MS = { mutter: 2800, chat: 4500, emote: 2600 };
+// See-through, so the plots and players under a bubble still show.
 const BUBBLE_STYLE = {
-  mutter: { color: '#2a1a1a', backgroundColor: '#f3e3d3' },
-  chat: { color: '#1a1012', backgroundColor: '#ffffff' },
-  emote: { color: '#ffe8d6', backgroundColor: '#6b2f42' },
+  mutter: { color: '#2a1a1a', backgroundColor: 'rgba(243, 227, 211, 0.7)' },
+  chat: { color: '#1a1012', backgroundColor: 'rgba(255, 255, 255, 0.78)' },
+  emote: { color: '#ffe8d6', backgroundColor: 'rgba(107, 47, 66, 0.72)' },
 };
+const BUBBLE_PAD = 12;  // px round a bubble that a tap still counts as on it
 const STEP_MS = 260;
 const SLOW_TICK_MS = 250;         // minimap, event timers, coach
 const BOSS_STANDOFF = 105;        // where to stand when walking up to The Boil
@@ -630,6 +632,7 @@ export class WorldScene extends Phaser.Scene {
   onPointerDown(pointer) {
     this.pendingTaps ??= new Map();
     this.pendingTaps.set(pointer.id, { x: pointer.x, y: pointer.y, at: this.now() });
+    this.dismissBubblesAt(pointer.worldX, pointer.worldY);
     const held = !this.hold && this.state && this.private && !this.hud.blocking() && this.eventViews.at(pointer.worldX, pointer.worldY);
     if (held && (held.kind === 'scab' || held.kind === 'blackheads')) {
       this.hold = { id: pointer.id, kind: held.kind, head: held.head ?? null, x: pointer.worldX, y: pointer.worldY, sx: pointer.x, sy: pointer.y, since: null, peeled: 0 };
@@ -1357,11 +1360,11 @@ export class WorldScene extends Phaser.Scene {
     }
     this.bubbles = this.bubbles.filter((b) => b.follow !== follow && b.bubble.active);
     const bubble = this.add.text(follow.x, follow.y - height - 10, text, {
-      ...textStyle(16),
+      ...textStyle(15),
       ...BUBBLE_STYLE[kind],
-      padding: { x: 9, y: 4 },
+      padding: { x: 7, y: 3 },
       // Advanced wrap breaks a long unbroken word too, so no bubble runs off.
-      wordWrap: { width: 190, useAdvancedWrap: true },
+      wordWrap: { width: 160, useAdvancedWrap: true },
       align: 'center',
     }).setOrigin(0.5, 1).setDepth(DEPTH.bubbles).setAlpha(0);
     const entry = { bubble, follow, offset: height + 10 };
@@ -1377,6 +1380,17 @@ export class WorldScene extends Phaser.Scene {
         this.bubbles = this.bubbles.filter((b) => b !== entry);
       },
     });
+  }
+
+  // A tap on a bubble waves it away (and still reaches whatever's under it).
+  dismissBubblesAt(x, y) {
+    const tapped = this.bubbles.filter(({ bubble }) => bubble.active
+      && Phaser.Geom.Rectangle.Inflate(bubble.getBounds(), BUBBLE_PAD, BUBBLE_PAD).contains(x, y));
+    for (const { bubble } of tapped) {
+      this.tweens.killTweensOf(bubble);
+      this.tweens.add({ targets: bubble, alpha: 0, duration: 120, onComplete: () => bubble.destroy() });
+    }
+    this.bubbles = this.bubbles.filter((b) => !tapped.includes(b));
   }
 
   onChat({ id, name, text }) {

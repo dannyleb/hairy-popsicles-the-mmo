@@ -667,8 +667,8 @@
   padding: 6px 14px;
   font-size: 17px;
   line-height: 1.2;
-  background: rgba(26, 15, 20, 0.92);
-  border: 1px solid #5b2a3a;
+  background: rgba(26, 15, 20, 0.74);
+  border: 1px solid rgba(91, 42, 58, 0.8);
   border-radius: 12px;
   animation: toast-in 0.25s ease-out;
 }
@@ -774,9 +774,9 @@
   line-height: 1.2;
   text-align: center;
   color: #2a1a1a;
-  background: #f3e3d3;
+  background: rgba(243, 227, 211, 0.82);  /* see-through, so the plots under it still show */
   border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   transform: translateX(-50%);
 }
 
@@ -786,7 +786,7 @@
   top: 100%;
   left: 50%;
   border: 8px solid transparent;
-  border-top-color: #f3e3d3;
+  border-top-color: rgba(243, 227, 211, 0.82);
   transform: translateX(-50%);
 }
 
