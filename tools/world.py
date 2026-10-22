@@ -192,23 +192,23 @@ def ground(n=1024, seed=7):
     # diamonds, the texture you see on the back of a hand.
     sets = [(41, 49, 2.2, 1.0), (-50, 38, 2.2, 0.9), (6, -63, 2.5, 0.5)]
     skin_lines = sum(stripes(n, rng, a, b, 0.2, w, wiggle=0.05) * patchy(0.4) * k for a, b, w, k in sets)
-    h = -0.45 * gaussian_filter(np.clip(skin_lines, 0, 1.4), 1.0, mode="wrap")
+    h = -0.25 * gaussian_filter(np.clip(skin_lines, 0, 1.4), 1.2, mode="wrap")
 
     # Pores sit where the lines cross, plus a scatter of loose ones.
     crossings = gaussian_filter(np.clip(skin_lines - 1.0, 0, 1), 0.8, mode="wrap")
     p1, _, _, _ = cells(n, rng, 900)
     pores = np.clip(crossings * 1.5 + np.exp(-((p1 / 1.6) ** 2)), 0, 1)
-    h -= 2.5 * pores
+    h -= 1.4 * pores
 
     # Folds: long soft creases running mostly one way, fading in and out.
     folds = stripes(n, rng, 3, 5, 0.06, 1.4) * patchy(0.5) + stripes(n, rng, -4, 3, 0.05, 1.6) * patchy(0.25)
     wrinkles = stripes(n, rng, 13, 9, 0.10, 1.5, wiggle=0.03) * patchy(0.3)
-    h -= 14.0 * gaussian_filter(folds, 3.0, mode="wrap") + 3.5 * gaussian_filter(wrinkles, 1.5, mode="wrap")
+    h -= 7.0 * gaussian_filter(folds, 6.0, mode="wrap") + 1.8 * gaussian_filter(wrinkles, 2.5, mode="wrap")
 
     # Lumps: soft fleshy swellings that catch wet highlights.
     l1, l2, _, _ = cells(n, rng, 70)
     lumps = np.clip(1 - l1 / (0.55 * l2 + 1e-6), 0, 1)
-    h += 40.0 * gaussian_filter(lumps ** 1.5, 10, mode="wrap")
+    h += 26.0 * gaussian_filter(lumps ** 1.5, 16, mode="wrap")
     h += 12.0 * spectral(n, rng, 3.0, fmax=0.02)
 
     vein_tint = np.clip(spectral(n, rng, 2.6, fmax=0.03) - 0.8, 0, 1)
@@ -218,13 +218,17 @@ def ground(n=1024, seed=7):
     albedo = mix(albedo, JAUNDICE, 0.3 * spectral(n, rng, 3.4, fmax=0.012))
     albedo = mix(albedo, BRUISE, np.clip(spectral(n, rng, 3.6, fmax=0.01) - 1.4, 0, 1) * 0.5)
     albedo = mix(albedo, VEIN, 0.25 * vein_tint)
-    albedo = mix(albedo, FLUSH * 0.6, 0.35 * gaussian_filter(folds, 4, mode="wrap"))
-    albedo *= (1 - 0.5 * pores)[..., None]
+    albedo = mix(albedo, FLUSH * 0.6, 0.18 * gaussian_filter(folds, 6, mode="wrap"))
+    albedo *= (1 - 0.25 * pores)[..., None]
     albedo *= (1 + 0.05 * spectral(n, rng, 1.0))[..., None]
 
-    wet = np.clip(0.5 + 0.3 * spectral(n, rng, 3, fmax=0.02), 0.1, 1)
+    wet = np.clip(0.35 + 0.2 * spectral(n, rng, 3, fmax=0.02), 0.1, 1)
     color = shade(h, albedo, wet, bump=1.0, shine=45, ao=0.04, periodic=True)
-    return save(tone(color, 0.82), "ground")
+    # The set behind the characters: softer and a little quieter in colour than
+    # anything standing on it, like the background of a portrait.
+    rgb = tone(color, 0.82)
+    lum = (rgb @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
+    return save(lum + (rgb - lum) * 0.82, "ground")
 
 
 def macro(n=256, seed=11):
@@ -334,8 +338,8 @@ def hair(name, seed, n=192, curl=0.22, length=40, width=7):
         draw.ellipse([pts[i + 1][0] - w / 2, pts[i + 1][1] - w / 2, pts[i + 1][0] + w / 2, pts[i + 1][1] + w / 2], fill=255)
     mask = np.asarray(img.resize((n, n), Image.LANCZOS), float) / 255
     h = 5 * gaussian_filter(mask, 1.0)
-    albedo = np.broadcast_to(np.array([0.16, 0.11, 0.09]), (n, n, 3))
-    color = shade(h, albedo, 1.6, bump=1.8, shine=30, ao=0.0, sss=0)
+    albedo = np.broadcast_to(np.array([0.24, 0.16, 0.12]), (n, n, 3))   # dark brown, not ink: the ground stays quiet
+    color = shade(h, albedo, 1.2, bump=1.8, shine=30, ao=0.0, sss=0)
     root = np.zeros((n, n))
     root[int(pts[0][1] / s), int(pts[0][0] / s)] = 1
     follicle = gaussian_filter(root, 2.5) * 60
