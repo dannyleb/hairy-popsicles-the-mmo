@@ -122,6 +122,8 @@ await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2,
 // ---- server B: the same database after a restart
 const b = await startServer(2591);
 await sleep(300);
+const seenAfter = (await (await fetch('http://localhost:2591/players')).json()).left.map((p) => p.name);
+check("who'd been by is still listed after a restart", ['Keeper', 'Late', 'Settler'].every((name) => seenAfter.includes(name)) && !seenAfter.includes('Nobody'), seenAfter.join());
 const watcher = await join(2591, { name: 'Watcher' });
 const held = watcher.state.plots['4,4'];
 check("an absent player's plot is back in the world after a restart", held?.away === true && held.ownerName === 'Keeper' && held.slots.some(Boolean), b.log.match(/restored \d+ held plots/)?.[0] ?? 'no restore logged');

@@ -146,6 +146,15 @@ Rarities live in
   title, and every character (silhouettes for the unfound) with the game's
   link: the phone's share sheet where it can take pictures, a download
   elsewhere.
+- **Who's around.** On the title screen, and from the who's-here sheet in
+  the world (Who's been by): everyone here now with how long since they last
+  did anything ("active now", "idle 12 min", or "stepped away" while their
+  phone's connection is dropped), then everyone who's been by in the last 3
+  days, newest first ("2 h ago"), pals first in each. Players who leave before
+  level 2 aren't listed (so a flood of throwaway players can't push anyone's
+  friends off); up to 60 are. The server keeps the list in memory and refills
+  it from the database after a restart (`packages/server/src/game/seen.js`,
+  `GET /players`).
 - **Invites.** "Invite a friend" (on the who's-here screen) shares the
   player's own link (`?with=<invite code>`: their public id, signed by the
   server, so nobody can make up a link for someone else). The friend's title screen says who

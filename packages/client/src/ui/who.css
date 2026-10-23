@@ -1,0 +1,70 @@
+/* "Who's around": on the title screen's panel and in the who's-here sheet. */
+
+.who-section {
+  margin: 4px 0 12px;
+}
+
+.who-heading {
+  margin: 8px 0 4px;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--flesh);
+  opacity: 0.85;
+}
+
+.who-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.who-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+  font-size: 17px;
+  border-bottom: 1px solid rgba(138, 74, 92, 0.3);
+}
+
+.who-row.me {
+  background: rgba(232, 176, 74, 0.08);
+}
+
+.who-avatar {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.who-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.who-level {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.who-when {
+  font-size: 14px;
+  text-align: right;
+  opacity: 0.8;
+}
+
+.who-when.hot {
+  color: #9be07a;
+  opacity: 1;
+}
+
+.who-empty,
+.who-note {
+  margin: 4px 0;
+  font-size: 15px;
+  opacity: 0.75;
+}

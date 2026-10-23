@@ -5,15 +5,17 @@ import { worldStatus } from '../net/status.js';
 import { remember, remembered } from '../settings.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { el } from './dom.js';
+import { whoList } from './who.js';
 import { settingToggles } from './toggles.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.11';
+const VERSION = 'v0.12';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    "Who's around, right here on this screen (and in the world: Who's here, then Who's been by): who's on now and how long since they did anything, and who's been by in the last 3 days. Pals first.",
     'More world events: Ingrown Hair (tap on its throb to tug it out), Blackheads (hold to squeeze; the gunk makes fertilizer) and Navel Lint (grab what the Navel coughs up; one ball hides a prize).',
     'New world events, taking turns with The Boil: The Scab (hold to peel; the last piece hides a character), The Gash (pick the crust out) and The Tick (pry it off before it drains your crops).',
     'A map with every place named: tap the little map, top right. On phones, quests fold away to one line (tap to open).',
@@ -189,6 +191,8 @@ export function createMenu({ onPlay }) {
     return ul;
   };
   link('How to play', () => showPanel('How to play', list(PANELS['How to play'])));
+  // Are my friends on, or have they been?
+  link("Who's around", () => showPanel("Who's around", whoList()));
   link('Settings', () => {
     showPanel('Settings', settingToggles('menu-settings', 'menu-setting'));
   });

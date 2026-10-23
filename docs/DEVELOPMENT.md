@@ -147,8 +147,9 @@ shows), `invites` (invite links, rewards, the daily cap), `limits` (joins
 and seats per address, request sizes, invisible characters, lockout by real
 address), `life` (day and night, weather, strays, sleepers, landmarks, the
 statue), `events` (The Scab, The Gash, The Tick and the event rotation),
-`events2` (Ingrown Hair, Blackheads, Navel Lint), `database` (Postgres
-saves, restarts, the database being down), `titles`, `gifts`, `hardening`
+`events2` (Ingrown Hair, Blackheads, Navel Lint), `who` (who's around:
+who's here and idle, who's been by, nothing private, the limit), `database`
+(Postgres saves, restarts, the database being down, who's been by after one), `titles`, `gifts`, `hardening`
 (filter, rate limits) and `filter`.
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
@@ -194,6 +195,12 @@ What protects what, and what's still open.
   zero-width characters on the server, and pass the word filter. The built
   game and the admin page both carry a Content-Security-Policy that allows
   only their own scripts, as a backstop.
+- **What anyone can see of a player.** In the world: their name, level,
+  character, album, title and a public id (never the save id). `/players`
+  (Who's around) shows the same name, level, character and public id to
+  anyone, plus how long a player's been idle or since they left (last 3 days,
+  from level 2), 30 looks a minute per address. That's the point of it
+  (seeing if friends are on), but it does tell anyone when a name plays.
 - **One person can't take the world.** Per address (Render's
   `CF-Connecting-IP`; the last `X-Forwarded-For` entry or the socket if
   that's missing): 30 joins a minute (`JOINS_PER_MINUTE`) and 10 players at
@@ -253,7 +260,7 @@ What protects what, and what's still open.
 - **Server:** Render free web service, defined in `render.yaml`, live at
   `https://hairy-popsicles-mmo-server.onrender.com` (responds `ok`;
   `/stats` shows who's online now and players, joins and the peak today,
-  since the last restart). The
+  since the last restart; `/players` is Who's around). The
   free tier sleeps after 15 min idle; the first visitor after that waits
   ~30-60s and the live world (who's online, The Boil) resets. Players'
   progress is in their saves and comes back with them. Needs the

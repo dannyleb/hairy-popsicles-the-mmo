@@ -81,6 +81,8 @@ earned at events and in daily rewards, only grows Rares and Legendaries.
   for 90 seconds), and The Itch, a target the whole world hits together.
 - Chat, emotes, pals, gifts, and invite links that pay both of you when your
   friend reaches level 3.
+- Who's around: who's on now (and how long they've been idle) and who's been
+  by in the last 3 days, pals first, from the title screen or in the world.
 
 **Progress**
 - Levels 1 to 15: more holes, better seeds, faster crops.

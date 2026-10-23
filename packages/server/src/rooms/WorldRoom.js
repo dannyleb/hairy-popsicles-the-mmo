@@ -65,6 +65,7 @@ import { createWorldEvents } from '../game/worldEvents.js';
 import { loadSave, recentSaves, storeSave } from '../db.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
+import { noteLeft, seenReport } from '../game/seen.js';
 import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
@@ -599,6 +600,11 @@ export class WorldRoom extends Room {
     return Object.values(this.players).some((p) => p.pid === pid && !p.away);
   }
 
+  // Who's here and who's been by lately, for "Who's around" (game/seen.js).
+  seen() {
+    return seenReport(Object.values(this.players));
+  }
+
   // A notice now if they're listening, or when they are.
   notify(player, notice) {
     if (player.synced) this.clientOf(player)?.send('notice', notice);
@@ -645,6 +651,7 @@ export class WorldRoom extends Room {
     const token = saveToken(player, plot, plotKey);
     rememberDeparture(player.profileId, token, player.xp > 0);
     if (worthStoring(player)) storeSave(player.profileId, token);
+    noteLeft(player);
     delete this.players[client.sessionId];
     recordSession((player.awaySince ?? Date.now()) - player.joinedAt);
     recordOnline(Object.keys(this.players).length);

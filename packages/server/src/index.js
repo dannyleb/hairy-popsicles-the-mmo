@@ -5,6 +5,7 @@ import { handleAdmin } from './admin.js';
 import { closeDatabase, databaseState, hasDatabase, setUpDatabase } from './db.js';
 import { nameOf } from './game/invites.js';
 import { readInviteCode } from './game/profile.js';
+import { loadSeen, seenReport } from './game/seen.js';
 import { clientAddress, createLimiter } from './net.js';
 import { WorldRoom, getWorld } from './rooms/WorldRoom.js';
 import { statsReport } from './stats.js';
@@ -23,12 +24,15 @@ httpServer.requestTimeout = 15_000;
 // route handler (which takes over the httpServer's 'request' event) still
 // falls through to this for anything that isn't a /matchmake request —
 // in particular Render's health check hitting GET /.
-const json = (res, body) => {
-  res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' });
+const json = (res, body, status = 200) => {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(body, null, 2));
 };
 // Who an invite link is from, for the title screen: a name and whether they're on now.
 const lookups = createLimiter({ limit: 60, windowMs: 60_000 });
+// Who's around: who's here (and how long since they did anything) and who's
+// been by in the last few days, for the title screen and the who's-here sheet.
+const looks = createLimiter({ limit: 30, windowMs: 60_000 });
 
 httpServer.on('request', (req, res) => {
   if (handleAdmin(req, res)) return;
@@ -44,6 +48,10 @@ httpServer.on('request', (req, res) => {
     const pid = readInviteCode(url.searchParams.get('with'));
     const known = pid && lookups.take(clientAddress(req).network);
     return json(res, known ? { name: nameOf(pid), here: Boolean(getWorld()?.isHere(pid)) } : { name: null, here: false });
+  }
+  if (url.pathname === '/players') {
+    if (!looks.take(clientAddress(req).network)) return json(res, { error: 'Too many looks. Try again in a minute.' }, 429);
+    return json(res, getWorld()?.seen() ?? seenReport([]));
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('ok');
@@ -97,6 +105,8 @@ try {
 } catch (error) {
   console.error('database setup failed, running without it for now:', error.message);
 }
+// Who'd been by before the restart, for "Who's around".
+loadSeen().catch((error) => console.error('loading who had been by failed:', error.message));
 
 httpServer.listen(port, () => {
   console.log(`Hairy Popsicles MMO server listening on ws://localhost:${port}`);

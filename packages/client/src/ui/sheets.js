@@ -4,6 +4,7 @@ import { fullQuality, resetQuality } from '../display.js';
 import { button, el, iconButton, img, spriteUrl } from './dom.js';
 import { HOW_TO_PLAY } from './howto.js';
 import { isPal, togglePal } from './pals.js';
+import { whoList } from './who.js';
 import { shareAlbum } from './sharecard.js';
 import { settingToggles } from './toggles.js';
 import { inviteLink } from '../net/invite.js';
@@ -86,8 +87,12 @@ export function createSheets(actions) {
       list.append(item);
     });
     const invite = button('sheet-button', 'Invite a friend', () => shareLink(invite, me?.inviteCode));
+    const recent = button('sheet-button quiet', "Who's been by", () => {
+      showing = { kind: 'who' };
+      open("Who's around", whoList({ myPid: players[myId]?.pid }));
+    });
     const actionsRow = el('div', 'sheet-actions');
-    actionsRow.append(invite);
+    actionsRow.append(invite, recent);
     open(
       `Who's here · ${Object.keys(players).length}`,
       el('p', 'overlay-hint', 'Ranked by album size. Tap someone to see them, or to make them a pal ♥.'),
