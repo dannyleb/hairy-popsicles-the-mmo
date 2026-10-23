@@ -273,7 +273,12 @@ are off on the lite quality setting.
 
 ## Regions and landmarks
 
-(`packages/shared/src/regions.js`): the Navel is
+<p align="center">
+  <img src="screenshots/map.jpg" width="250" alt="The big map: four regions around the Navel, landmarks and everyone here">
+  <img src="screenshots/statue.jpg" width="250" alt="The bone statue of the top collector, at night">
+</p>
+
+Defined in `packages/shared/src/regions.js`. The Navel is
 the middle of the world, and each quarter around it is its own place, with
 its own cast of color and props: the Scalp (a forest of long hairs), the
 Armpit (sweat pools, steaming), Freckle Flats and Wart Hills. Borders wander
@@ -291,8 +296,8 @@ the scene cheaper to draw than before all this was added.
 
 ## Day, night and weather
 
-(`packages/shared/src/sky.js`), from the clock
-alone, so every screen agrees with no server traffic. A day lasts 20 minutes:
+Worked out from the clock alone (`packages/shared/src/sky.js`), so every
+screen agrees with no server traffic. A day lasts 20 minutes:
 about 7 of daylight (a warm lift over the ground), 7 of night (a cool shade,
 with candles and pus-flies glowing brighter), and a dusk and a dawn between.
 A Blood Moon is always as dark as dusk. Every 6 minutes the weather may turn
@@ -304,8 +309,8 @@ streaks are left out.
 
 ## Ambience
 
-(`packages/client/src/audio/ambience.js`): quiet procedural
-sounds of wherever you are, under the music and off with Sound: the world's
+Quiet procedural sounds (`packages/client/src/audio/ambience.js`) of
+wherever you are, under the music and off with Sound: the world's
 heartbeat, louder the nearer you are to the Navel; gurgles in the Armpit;
 hairs rustling in the Scalp; little things chirping at night; gusts while the
 wind blows. Characters on screen mutter their lines from the first

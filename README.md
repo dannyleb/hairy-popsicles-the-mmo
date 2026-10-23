@@ -1,42 +1,42 @@
 # Hairy Popsicles: The MMO
 
-**Grow gross little characters out of the skin of the world, together.**
+**A multiplayer farming game where the field is skin and the crops are monsters.**
 
-A spin-off of [Hairy Popsicles](https://github.com/dannyleb/hairy-popsicles-the-game):
-the same flesh-toned, gross universe, now one shared world that everyone plays
-in at once. Free, in your phone's browser. No install, no sign-up.
+A spin-off of [Hairy Popsicles](https://github.com/dannyleb/hairy-popsicles-the-game),
+in the same flesh-toned, gross universe: one shared world, everyone in it at
+once. Free in your phone's browser. No install, no sign-up.
 
 ### [▶ Play now](https://dannyleb.github.io/hairy-popsicles-the-mmo/)
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/world.jpg" width="250" alt="Players tending their plots, ripe characters standing in the holes"><br><sub>Your plot and your neighbors'</sub></td>
-    <td align="center"><img src="docs/screenshots/boil.jpg" width="250" alt="Players crowding round The Boil to pop it"><br><sub>Everyone pops The Boil</sub></td>
-    <td align="center"><img src="docs/screenshots/reveal.jpg" width="250" alt="A new character revealed"><br><sub>Something new came up</sub></td>
+    <td align="center"><img src="docs/screenshots/title.jpg" width="250" alt="The title screen: the logo over the world, and Continue"><br><sub>Open the link, tap Continue</sub></td>
+    <td align="center"><img src="docs/screenshots/world.jpg" width="250" alt="Your plot at dawn, ripe characters standing in its holes, neighbors' plots around it"><br><sub>Grow them in your plot</sub></td>
+    <td align="center"><img src="docs/screenshots/boil.jpg" width="250" alt="Players crowding round The Boil to pop it"><br><sub>Pop The Boil together</sub></td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/screenshots/reveal.jpg" width="250" alt="A new Rare character revealed"><br><sub>Every new one gets a reveal</sub></td>
     <td align="center"><img src="docs/screenshots/album.jpg" width="250" alt="The album: every character grown, silhouettes for the rest"><br><sub>Collect all 25</sub></td>
-    <td align="center"><img src="docs/screenshots/night.jpg" width="250" alt="The giant Eye at night, watching the nearest player"><br><sub>Night falls; the Eye watches</sub></td>
-    <td align="center"><img src="docs/screenshots/map.jpg" width="250" alt="The big map: four regions around the Navel, landmarks and everyone here"><br><sub>Four regions round the Navel</sub></td>
+    <td align="center"><img src="docs/screenshots/night.jpg" width="250" alt="The giant Eye at night, watching the nearest player"><br><sub>Night falls. The Eye watches.</sub></td>
   </tr>
 </table>
 
 ## What it is
 
-The world is skin: a dark, wet, candlelit expanse of it, seen from above.
-Everyone gets a plot, a raw sore with nine follicle holes. Plant a seed in a
-hole and a character slowly rises out of it, a dark silhouette until it ripens
-into one of 25 photoreal 3D creatures. Pull it out, keep it in your album, and
-play as any one you've grown.
+The world is skin: a dark, wet, candlelit expanse of it, seen from above. Your
+plot is a raw sore with nine follicle holes. Plant a seed and a character rises
+out of a hole, a dark silhouette at first, until it ripens into one of 25
+photoreal 3D creatures. Pull it out, keep it in your album, and play as any one
+you've grown.
 
-You're never alone in it. Everyone tends their patch in the same persistent
-world, sees everyone else's, and gets more done together: squeeze a
-neighbor's crop to ripen it sooner, crowd round a world event, chat, gift a
-spare character to someone who hasn't found it.
+Everyone farms the same persistent world at the same time. You see every plot,
+and you get more done together: squeeze a neighbor's crop to ripen it sooner,
+crowd round a world event, chat, or gift a spare character to someone who
+hasn't found it.
 
 ## How to play
 
-1. **Claim a plot.** New players get one on the spot, with a starter character.
+1. **Claim a plot.** New players get one on the spot, plus a starter character.
 2. **Plant.** Pick a seed and tap an open hole. Better seeds unlock as you level.
 3. **Wait, or help it along.** Squeeze a neighbor's growing crop (it glows
    green) to ripen it 25% sooner and earn a few scraps; they can do the same for you.
