@@ -1,4 +1,5 @@
 import { CHARACTERS, CHARACTER_BY_ID, INVITE, NAME_MAX, RARITIES, featuredFor, levelFor, linesOf, seasonOn } from '@hptm/shared';
+import { BRIDGE, arrival, atNewHome, choosePending, pendingSave } from '../net/home.js';
 import { inviter, pendingInvite } from '../net/invite.js';
 import { forgetProfile, peekProfile, readSaveCode, storeProfile } from '../net/profile.js';
 import { worldStatus } from '../net/status.js';
@@ -145,10 +146,34 @@ export function createMenu({ onPlay }) {
   } catch {
     hints = [];
   }
+  // The game moved to hairypopsicles.com (net/home.js): how the save got on.
+  if (arrival === 'carried') hints.unshift({ text: 'Your save came with you to the new address.', hot: true });
+  if (arrival === 'nothing') hints.unshift({ text: 'No save was found at the old address.', hot: true });
   for (const line of hints) {
     today.append(el('li', `${line.hot ? 'hot' : ''}${line.season ? ` season ${line.season}` : ''}`.trim() || null, line.text));
   }
   if (today.children.length) form.append(today);
+  // A save came from the old address, but this phone has one already: which?
+  const waiting = pendingSave();
+  if (waiting) {
+    const box = el('div', 'menu-choose');
+    const albumThere = Object.keys(waiting.collection ?? {}).length;
+    box.append(el('p', null, `A save came from the old address: level ${levelFor(Number(waiting.xp) || 0)}, album ${albumThere}/${CHARACTERS.length}. Use it instead of the one here?`));
+    const use = el('button', 'menu-link', 'Use it');
+    use.type = 'button';
+    use.addEventListener('click', () => {
+      choosePending(true);
+      window.location.reload();
+    });
+    const keep = el('button', 'menu-link', 'Keep this one');
+    keep.type = 'button';
+    keep.addEventListener('click', () => {
+      choosePending(false);
+      box.remove();
+    });
+    box.append(use, keep);
+    form.append(box);
+  }
   // Arrived by a friend's link: say whose, and what playing together is worth.
   const invite = !saved && pendingInvite();
   if (invite) {
@@ -161,6 +186,12 @@ export function createMenu({ onPlay }) {
     });
   }
   form.append(name, play, liveLine());
+  // New here, at the new address: maybe they played at the old one.
+  if (atNewHome() && !saved && !waiting && arrival !== 'nothing') {
+    const bring = el('a', 'menu-bring', 'Played before at the old address? Bring your save');
+    bring.href = BRIDGE;
+    form.append(bring);
+  }
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const chosen = name.value.trim();
@@ -222,7 +253,14 @@ export function createMenu({ onPlay }) {
       window.location.reload();
     });
     const warning = [el('p', null, `Only paste a code you copied from your own game.${saved ? ' It replaces the save on this phone.' : ''}`)];
-    showPanel('Load a save', ...warning, code, problem, load);
+    const fromOld = [];
+    if (atNewHome()) {
+      const bring = el('button', 'menu-panel-close', 'Bring it from the old address');
+      bring.type = 'button';
+      bring.addEventListener('click', () => { window.location.href = BRIDGE; });
+      fromOld.push(el('p', null, 'Played at dannyleb.github.io before? Bring that save here instead:'), bring);
+    }
+    showPanel('Load a save', ...warning, code, problem, load, ...fromOld);
   });
   if (saved) {
     link('Start over', () => {

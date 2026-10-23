@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { applyRenderScale, canvasSize, renderScale } from './display.js';
+import { moveIfHomeIsUp, takeCarried } from './net/home.js';
 import { takeInviteFromUrl } from './net/invite.js';
 import './net/status.js';  // starts waking the server while everything else loads
 import { BootScene } from './scenes/BootScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 
+takeCarried();
+moveIfHomeIsUp();  // before the invite is tidied out of the address
 takeInviteFromUrl();
 
 // iPhones ignore user-scalable=no: a pinch on the HUD would zoom the whole page

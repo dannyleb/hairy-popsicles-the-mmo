@@ -395,3 +395,30 @@
   text-align: center;
   color: #e9dccf;
 }
+
+/* The move to hairypopsicles.com (net/home.js). */
+.menu-bring {
+  display: block;
+  margin: 10px auto 0;
+  font-size: 16px;
+  text-align: center;
+  color: var(--flesh);
+}
+
+.menu-choose {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  font-size: 16px;
+  text-align: center;
+  background: rgba(232, 176, 74, 0.1);
+  border: 1px solid rgba(232, 176, 74, 0.4);
+  border-radius: 12px;
+}
+
+.menu-choose p {
+  margin: 0 0 8px;
+}
+
+.menu-choose .menu-link {
+  margin: 0 4px;
+}

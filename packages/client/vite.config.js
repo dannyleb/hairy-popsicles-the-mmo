@@ -5,11 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 // server: a backstop, should player text ever end up somewhere it could run.
 function contentSecurityPolicy() {
   let server;
+  let home;
   return {
     name: 'content-security-policy',
     apply: 'build',
     configResolved(config) {
       server = new URL(config.env.VITE_SERVER_URL || 'ws://localhost:2567');
+      // A copy at the old address asks the new home whether it's up (net/home.js).
+      home = new URL(config.env.VITE_HOME_URL || 'https://hairypopsicles.com/').origin;
     },
     transformIndexHtml(html) {
       // The client joins over HTTP(S) to the same host, then opens the socket.
@@ -21,7 +24,7 @@ function contentSecurityPolicy() {
         "img-src 'self' data: blob:",
         "font-src 'self'",
         "media-src 'self' blob:",
-        `connect-src 'self' ${server.protocol}//${server.host} ${web}`,
+        `connect-src 'self' ${server.protocol}//${server.host} ${web} ${home}`,
         "worker-src 'self'",
         "manifest-src 'self'",
         "object-src 'none'",
@@ -61,11 +64,29 @@ function linkPreview() {
   };
 }
 
+// home.json: which game this is and the path it's built to be served from.
+// A copy at the old address moves to the new home only once the new home
+// serves this game from its root (net/home.js).
+function homeMarker() {
+  let base = '/';
+  return {
+    name: 'home-marker',
+    apply: 'build',
+    configResolved(config) {
+      base = config.base;
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'home.json', source: JSON.stringify({ game: 'hairy-popsicles-mmo', base }) });
+    },
+  };
+}
+
 export default defineConfig({
   server: { port: 5173 },
   plugins: [
     contentSecurityPolicy(),
     linkPreview(),
+    homeMarker(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {

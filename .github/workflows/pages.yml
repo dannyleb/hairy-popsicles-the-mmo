@@ -19,7 +19,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Where Pages serves the site: the custom domain's root (hairypopsicles.com)
+  # once it's set in the repo's Pages settings, or /<repo-name>/ on github.io
+  # before. Read-only, and runs no project code.
+  site:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: read
+    outputs:
+      base_path: ${{ steps.pages.outputs.base_path }}
+      base_url: ${{ steps.pages.outputs.base_url }}
+    steps:
+      - name: Read the Pages settings
+        id: pages
+        uses: actions/configure-pages@v5
+
   build:
+    needs: site
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,9 +50,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Pages serves this repo under /<repo-name>/, not the domain root.
+      # Built for wherever Pages serves it (see the site job). Changing the
+      # custom domain needs a redeploy: Actions > this workflow > Run workflow.
       - name: Build client
-        run: npm run build -w @hptm/client -- --base=/${{ github.event.repository.name }}/
+        env:
+          VITE_SITE_URL: ${{ needs.site.outputs.base_url }}/
+        run: npm run build -w @hptm/client -- --base=${{ needs.site.outputs.base_path }}/
 
       - name: Upload artifact
         if: github.event_name != 'pull_request'

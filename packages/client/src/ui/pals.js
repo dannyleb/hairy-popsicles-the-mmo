@@ -1,3 +1,5 @@
+import { NAME_MAX } from '@hptm/shared';
+
 // Pals: players you've marked from their card, remembered on this device by
 // their public id, so you see when they're around.
 const KEY = 'hptm:pals';
@@ -45,4 +47,16 @@ export function notePal(pid, name) {
     pals[pid] = name;
     store();
   }
+}
+
+// Pals from another address this game used to live at (net/home.js): added to
+// the ones here, which win if both have someone.
+export function mergePals(more) {
+  let added = false;
+  for (const [pid, name] of Object.entries(more)) {
+    if (typeof pid !== 'string' || typeof name !== 'string' || Object.hasOwn(pals, pid)) continue;
+    pals[pid] = name.slice(0, NAME_MAX);
+    added = true;
+  }
+  if (added) store();
 }

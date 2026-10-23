@@ -280,9 +280,42 @@ What protects what, and what's still open.
   always-on free service uses about 744 of Render's 750 free hours a month.
   Turn it off under the repo's Actions tab if those hours are needed elsewhere.
 - **Client:** GitHub Pages via `.github/workflows/pages.yml` on every push
-  to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`.
-  Production builds point at the Render server via
-  `packages/client/.env.production`.
+  to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`
+  until the move to `https://hairypopsicles.com` (below). The build asks Pages
+  where it's served (the workflow's `site` job) and builds for that path, so
+  setting or changing the custom domain needs only a redeploy (Actions → Deploy
+  client to GitHub Pages → Run workflow). Production builds point at the Render
+  server via `packages/client/.env.production`.
+
+## The domain: hairypopsicles.com
+
+Registered at Squarespace; the game (client) lives on GitHub Pages behind it.
+The server stays at its Render address.
+
+1. **DNS (Squarespace → Domains → hairypopsicles.com → DNS).** Remove the
+   Squarespace Defaults preset, then add: four `A` records for `@`
+   (`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`),
+   four `AAAA` records for `@` (`2606:50c0:8000::153`, `2606:50c0:8001::153`,
+   `2606:50c0:8002::153`, `2606:50c0:8003::153`) and a `CNAME` for `www` to
+   `dannyleb.github.io`. Optionally also verify the domain for Pages
+   (GitHub → your Settings → Pages → Add a domain: a `TXT` record), so nobody
+   else's Pages site can claim it.
+2. **Pages (this repo → Settings → Pages → Custom domain):** `hairypopsicles.com`,
+   then Enforce HTTPS once the certificate is ready.
+3. **Redeploy** (above), so the build is for the domain's root.
+
+**Saves move with the players.** A save lives in the browser's storage for the
+address it was made at, so `packages/client/src/net/home.js` carries it over:
+a copy still running at the old address (a phone's offline cache) checks the
+new home's `home.json` (which game, built for which path); once that says this
+game at `/`, it hands its save over after `#carry=` in the new address (which
+never leaves the phone), unregisters its offline cache and moves. The new home
+takes it if the phone has no save there yet, and otherwise asks which to keep.
+For anyone else, the title screen at the new address offers "Played before at
+the old address? Bring your save": the bridge page
+`mmo-save.html` on the first game's site (same `dannyleb.github.io` storage)
+reads the old save and hands it over the same way. Players pick up the update
+that moves them by opening the game once at the old address before the switch.
 
 ## Next steps (roughly in order)
 
