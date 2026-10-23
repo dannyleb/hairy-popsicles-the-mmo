@@ -17,7 +17,12 @@ const SEEN_FROM_LEVEL = 2;
 
 const left = new Map();  // public id → { pid, name, level, avatar, at }, least recently noted first
 
-export function noteLeft({ pid, name, level, avatar }, at = Date.now()) {
+// Anyone who's turned on Appear offline is left off (and forgotten if listed).
+export function noteLeft({ pid, name, level, avatar, appearOffline }, at = Date.now()) {
+  if (appearOffline) {
+    left.delete(pid);
+    return;
+  }
   if (!pid || level < SEEN_FROM_LEVEL || Date.now() - at > SEEN_MS) return;
   if ((left.get(pid)?.at ?? 0) > at) return;  // already know of a later visit
   left.delete(pid);
@@ -25,24 +30,26 @@ export function noteLeft({ pid, name, level, avatar }, at = Date.now()) {
   while (left.size > MAX_KEPT) left.delete(left.keys().next().value);
 }
 
+export const forgetSeen = (pid) => left.delete(pid);
+
 // After a restart: who'd been by, from their stored saves (newest first).
 export async function loadSeen() {
   const saves = await recentSaves(Date.now() - SEEN_MS, SEEN_SAVES);
   for (const { token, at } of saves) {
     const save = readToken(token);
-    if (save) noteLeft({ pid: publicIdOf(save.id), name: save.name, level: save.level, avatar: save.avatar }, at);
+    if (save) noteLeft({ pid: publicIdOf(save.id), name: save.name, level: save.level, avatar: save.avatar, appearOffline: save.appearOffline }, at);
   }
 }
 
 // `players`: everyone in the world now (the room's players). Times are how long
 // ago, in seconds, so a phone's clock being off doesn't matter.
 export function seenReport(players, now = Date.now()) {
-  const here = players.map((p) => ({
+  const here = players.filter((p) => !p.appearOffline).map((p) => ({
     pid: p.pid, name: p.name, level: p.level, avatar: p.avatar,
     idle: Math.max(0, Math.floor((now - p.activeAt) / 1000)),
     away: p.away,  // their phone dropped the connection; held for a minute or so
   })).sort((a, b) => Number(a.away) - Number(b.away) || a.idle - b.idle);
-  const hereNow = new Set(here.map((p) => p.pid));
+  const hereNow = new Set(players.map((p) => p.pid));
   const gone = [...left.values()]
     .filter((p) => !hereNow.has(p.pid) && now - p.at <= SEEN_MS)
     .sort((a, b) => b.at - a.at)

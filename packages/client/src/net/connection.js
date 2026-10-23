@@ -1,5 +1,6 @@
 import { Client } from 'colyseus.js';
 import { forgetInvite, pendingInvite } from './invite.js';
+import { settings } from '../settings.js';
 import { savedProfile } from './profile.js';
 import { SERVER_URL } from './server.js';
 
@@ -16,7 +17,8 @@ export async function connect(playerName) {
   const profile = savedProfile();
   // An invite only counts for someone new; either way it's used up by joining.
   const invitedBy = profile ? null : pendingInvite();
-  const room = quiet(await client.joinOrCreate('world', { name: playerName, profile, invitedBy }));
+  const appearOffline = settings.get('appearOffline') === true;
+  const room = quiet(await client.joinOrCreate('world', { name: playerName, profile, invitedBy, appearOffline }));
   forgetInvite();
   return room;
 }

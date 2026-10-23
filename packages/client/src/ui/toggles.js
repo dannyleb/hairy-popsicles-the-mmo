@@ -13,6 +13,8 @@ const TOGGLES = [
   // On by default: never lighten the graphics on its own, even if that costs
   // some smoothness. Off lets a struggling device trade sharpness for speed.
   { name: 'fullSharpness', label: 'Always full sharpness', reload: true },
+  // Off Who's around (anyone in the world still sees you there).
+  { name: 'appearOffline', label: 'Appear offline' },
 ];
 
 export function settingToggles(listClass, rowClass) {

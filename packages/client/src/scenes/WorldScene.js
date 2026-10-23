@@ -134,6 +134,11 @@ export class WorldScene extends Phaser.Scene {
     const onResize = () => this.cameras.main.setZoom(cameraZoom() * this.userZoom).setFollowOffset(0, lookAhead());
     this.scale.on('resize', onResize);
     this.events.once('shutdown', () => this.scale.off('resize', onResize));
+    // Appear offline, switched in Settings mid-game: the server hears straight away.
+    const stopWatching = settings.onChange((name, on) => {
+      if (name === 'appearOffline') this.room?.send('appearOffline', { on });
+    });
+    this.events.once('shutdown', stopWatching);
     this.backdrop = createBackdrop(this);
     this.backdrop.setLite(quality().lite);
     this.landmarks = createLandmarks(this);

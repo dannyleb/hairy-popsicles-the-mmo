@@ -1,10 +1,10 @@
 // "Who's around" (/players): who's here with how long since they did anything,
-// who's been by lately (players from level 2 only), nothing private, and a
-// limit per address.
+// who's been by lately (players from level 2 only), nothing private, Appear
+// offline, and a limit per address.
 import { check, finish, sleep } from './lib.mjs';
 
 process.env.PROFILE_SECRET = 'test';
-const { saveToken } = await import('../packages/server/src/game/profile.js');
+const { inviteCode, saveToken } = await import('../packages/server/src/game/profile.js');
 const { Client } = await import('colyseus.js');
 const { levelFor } = await import('@hptm/shared');
 
@@ -75,6 +75,29 @@ const bertAgain = await join({ profile: saveAt('Bert', BERT_XP) });
 seen = await look();
 check('back: here, and not also in seen lately', seen.here.some((p) => p.name === 'Bert') && !seen.left.some((p) => p.name === 'Bert'));
 await bertAgain.room.leave(true);
+
+// ---- appear offline
+const cleo = await join({ profile: saveAt('Cleo', BERT_XP), appearOffline: true });
+const dora = await join({ profile: saveAt('Dora', BERT_XP) });
+seen = await look();
+check('appearing offline: not listed as here', !seen.here.some((p) => p.name === 'Cleo') && seen.here.some((p) => p.name === 'Dora'), seen.here.map((p) => p.name).join());
+const onNow = async (p) => (await (await fetch(`${HTTP}/invite?with=${inviteCode(p.pid())}`)).json()).here;
+check("and their invite link doesn't say they're on", (await onNow(cleo)) === false && (await onNow(dora)) === true);
+dora.room.send('appearOffline', { on: true });
+await sleep(300);
+seen = await look();
+check('switched on mid-game: off the list straight away', !seen.here.some((p) => p.name === 'Dora'));
+await cleo.room.leave(true);
+await dora.room.leave(true);
+await sleep(500);
+seen = await look();
+check('and not listed after leaving either', !seen.left.some((p) => p.name === 'Cleo' || p.name === 'Dora'), seen.left.map((p) => p.name).join());
+check('Bert, who left before, still is', seen.left.some((p) => p.name === 'Bert'));
+const bertHidden = await join({ profile: saveAt('Bert', BERT_XP), appearOffline: true });
+await bertHidden.room.leave(true);
+await sleep(400);
+seen = await look();
+check('someone listed before is dropped once they appear offline', !seen.left.some((p) => p.name === 'Bert'));
 
 // ---- a limit per address
 let refused = null;

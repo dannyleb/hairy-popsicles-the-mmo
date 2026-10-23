@@ -200,7 +200,8 @@ What protects what, and what's still open.
   (Who's around) shows the same name, level, character and public id to
   anyone, plus how long a player's been idle or since they left (last 3 days,
   from level 2), 30 looks a minute per address. That's the point of it
-  (seeing if friends are on), but it does tell anyone when a name plays.
+  (seeing if friends are on), but it does tell anyone when a name plays, so
+  Appear offline (Settings) keeps a player off it.
 - **One person can't take the world.** Per address (Render's
   `CF-Connecting-IP`; the last `X-Forwarded-For` entry or the socket if
   that's missing): 30 joins a minute (`JOINS_PER_MINUTE`) and 10 players at

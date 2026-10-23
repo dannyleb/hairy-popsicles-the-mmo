@@ -119,11 +119,20 @@ const big = Object.fromEntries(CHARACTERS.slice(0, 20).map((c) => [c.id, 1]));
 const settlerId = `db-settler-${Date.now()}`;
 await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2, now())', [settlerId, player(settlerId, 'Settler', big, navelPlot, `${nx},${ny}`)]);
 
+// Someone who'd turned on Appear offline: their save says so.
+const hiddenId = `db-hidden-${Date.now()}`;
+const hiddenSave = saveToken({
+  profileId: hiddenId, name: 'Hidden', avatar: 'pimples', xp: 400, currency: 100, collection: { pimples: 1 }, shinies: {},
+  inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null, appearOffline: true,
+}, null, null);
+await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2, now())', [hiddenId, hiddenSave]);
+
 // ---- server B: the same database after a restart
 const b = await startServer(2591);
 await sleep(300);
 const seenAfter = (await (await fetch('http://localhost:2591/players')).json()).left.map((p) => p.name);
 check("who'd been by is still listed after a restart", ['Keeper', 'Late', 'Settler'].every((name) => seenAfter.includes(name)) && !seenAfter.includes('Nobody'), seenAfter.join());
+check('but not anyone appearing offline', !seenAfter.includes('Hidden'));
 const watcher = await join(2591, { name: 'Watcher' });
 const held = watcher.state.plots['4,4'];
 check("an absent player's plot is back in the world after a restart", held?.away === true && held.ownerName === 'Keeper' && held.slots.some(Boolean), b.log.match(/restored \d+ held plots/)?.[0] ?? 'no restore logged');

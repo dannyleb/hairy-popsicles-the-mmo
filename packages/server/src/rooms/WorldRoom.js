@@ -65,7 +65,7 @@ import { createWorldEvents } from '../game/worldEvents.js';
 import { loadSave, recentSaves, storeSave } from '../db.js';
 import { checkIn, dayOf } from '../game/daily.js';
 import { rememberDeparture, takeDeparture } from '../game/departed.js';
-import { noteLeft, seenReport } from '../game/seen.js';
+import { forgetSeen, noteLeft, seenReport } from '../game/seen.js';
 import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.js';
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
@@ -175,6 +175,7 @@ function newPlayer(id, profileId, name) {
     budgetAt: Date.now(),
     activeAt: Date.now(),
     away: false,
+    appearOffline: false,  // set from the device on joining (see setAppearOffline)
   };
 }
 
@@ -275,6 +276,7 @@ export class WorldRoom extends Room {
     on('gift', (p, m) => this.handleGift(p, m));
     on('buy', (p, m) => this.handleBuy(p, m));
     on('setColor', (p, m) => this.handleSetColor(p, m));
+    on('appearOffline', (p, m) => this.setAppearOffline(p, m.on === true));
     on('catchStray', (p, m) => this.handleCatchStray(p, m));
     on('sync', (p, m, client) => {
       // The biggest thing the server sends, so it's not something to ask for on repeat.
@@ -339,6 +341,7 @@ export class WorldRoom extends Room {
     const existing = save && Object.values(this.players).find((p) => p.profileId === save.id);
     const player = existing ? this.takeOver(existing, client) : this.createPlayer(client, save);
     player.network = client.auth?.network ?? null;
+    this.setAppearOffline(player, options?.appearOffline === true);
     const name = cleanName(options?.name);
     if (name) this.rename(player, name);
     noteName(player.pid, player.name);
@@ -596,8 +599,20 @@ export class WorldRoom extends Room {
     return Object.values(this.players).filter((p) => !p.away).length;
   }
 
+  // For an invite link's title screen: here, and not appearing offline.
   isHere(pid) {
-    return Object.values(this.players).some((p) => p.pid === pid && !p.away);
+    return Object.values(this.players).some((p) => p.pid === pid && !p.away && !p.appearOffline);
+  }
+
+  // Appear offline (a setting on the device, sent on joining and when it
+  // changes): off Who's around, and an invite link doesn't say they're on,
+  // though anyone in the world still sees them there. It goes in the save too,
+  // so the list stays without them after a restart.
+  setAppearOffline(player, on) {
+    if (player.appearOffline === on) return;
+    player.appearOffline = on;
+    if (on) forgetSeen(player.pid);
+    player.saveDirty = true;
   }
 
   // Who's here and who's been by lately, for "Who's around" (game/seen.js).

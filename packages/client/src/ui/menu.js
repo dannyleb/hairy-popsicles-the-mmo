@@ -15,7 +15,7 @@ const VERSION = 'v0.12';
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
-    "Who's around, right here on this screen (and in the world: Who's here, then Who's been by): who's on now and how long since they did anything, and who's been by in the last 3 days. Pals first.",
+    "Who's around, right here on this screen (and in the world: Who's here, then Who's been by): who's on now and how long since they did anything, and who's been by in the last 3 days. Pals first. Appear offline (Settings) keeps you off it.",
     'More world events: Ingrown Hair (tap on its throb to tug it out), Blackheads (hold to squeeze; the gunk makes fertilizer) and Navel Lint (grab what the Navel coughs up; one ball hides a prize).',
     'New world events, taking turns with The Boil: The Scab (hold to peel; the last piece hides a character), The Gash (pick the crust out) and The Tick (pry it off before it drains your crops).',
     'A map with every place named: tap the little map, top right. On phones, quests fold away to one line (tap to open).',

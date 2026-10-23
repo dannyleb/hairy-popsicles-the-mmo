@@ -83,6 +83,7 @@ earned at events and in daily rewards, only grows Rares and Legendaries.
   friend reaches level 3.
 - Who's around: who's on now (and how long they've been idle) and who's been
   by in the last 3 days, pals first, from the title screen or in the world.
+  Or appear offline, in Settings.
 
 **Progress**
 - Levels 1 to 15: more holes, better seeds, faster crops.

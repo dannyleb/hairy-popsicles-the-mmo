@@ -57,7 +57,7 @@ export function whoList({ myPid = null } = {}) {
       return;
     }
     status.remove();
-    const note = el('p', 'who-note', 'marks your pals: tap someone in the world, then Make pal.');
+    const note = el('p', 'who-note', 'marks your pals: tap someone in the world, then Make pal. To keep yourself off this list, turn on Appear offline in Settings.');
     note.prepend(el('span', 'pal-mark', '♥'));
     root.append(
       section('Here now', data.here, (p) => ({ text: idleText(p), hot: !p.away && p.idle < MINUTE }), "Nobody's in the world right now.", myPid),

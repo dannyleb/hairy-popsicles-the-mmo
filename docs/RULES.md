@@ -154,7 +154,10 @@ Rarities live in
   level 2 aren't listed (so a flood of throwaway players can't push anyone's
   friends off); up to 60 are. The server keeps the list in memory and refills
   it from the database after a restart (`packages/server/src/game/seen.js`,
-  `GET /players`).
+  `GET /players`). Appear offline (Settings, per device) keeps a player off
+  both lists and stops their invite link saying they're on; anyone in the
+  world still sees them there. It's sent on joining and the moment it's
+  switched, and goes in the save, so a restart doesn't put them back.
 - **Invites.** "Invite a friend" (on the who's-here screen) shares the
   player's own link (`?with=<invite code>`: their public id, signed by the
   server, so nobody can make up a link for someone else). The friend's title screen says who
