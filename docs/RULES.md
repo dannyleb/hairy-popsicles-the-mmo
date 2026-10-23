@@ -194,7 +194,11 @@ Rarities live in
   server holds your player and plot for 90 seconds and the client
   reconnects into the same seat. Pinch (or the mouse wheel) zooms the
   world out to see more or in to see detail, and it's remembered; taps act
-  when the finger lifts, so a second finger turns one into a pinch.
+  when the finger lifts, so a second finger turns one into a pinch. One
+  finger (or the mouse) dragged further than a tap drifts drags the ground
+  to look around, with a little glide when it's let go (none in Calm mode):
+  the camera stays there, with a Back to me button, until you walk
+  somewhere, then glides back to you.
   Graphics adapt to the device: the canvas is capped at about 3.6M pixels
   (phones keep full density; big high-density laptop screens draw slightly
   softer) and frames are capped at 60 even on 120 Hz screens. Settings has

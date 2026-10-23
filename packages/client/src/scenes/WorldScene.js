@@ -37,7 +37,7 @@ import {
 } from '../display.js';
 import { reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
-import { remembered, settings } from '../settings.js';
+import { remember, remembered, settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
 import { createHud } from '../ui/hud.js';
 import { offerInstallLater } from '../ui/install.js';
@@ -80,6 +80,7 @@ const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long wai
 const REPLACED = 4001;            // close code: this save was opened somewhere else
 const ZOOM_RANGE = [0.55, 1.6];   // how far a pinch (or the mouse wheel) zooms the world, around the usual view
 const TAP_SLOP = 12;              // px a finger can drift and still count as a tap
+const FLING_MS = 300;             // a view flung as the finger lifts glides to a stop over about this long
 // Frames slower than this (median, over a few seconds) step the graphics down a notch.
 // (A steady 30 a second is fine: only slower than that costs sharpness.)
 const SLOW_FRAME_MS = 38;
@@ -191,6 +192,9 @@ export class WorldScene extends Phaser.Scene {
     this.introShown = false;
     this.pendingDaily = null;
     this.pointerTarget = null;
+    this.drag = null;            // one finger on the ground, maybe dragging it: { id, x, y, active, vx, vy, at }
+    this.fling = null;           // the view gliding on after a drag: { vx, vy }, world px per ms
+    this.lookingAround = false;  // the camera let go of me for a drag, until I walk or tap Back to me
   }
 
   // What the HUD can ask of the world.
@@ -205,6 +209,7 @@ export class WorldScene extends Phaser.Scene {
       goTo: (id) => this.walkToPlayer(id),
       goToEvent: () => this.walkToEvent(),
       travel: (x, y) => this.walk(x, y),
+      followMe: () => this.followMe(),
       albumOpened: () => { this.coached.albumOpened = true; },
       setTitle: (id) => this.room.send('setTitle', { id }),
       gift: (to, characterId) => this.room.send('gift', { to, characterId }),
@@ -219,11 +224,15 @@ export class WorldScene extends Phaser.Scene {
     };
   }
 
-  // A tap acts when the finger lifts, so a second finger landing turns it into a pinch instead.
+  // A tap acts when the finger lifts, so a second finger landing turns it into a
+  // pinch instead, and one finger moving off drags the ground.
   bindInput() {
     this.input.addPointer(1);
     this.input.on('pointerdown', (pointer) => this.onPointerDown(pointer));
-    this.input.on('pointermove', () => this.onPinchMove());
+    this.input.on('pointermove', (pointer) => {
+      this.onPinchMove();
+      this.onDrag(pointer);
+    });
     this.input.on('pointerup', (pointer) => this.onPointerUp(pointer));
     this.input.on('pointerupoutside', (pointer) => this.onPointerUp(pointer));
     this.input.on('wheel', (pointer, objects, dx, dy) => {
@@ -501,6 +510,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.strays.featured() && !this.caughtStrayToday()) {
       this.hud.tip('stray', "Today's featured character is loose! Find the stray glowing gold (gold dot on your map) and tap it to catch it.");
     }
+    this.hud.tip('look', 'Drag the ground to look around. Tap to walk (or tap Back to me) and the view comes back to you.');
     if (this.private.level >= 2) this.hud.tip('map', 'Tap the little map (top right) for the big one, with every place named. Tap anywhere on it to walk there.');
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
     for (const crop of this.crops.values()) {
@@ -625,7 +635,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- tapping the world ----------
 
-  // ---------- taps and pinches ----------
+  // ---------- taps, pinches and drags ----------
 
   // Fingers on the world itself: one resting on the HUD doesn't count.
   fingersDown() {
@@ -647,6 +657,90 @@ export class WorldScene extends Phaser.Scene {
       const [a, b] = fingers;
       this.pinch = { from: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.userZoom, active: false };
     }
+    // A finger landing on a gliding view stops it, and while it's still going
+    // (not just easing to a stop) that's all it does. One on its own may drag the ground.
+    if (this.fling) {
+      if (Math.hypot(this.fling.vx, this.fling.vy) > 0.3) this.pendingTaps.delete(pointer.id);
+      this.fling = null;
+    }
+    this.drag = fingers.length < 2 && pointer.downElement === this.game.canvas && !this.hud.blocking() ? this.dragFrom(pointer) : null;
+  }
+
+  dragFrom(pointer) {
+    return { id: pointer.id, x: pointer.x, y: pointer.y, active: false, vx: 0, vy: 0, at: 0 };
+  }
+
+  // One finger moving across the ground drags it, to look around: the camera
+  // stops following me until I walk somewhere (or tap Back to me). Until it has
+  // moved as far as a tap may drift, it's still a tap.
+  onDrag(pointer) {
+    const drag = this.drag;
+    if (drag?.id !== pointer.id || !pointer.isDown || this.pinch) return;
+    if (!drag.active) {
+      if (Phaser.Math.Distance.Between(drag.x, drag.y, pointer.x, pointer.y) <= TAP_SLOP * renderScale()) return;
+      drag.active = true;
+      this.pendingTaps.delete(pointer.id);  // not a tap now, wherever it lifts
+      this.lookAround();
+    }
+    // The ground moves with the finger, the spot it landed on staying under it.
+    const camera = this.cameras.main;
+    const dx = (pointer.x - drag.x) / camera.zoom;
+    const dy = (pointer.y - drag.y) / camera.zoom;
+    camera.scrollX -= dx;
+    camera.scrollY -= dy;
+    // How fast, for a fling when it lifts (timed by when the moves happened, not
+    // when a busy phone got round to them).
+    const at = pointer.moveTime;
+    if (drag.at) {
+      const dt = Math.max(1, at - drag.at);
+      drag.vx = 0.6 * (-dx / dt) + 0.4 * drag.vx;
+      drag.vy = 0.6 * (-dy / dt) + 0.4 * drag.vy;
+    }
+    Object.assign(drag, { x: pointer.x, y: pointer.y, at });
+  }
+
+  // Let go mid-drag: the view glides on a little, as a map does (not in Calm mode).
+  endDrag(pointer) {
+    const { active, vx, vy, at } = this.drag;
+    this.drag = null;
+    const speed = Math.hypot(vx, vy);
+    if (!active || pointer.upTime - at > 80 || speed < 0.1 || settings.get('calm')) return;
+    const k = Math.min(1, 3 / speed);  // not off across the world
+    this.fling = { vx: vx * k, vy: vy * k };
+  }
+
+  updateFling(delta) {
+    const fling = this.fling;
+    if (!fling) return;
+    const camera = this.cameras.main;
+    camera.scrollX += fling.vx * delta;
+    camera.scrollY += fling.vy * delta;
+    const keep = Math.exp(-delta / FLING_MS);
+    fling.vx *= keep;
+    fling.vy *= keep;
+    if (Math.hypot(fling.vx, fling.vy) < 0.05) this.fling = null;
+  }
+
+  lookAround() {
+    if (this.lookingAround) return;
+    this.lookingAround = true;
+    remember('tip:look');  // they've found it
+    this.cameras.main.stopFollow();
+    this.hud.lookingAround(true);
+  }
+
+  // The camera follows me again: gliding back from wherever I was looking, or
+  // (`glide` false, arriving) straight away.
+  followMe(glide = true) {
+    this.fling = null;
+    this.lookingAround = false;
+    this.hud.lookingAround(false);
+    const mine = this.avatars.get(this.myId());
+    if (!mine) return;
+    const camera = this.cameras.main;
+    const { scrollX, scrollY } = camera;
+    camera.startFollow(mine.container, false, 0.1, 0.1, 0, lookAhead());
+    if (glide) camera.setScroll(scrollX, scrollY);  // (startFollow jumps there)
   }
 
   onPinchMove() {
@@ -671,10 +765,14 @@ export class WorldScene extends Phaser.Scene {
     }
     const tap = this.pendingTaps?.get(pointer.id);
     this.pendingTaps?.delete(pointer.id);
+    if (this.drag?.id === pointer.id) this.endDrag(pointer);
     if (this.pinch && this.fingersDown().length < 2) {
       // A pinch ends when a finger lifts; remember how far out they like it.
       if (this.pinch.active) settings.set('zoom', this.userZoom);
       this.pinch = null;
+      // The finger still down can carry on and drag.
+      const [left] = this.fingersDown();
+      if (left) this.drag = this.dragFrom(left);
     }
     if (!tap || Phaser.Math.Distance.Between(tap.x, tap.y, pointer.x, pointer.y) > TAP_SLOP * renderScale()) return;
     this.handleTap(pointer, tap.at);
@@ -922,6 +1020,7 @@ export class WorldScene extends Phaser.Scene {
 
   // Walk somewhere. You get there after travelMs, here and on the server alike.
   walk(x, y) {
+    if (this.lookingAround) this.followMe();
     const to = { x: Phaser.Math.Clamp(x, 0, WORLD_W), y: Phaser.Math.Clamp(y, 0, WORLD_H) };
     const from = this.lastTarget ?? this.me() ?? to;
     this.lastTarget = to;
@@ -1305,8 +1404,7 @@ export class WorldScene extends Phaser.Scene {
         avatar = { container, sheen, image, name, level, title, characterId: null, x: p.x, y: p.y, moving: false, label: '', away: false, shiny: false };
         this.avatars.set(p.id, avatar);
         if (mine) {
-          this.cameras.main.centerOn(p.x, p.y - lookAhead());
-          this.cameras.main.startFollow(container, false, 0.1, 0.1, 0, lookAhead());
+          this.followMe(false);
         } else if (this.seenFirstState) {
           // Someone arriving after we got here fades in.
           container.setAlpha(0);
@@ -1728,6 +1826,7 @@ export class WorldScene extends Phaser.Scene {
     const camera = this.cameras.main;
     const calm = settings.get('calm');
     this.watchFrameRate(time, delta);
+    this.updateFling(delta);
     this.backdrop.update(time, delta, camera, this.walkers, calm);
     this.updatePointer(time);
     if (!this.state) return;

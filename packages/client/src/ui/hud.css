@@ -360,6 +360,23 @@
   opacity: 0.75;
 }
 
+/* Under the minimap while the ground's been dragged away from you. */
+.back-to-me {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px 5px 8px;
+  font-size: 16px;
+  background: rgba(91, 42, 58, 0.92);
+  border: 1px solid #8a4a5c;
+  border-radius: 18px;
+  animation: toast-in 0.2s ease-out;
+}
+
+.back-to-me[hidden] {
+  display: none;
+}
+
 .hud-events {
   display: flex;
   flex-direction: column;

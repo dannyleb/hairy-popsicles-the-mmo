@@ -1,6 +1,6 @@
 // The rules in a few lines, for the menu and the in-game settings sheet.
 export const HOW_TO_PLAY = [
-  'Tap anywhere to walk. Tap open ground to claim a plot of your own. Pinch to zoom. Tap the little map (top right) for the whole world.',
+  'Tap anywhere to walk. Tap open ground to claim a plot of your own. Drag the ground to look around, and pinch to zoom. Tap the little map (top right) for the whole world.',
   'Pick a seed at the bottom, then tap a hole in your plot to plant it.',
   'A shadow rises out of the hole. Rarer characters take longer. Tap it when it ripens.',
   "Everything you grow goes in your album. Tap one to play as them.",

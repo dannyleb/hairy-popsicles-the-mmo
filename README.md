@@ -100,8 +100,8 @@ earned at events and in daily rewards, only grows Rares and Legendaries.
 
 **Made for phones**
 - Opens from a link; add it to your home screen if you like.
-- Pinch to zoom, picks up where you left off if the connection drops, and
-  adapts its graphics to the device.
+- Drag the ground to look around, pinch to zoom; picks up where you left off
+  if the connection drops, and adapts its graphics to the device.
 - Progress saves on your device, signed by the server so it can't be
   edited, and moves to a new phone with a save code.
 

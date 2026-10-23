@@ -84,8 +84,12 @@ export function createHud(actions) {
     iconButton('hud-round', 'gear', 'Settings', () => sheets.settings()),
   );
   const minimap = createMinimap({ onTravel: actions.travel });
+  // While you're looking around (the ground dragged away from you), the way back.
+  const backToMe = iconButton('back-to-me', 'locate', 'Back to me', () => actions.followMe());
+  backToMe.append(el('span', null, 'Back to me'));
+  backToMe.hidden = true;
   const events = el('div', 'hud-events');
-  corner.append(buttons, minimap.root, events);
+  corner.append(buttons, minimap.root, backToMe, events);
 
   const eventPill = button('event-pill world', null, () => actions.goToEvent());
   const eventLabel = el('span', 'event-label', 'The Boil');
@@ -378,6 +382,10 @@ export function createHud(actions) {
 
     minimap,
     toast,
+
+    lookingAround(on) {
+      backToMe.hidden = !on;
+    },
 
     // The name of the place you've just walked into, big, for a moment.
     place(name, line) {
