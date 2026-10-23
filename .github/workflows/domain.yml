@@ -1,0 +1,39 @@
+name: Check the domain
+
+# Where hairypopsicles.com points and what it serves, for setting up the move
+# to it (docs/DEVELOPMENT.md, "The domain"). Run it by hand from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/domain.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS (against what GitHub Pages wants)
+        run: |
+          want_a="185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153"
+          want_aaaa="2606:50c0:8000::153 2606:50c0:8001::153 2606:50c0:8002::153 2606:50c0:8003::153"
+          look() { dig +short "$1" "$2" @1.1.1.1 | sort | tr '\n' ' ' | sed 's/ $//'; }
+          ok=true
+          a=$(look A hairypopsicles.com);     echo "A     @    $a";    [ "$a" = "$want_a" ] || { echo "  ^ should be: $want_a"; ok=false; }
+          aaaa=$(look AAAA hairypopsicles.com); echo "AAAA  @    $aaaa"; [ "$aaaa" = "$want_aaaa" ] || { echo "  ^ should be: $want_aaaa"; ok=false; }
+          www=$(look CNAME www.hairypopsicles.com); echo "CNAME www  $www"; [ "$www" = "dannyleb.github.io." ] || { echo "  ^ should be: dannyleb.github.io."; ok=false; }
+          echo "TXT   @    $(look TXT hairypopsicles.com)"
+          echo "TXT   _github-pages-challenge-dannyleb  $(look TXT _github-pages-challenge-dannyleb.hairypopsicles.com)"
+          echo "NS         $(dig +short NS hairypopsicles.com | sort | tr '\n' ' ')"
+          $ok && echo "DNS is right for GitHub Pages." || { echo "DNS isn't right yet (or hasn't spread)."; exit 1; }
+
+      - name: What it serves
+        if: always()
+        run: |
+          curl -sS -o /dev/null -w "http://hairypopsicles.com/  -> %{http_code} %{redirect_url}\n" --max-time 20 http://hairypopsicles.com/ || true
+          curl -sS -o /dev/null -w "https://hairypopsicles.com/ -> %{http_code} %{redirect_url}\n" --max-time 20 https://hairypopsicles.com/ || true
+          echo "home.json: $(curl -sS --max-time 20 https://hairypopsicles.com/home.json || true)"
