@@ -7,3 +7,4 @@ dist-ssr/
 .env.local
 .neon
 __pycache__/
+tools/load/out/

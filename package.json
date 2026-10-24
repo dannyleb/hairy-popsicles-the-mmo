@@ -12,7 +12,8 @@
     "dev:server": "npm run dev -w @hptm/server",
     "dev:client": "npm run dev -w @hptm/client",
     "build": "npm run build -w @hptm/client",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "load": "node tools/load/run.mjs"
   },
   "devDependencies": {
     "@neon/config": "^1.9.3",
