@@ -154,6 +154,58 @@ who's here and idle, who's been by, nothing private, the limit), `database`
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 
+## Load testing
+
+```
+npm run load                       # 10, 50, 100, 200 players; the server on one core
+npm run load -- --plan starter     # held to Render Starter's 0.5 CPU and 512 MB (Linux, as root)
+npm run load -- --stages 10,50 --hold 30 --profile
+```
+
+`tools/load/run.mjs` starts a copy of the server just for the test (no
+database, the per-network limits lifted, The Boil coming round about every
+1.5 minutes) and fills it in stages with bots from a few worker processes
+(`tools/load/bots.mjs`). Bots play like people on phones: claim a plot,
+plant and harvest, squeeze neighbors' crops, wander, chat, emote, and mob
+The Boil tapping it ~4 times a second; a fifth mostly stand about, and half
+bring a level-5 save. Each stage is filled, settled, then measured for a
+minute: lag (a bot's own move showing up in a broadcast), the server's CPU,
+memory, event-loop delay and time per broadcast (`tools/load/probe.mjs`,
+loaded with `--import`, so the game code is untouched), egress (every byte
+the bots receive), and anyone dropped or turned away. `--plan` holds the
+server to a Render plan's CPU and memory with cgroups; `--profile` lists
+where its CPU goes. Reports (Markdown and JSON) land in `tools/load/out/`,
+which isn't committed. Bots count every message but decode the world only a
+few times a second, so the workers keep up; their CPU is in the report.
+
+What it found (October 2026, a 2.1 GHz Xeon; bots farm steadily, about 6
+plantings, 4 harvests and 2 squeezes a minute each, so this is a busy
+evening, not a quiet one):
+
+| Players | Lag p95 | CPU (cores) | Memory | Egress, all | Egress, each | Free (0.1 CPU) | Starter (0.5 CPU) |
+|---|---|---|---|---|---|---|---|
+| 10 | ~95 ms | 0.03–0.07 | 80 MB | 0.2 MB/s | 16–19 KB/s | OK | OK |
+| 50 | ~100 ms | 0.06–0.11 | 85 MB | 9–11 MB/s | 180–215 KB/s | OK | OK |
+| 100 | ~100 ms | 0.10 | 90 MB | 44–50 MB/s | 440–505 KB/s | strained | OK |
+| 200 | 165–180 ms | 0.20 | 115 MB | 170 MB/s | ~850 KB/s | broken | OK |
+
+- **Bandwidth is the limit, not CPU or memory.** Every 100 ms that anything
+  changed, every player is sent every player, plus every plot whenever any
+  crop anywhere changed (with a crowd farming, nearly every time). That's
+  the whole world times the number of players: it grows with players
+  squared. At 100 players that's ~170 GB an hour out of the server, and
+  ~1.7 GB an hour down each phone. Render's Hobby workspace includes 5 GB a
+  month, then $0.15/GB. Half the server's CPU is `writev` (sending), most of
+  the rest encoding and building those broadcasts.
+- **CPU and memory:** the Free plan's 0.1 CPU holds to about 50 busy
+  players, strains by 100 (event loop late ~100 ms) and breaks by 200 (lag
+  over a second, joins timing out). Starter handles 200 at 40% of its CPU
+  and under a quarter of its memory.
+- **Not covered:** the database (Neon; a save per player every 30 seconds),
+  real network distance, and the phones' side: each phone decodes every
+  broadcast, the biggest 70 KB at 100 players and 145 KB at 200, ten
+  times a second.
+
 ## Admin page
 
 `https://hairy-popsicles-mmo-server.onrender.com/admin` (the game server, not
@@ -243,13 +295,16 @@ What protects what, and what's still open.
 - **One room, no sharding.** Everyone joins the same `world` room (300
   max; the 301st is told the world is full). There is exactly one, it is
   never disposed, and clients can only join it or reconnect to it (no
-  creating rooms or joining by id). A 60-bot load test ran clean. Past 300
-  it needs zones or shards.
-- **State sync is a blunt instrument.** The server broadcasts the whole
-  public world state at most 10 times a second when something changes,
-  leaving out the plots (most of it) unless a plot changed since the last
-  broadcast. Fine at small scale; swap in `@colyseus/schema` delta encoding
-  before it matters.
+  creating rooms or joining by id). The load test (above) ran 200 bots
+  with lag under 200 ms. Past 300 it needs zones or shards.
+- **State sync is a blunt instrument, and it's the scaling limit.** The
+  server broadcasts the whole public world state at most 10 times a second
+  when something changes, leaving out the plots (most of it) unless a plot
+  changed since the last broadcast, which with a crowd farming is nearly
+  always. Egress grows with players squared (see "Load testing": ~180 KB/s
+  per player at 50 players, ~850 KB/s at 200). Send only what changed
+  (moved players, changed plots), or swap in `@colyseus/schema` delta
+  encoding, before inviting a crowd.
 - **Light moderation only:** a word filter masks slurs and the worst sexual
   terms in chat and turns offending names into Guest names
   (`packages/server/src/game/filter.js`), players can mute each other, and

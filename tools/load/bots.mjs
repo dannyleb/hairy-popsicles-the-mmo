@@ -9,6 +9,7 @@
 // how long its own moves take to show up in the world (that's lag as a player
 // feels it). Bots only decode the world a few times a second, not every
 // broadcast, so a worker can keep up with a crowd: the bytes are counted either way.
+import { unpack } from 'msgpackr';
 import WebSocket from 'ws';
 import {
   EMOTES, PLOT_PX, PLOT_SIZE, REACH, WORLD_HEIGHT_PLOTS, WORLD_PX, WORLD_WIDTH_PLOTS, holeOpen, isReservedPlot, levelFor, slotCenter, travelMs,
@@ -55,8 +56,9 @@ const errors = new Map();  // message → count
 const noteError = (text) => errors.set(text, (errors.get(text) ?? 0) + 1);
 
 // Every message passes through here first: counted always, decoded only if this
-// bot wants it right now. (The stock handler copies each message into an array
-// of numbers before decoding it, far too slow to do for every broadcast.)
+// bot wants it right now, straight from its bytes. (The stock handler copies
+// each message into an array of numbers first: with a crowd's worth of world in
+// every broadcast, that alone would swamp a worker. Phones pay it in full.)
 const stock = Room.prototype.onMessageCallback;
 Room.prototype.onMessageCallback = function (event) {
   const bytes = new Uint8Array(event.data);
@@ -68,6 +70,8 @@ Room.prototype.onMessageCallback = function (event) {
     const type = String.fromCharCode(...bytes.subarray(2, 2 + length));
     if (type === 'state') this.bot?.stateArrived();
     if (!WANTED.has(type) || (type === 'state' && !this.bot?.wantsWorld())) return;
+    this.dispatchMessage(type, bytes.length > 2 + length ? unpack(bytes.subarray(2 + length)) : undefined);
+    return;
   }
   return stock.call(this, event);
 };
