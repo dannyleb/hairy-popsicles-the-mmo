@@ -6,7 +6,7 @@ A spin-off of [Hairy Popsicles](https://github.com/dannyleb/hairy-popsicles-the-
 in the same flesh-toned, gross universe: one shared world, everyone in it at
 once. Free in your phone's browser. No install, no sign-up.
 
-### [▶ Play now](https://dannyleb.github.io/hairy-popsicles-the-mmo/)
+### [▶ Play now](https://hairypopsicles.com/the-mmo/)
 
 <table>
   <tr>

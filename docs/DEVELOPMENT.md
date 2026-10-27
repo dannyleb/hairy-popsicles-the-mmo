@@ -3,7 +3,7 @@
 How it's built, run, tested and deployed. What the game is and how to play is
 in the [README](../README.md); every rule and number is in [RULES.md](RULES.md).
 
-**Play:** https://dannyleb.github.io/hairy-popsicles-the-mmo/ ·
+**Play:** https://hairypopsicles.com/the-mmo/ (the hub: https://hairypopsicles.com) ·
 **Server:** https://hairy-popsicles-mmo-server.onrender.com
 ([/stats](https://hairy-popsicles-mmo-server.onrender.com/stats)) ·
 **Tests:** `npm test`, and on every push in GitHub Actions.
@@ -358,8 +358,10 @@ What protects what, and what's still open.
   always-on free service uses about 744 of Render's 750 free hours a month.
   Turn it off under the repo's Actions tab if those hours are needed elsewhere.
 - **Client:** GitHub Pages via `.github/workflows/pages.yml` on every push
-  to `main`, served at `https://dannyleb.github.io/hairy-popsicles-the-mmo/`
-  until the move to `https://hairypopsicles.com` (below). The build asks Pages
+  to `main`, served at `https://hairypopsicles.com` (the hub) and
+  `/the-mmo/` (the game) since October 27, 2026; the old address,
+  `https://dannyleb.github.io/hairy-popsicles-the-mmo/`, redirects there (see
+  "The domain", below). The build asks Pages
   where it's served (the workflow's `site` job) and builds for that path, so
   setting or changing the custom domain needs only a redeploy (Actions → Deploy
   client to GitHub Pages → Run workflow). Production builds point at the Render
