@@ -4,12 +4,17 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci
+    # No install scripts: the build sees the secrets below, and a hijacked
+    # package's install script (the Shai-Hulud worms) is how they get stolen.
+    # Nothing here needs one (msgpackr's native speed-up loads without it).
+    buildCommand: npm ci --ignore-scripts
     startCommand: npm run start -w @hptm/server
     healthCheckPath: /
     envVars:
+      # Bump on every Node.js security release for 22.x
+      # (nodejs.org/en/blog/vulnerability); 22.23.4 has the October 2026 fixes.
       - key: NODE_VERSION
-        value: 22.11.0
+        value: 22.23.4
       # Signs players' saves. Must stay the same across deploys, or every save is lost.
       - key: PROFILE_SECRET
         generateValue: true

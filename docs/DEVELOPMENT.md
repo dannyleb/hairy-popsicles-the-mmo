@@ -275,6 +275,26 @@ What protects what, and what's still open.
     about 1.4 seconds), which is fine for a game with no combat between players.
   - The game shares the `dannyleb.github.io` origin with any other Pages site on
     that account. A custom domain would give it its own.
+- **Keeping the platform patched:**
+  - Node.js: the server runs the Node in `render.yaml` (`NODE_VERSION`, now
+    22.23.4, with the October 2026 fixes). Bump it on every 22.x security
+    release (nodejs.org/en/blog/vulnerability) and check the next deploy's
+    log says `Using Node.js version` with the new number. If the Render
+    service wasn't made from `render.yaml`, change `NODE_VERSION` under its
+    Environment tab instead. CI always takes the newest 22.x.
+  - Packages: installs come from `package-lock.json`, exact versions with
+    integrity hashes, so a newly hijacked release can't slip in until the
+    lockfile is updated; before updating it, check against current npm
+    compromise advisories. Render and CI install with `npm ci
+    --ignore-scripts`, so no package's install script runs where the secrets
+    are (the Shai-Hulud worms steal them from there); nothing in the game
+    needs one. Checked against the 2026 Shai-Hulud waves (keyv, flat-cache,
+    file-entry-cache, cache-manager, node-ipc, ...): none of their bad
+    versions are in either game's lockfile.
+  - `npm audit`: Colyseus 0.15 uses `nanoid` 2.x (advisories up to 3.3.17).
+    It only ever asks for fixed whole-number lengths, which none of those
+    issues reach; the fix is moving to Colyseus 0.16 or later (a breaking
+    upgrade), not urgent.
 
 ## What's stubbed / not real yet
 

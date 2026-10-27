@@ -38,10 +38,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          check-latest: true  # the newest 22.x (security fixes), not whatever the runner has cached
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts  # no package install scripts (supply-chain worms run there)
 
       - name: Test
         run: npm test
