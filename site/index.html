@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src {{SERVER}}; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <!-- Old links into the game (invites, saves handed over from the old address) go straight on to it. -->
+  <script src="go.js"></script>
+  <title>Hairy Popsicles</title>
+  <meta name="description" content="Grow gross little characters in a world made of skin. Hairy Popsicles: The MMO, free in your phone's browser.">
+  <meta name="theme-color" content="#0e0608">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hairy Popsicles">
+  <meta property="og:title" content="Hairy Popsicles">
+  <meta property="og:description" content="Grow gross little characters in a world made of skin. Hairy Popsicles: The MMO, free in your phone's browser.">
+  <meta property="og:url" content="{{SITE}}">
+  <meta property="og:image" content="{{SITE}}the-mmo/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Hairy Popsicles: a lineup of gross little characters">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="the-mmo/icons/favicon.png">
+  <link rel="apple-touch-icon" href="the-mmo/icons/apple-touch-icon.png">
+  <link rel="preload" href="the-mmo/fonts/rubik-wet-paint.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="the-mmo/fonts/patrick-hand.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="hub.css">
+  <script src="hub.js" defer></script>
+</head>
+<body data-server="{{SERVER}}">
+  <div class="skin" aria-hidden="true"></div>
+
+  <header class="bar">
+    <a class="bar-mark" href="./">Hairy Popsicles</a>
+    <a class="pill pill-small" href="the-mmo/">Play</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="kicker">a gross little universe</p>
+        <h1 class="logo">Hairy Popsicles<span class="drop drop-1"></span><span class="drop drop-2"></span><span class="drop drop-3"></span></h1>
+        <p class="lead">Grotesque little characters, grown in a world made of skin.</p>
+
+        <div class="now">
+          <p class="now-label">Now playing</p>
+          <h2 class="now-title">The MMO</h2>
+          <p class="now-pitch">A farming game where the field is skin and the crops are monsters. One shared world, everyone in it at once.</p>
+          <a class="pill pill-big" href="the-mmo/">Play The MMO</a>
+          <p class="now-fine">Free · in your phone's browser · no sign-up</p>
+          <p class="live" hidden></p>
+        </div>
+      </div>
+
+      <div class="lineup" aria-hidden="true">
+        <img src="img/lineup/toad.webp" alt="" class="l l-toad">
+        <img src="img/lineup/leprechaun.webp" alt="" class="l l-leprechaun">
+        <img src="img/lineup/redeye.webp" alt="" class="l l-redeye">
+        <img src="img/lineup/droopy.webp" alt="" class="l l-droopy">
+        <img src="img/lineup/snoot.webp" alt="" class="l l-snoot">
+        <img src="img/lineup/bricks.webp" alt="" class="l l-bricks">
+        <img src="img/lineup/fairy.webp" alt="" class="l l-fairy">
+      </div>
+    </section>
+
+    <svg class="ooze" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 0H1200V18C1170 18 1166 46 1150 46S1132 20 1100 20C1062 20 1060 34 1030 34C1000 34 996 22 960 22C930 22 928 54 910 54S888 24 860 24C820 24 816 30 780 30C746 30 742 20 700 20C668 20 664 42 648 42S628 22 600 22C560 22 556 36 520 36C486 36 482 20 440 20C410 20 406 58 388 58S366 24 336 24C300 24 296 32 260 32C226 32 222 20 180 20C150 20 146 44 130 44S110 22 80 22C46 22 40 30 0 30Z"/>
+    </svg>
+
+    <section class="mmo" aria-labelledby="mmo-title">
+      <h2 class="section-title" id="mmo-title">The MMO</h2>
+      <p class="section-lead">Plant a seed and something rises out of the hole. Grow 25 creatures, fill your album, and play as any one you've grown, alongside everyone else.</p>
+
+      <ul class="features">
+        <li class="feature">
+          <img src="the-mmo/world/seed-pimple.webp" alt="" class="feature-icon">
+          <h3>Grow</h3>
+          <p>Your plot is a raw sore with nine holes. Plant, wait, and pull out whatever ripened.</p>
+        </li>
+        <li class="feature">
+          <img src="the-mmo/characters/small/mirror.webp" alt="" class="feature-icon feature-face">
+          <h3>Collect</h3>
+          <p>Common to Legendary, shinies and stars. Wear any of them; rarer ones give bonuses.</p>
+        </li>
+        <li class="feature">
+          <img src="the-mmo/world/candle.webp" alt="" class="feature-icon">
+          <h3>Together</h3>
+          <p>Squeeze a neighbor's crop to ripen it sooner, gift a spare, chat, see who's around.</p>
+        </li>
+        <li class="feature">
+          <img src="the-mmo/world/boil.webp" alt="" class="feature-icon">
+          <h3>The Boil</h3>
+          <p>World events: everyone runs over and taps until it bursts. Then the Scab, the Tick...</p>
+        </li>
+      </ul>
+
+      <div class="shots" tabindex="0" aria-label="Screenshots">
+        <figure class="shot"><img src="img/shots/world.jpg" alt="Your plot at dawn, ripe characters standing in its holes" loading="lazy"><figcaption>Grow them in your plot</figcaption></figure>
+        <figure class="shot"><img src="img/shots/boil.jpg" alt="Players crowding round The Boil to pop it" loading="lazy"><figcaption>Pop The Boil together</figcaption></figure>
+        <figure class="shot"><img src="img/shots/reveal.jpg" alt="A new Rare character revealed" loading="lazy"><figcaption>Every new one gets a reveal</figcaption></figure>
+        <figure class="shot"><img src="img/shots/album.jpg" alt="The album: every character grown, silhouettes for the rest" loading="lazy"><figcaption>Collect all 25</figcaption></figure>
+        <figure class="shot"><img src="img/shots/night.jpg" alt="The giant Eye at night, watching the nearest player" loading="lazy"><figcaption>Night falls. The Eye watches.</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="cast" aria-labelledby="cast-title">
+      <h2 class="section-title" id="cast-title">Meet the cast</h2>
+      <p class="section-lead">{{CAST_COUNTS}} The Legendaries you'll have to grow to see.</p>
+{{CAST}}
+    </section>
+
+    <section class="origin" aria-labelledby="origin-title">
+      <img src="img/lineup/toad.webp" alt="" class="origin-art">
+      <div>
+        <p class="kicker">where it started</p>
+        <h2 class="origin-title" id="origin-title">Hairy Popsicles: The Game</h2>
+        <p>The hand-drawn, single-player original. Feed Toad, pop pimples, open up the world.</p>
+        <a class="pill pill-ghost" href="https://dannyleb.github.io/hairy-popsicles-the-game/">Play the original</a>
+      </div>
+    </section>
+
+    <section class="last">
+      <h2 class="last-title">Your plot is waiting.</h2>
+      <a class="pill pill-big" href="the-mmo/">Play The MMO</a>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Characters and art by dannyleb · From the world of Hairy Popsicles</p>
+    <p class="foot-fine">Built with Phaser and Colyseus · progress saves on your device</p>
+  </footer>
+</body>
+</html>

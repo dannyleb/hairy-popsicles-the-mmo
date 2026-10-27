@@ -36,4 +36,8 @@ jobs:
         run: |
           curl -sS -o /dev/null -w "http://hairypopsicles.com/  -> %{http_code} %{redirect_url}\n" --max-time 20 http://hairypopsicles.com/ || true
           curl -sS -o /dev/null -w "https://hairypopsicles.com/ -> %{http_code} %{redirect_url}\n" --max-time 20 https://hairypopsicles.com/ || true
-          echo "home.json: $(curl -sS --max-time 20 https://hairypopsicles.com/home.json || true)"
+          curl -sS -o /dev/null -w "https://hairypopsicles.com/the-mmo/ -> %{http_code}\n" --max-time 20 https://hairypopsicles.com/the-mmo/ || true
+          curl -sS -o /dev/null -w "the old address -> %{http_code} %{redirect_url}\n" --max-time 20 https://dannyleb.github.io/hairy-popsicles-the-mmo/ || true
+          # The game's own marker, and the root's one for copies from before /the-mmo/ (tools/site.mjs).
+          echo "the-mmo/home.json: $(curl -sS --max-time 20 https://hairypopsicles.com/the-mmo/home.json || true)"
+          echo "home.json:         $(curl -sS --max-time 20 https://hairypopsicles.com/home.json || true)"

@@ -106,6 +106,9 @@ packages/
                   The Boil and the other world events, effects, layout constants
     src/ui/       HTML overlays: loading, menu, HUD, chat, album, sheets, reveals, minimap, coach
     src/audio/    procedural sound effects (and vibration), music
+site/       the hub at hairypopsicles.com (plain HTML and CSS; the game's art and fonts)
+tools/      site.mjs (puts the hub and the game together for Pages), load/ (the load
+            test), the art scripts
 tests/      server test suites and their runner
 ```
 
@@ -364,8 +367,14 @@ What protects what, and what's still open.
 
 ## The domain: hairypopsicles.com
 
-Registered at Squarespace; the game (client) lives on GitHub Pages behind it.
-The server stays at its Render address.
+Registered at Squarespace; the site lives on GitHub Pages behind it: the hub
+at `hairypopsicles.com` (`site/`: the cast, screenshots, a link into the game
+and the original) and the game at `hairypopsicles.com/the-mmo/`.
+`tools/site.mjs` puts them together (`npm run site`, `-- --serve` for a look);
+the Pages workflow runs it. The hub sends old links into the game: an invite
+(`?with=`) or a save handed over (`#carry=`) at the root goes on to
+`/the-mmo/`, address and all (`site/go.js`). The server stays at its Render
+address.
 
 1. **DNS (Squarespace → Domains → hairypopsicles.com → DNS).** Remove the
    Squarespace Defaults preset, then add: four `A` records for `@`
@@ -377,14 +386,19 @@ The server stays at its Render address.
    else's Pages site can claim it.
 2. **Pages (this repo → Settings → Pages → Custom domain):** `hairypopsicles.com`,
    then Enforce HTTPS once the certificate is ready.
-3. **Redeploy** (above), so the build is for the domain's root.
+3. **Redeploy** (above), so the build is for the domain's root (the hub at
+   `/`, the game at `/the-mmo/`). The "Check the domain" workflow shows what
+   each address answers.
 
 **Saves move with the players.** A save lives in the browser's storage for the
 address it was made at, so `packages/client/src/net/home.js` carries it over:
 a copy still running at the old address (a phone's offline cache) checks the
 new home's `home.json` (which game, built for which path); once that says this
-game at `/`, it hands its save over after `#carry=` in the new address (which
-never leaves the phone), unregisters its offline cache and moves. The new home
+game at `/the-mmo/`, it hands its save over after `#carry=` in the new address
+(which never leaves the phone), unregisters its offline cache and moves.
+Copies from before `/the-mmo/` look at the root instead, for this game at
+`/`: the root's `home.json` says so (written only once the site is built for
+the domain's root), and the hub sends them on. The new home
 takes it if the phone has no save there yet, and otherwise asks which to keep.
 For anyone else, the title screen at the new address offers "Played before at
 the old address? Bring your save": the bridge page

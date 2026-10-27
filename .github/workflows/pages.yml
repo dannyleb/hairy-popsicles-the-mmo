@@ -1,7 +1,8 @@
 name: Deploy client to GitHub Pages
 
-# Every push and pull request builds the client; only main is deployed.
-# The server deploys separately on Render (see render.yaml).
+# Every push and pull request builds the site: the hub (site/) at the root and
+# the game in /the-mmo/ (tools/site.mjs); only main is deployed. The server
+# deploys separately on Render (see render.yaml).
 on:
   push:
     branches:
@@ -53,16 +54,19 @@ jobs:
 
       # Built for wherever Pages serves it (see the site job). Changing the
       # custom domain needs a redeploy: Actions > this workflow > Run workflow.
-      - name: Build client
+      - name: Build the game
         env:
-          VITE_SITE_URL: ${{ needs.site.outputs.base_url }}/
-        run: npm run build -w @hptm/client -- --base=${{ needs.site.outputs.base_path }}/
+          VITE_SITE_URL: ${{ needs.site.outputs.base_url }}/the-mmo/
+        run: npm run build -w @hptm/client -- --base=${{ needs.site.outputs.base_path }}/the-mmo/
+
+      - name: Put the site together
+        run: node tools/site.mjs --site-url ${{ needs.site.outputs.base_url }}/
 
       - name: Upload artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: packages/client/dist
+          path: _site
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

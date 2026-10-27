@@ -3,8 +3,9 @@ import { settings } from '../settings.js';
 import { mergePals } from '../ui/pals.js';
 import { peekProfile, readSaveCode, storeProfile } from './profile.js';
 
-// The game's home moved to hairypopsicles.com from
-// dannyleb.github.io/hairy-popsicles-the-mmo/. A save lives in the browser's
+// The game's home moved to hairypopsicles.com/the-mmo/ from
+// dannyleb.github.io/hairy-popsicles-the-mmo/ (hairypopsicles.com itself is
+// the hub, site/, which sends old links on to the game). A save lives in the browser's
 // storage for the address it was made at, so it has to be carried across:
 // - A copy still running at the old address (from a phone's offline cache)
 //   checks whether the new home is up; once it is, it hands its save over and
@@ -13,7 +14,7 @@ import { peekProfile, readSaveCode, storeProfile } from './profile.js';
 //   never leaves the phone): from the old address, or from the bridge page on
 //   the first game's site, which shares the old address's storage.
 // Either way a save here is never replaced without the player saying so.
-export const HOME = new URL(import.meta.env.VITE_HOME_URL || 'https://hairypopsicles.com/');
+export const HOME = new URL(import.meta.env.VITE_HOME_URL || 'https://hairypopsicles.com/the-mmo/');
 const OLD_HOME = new URL(import.meta.env.VITE_OLD_HOME_URL || 'https://dannyleb.github.io/hairy-popsicles-the-mmo/');
 export const BRIDGE = import.meta.env.VITE_SAVE_BRIDGE || 'https://dannyleb.github.io/hairy-popsicles-the-game/mmo-save.html';
 const CARRIED = ['hptm:profile', 'hptm:pals', 'hptm:name', 'hptm:settings', 'hptm:invitedBy'];
@@ -39,8 +40,8 @@ const parsed = (json) => {
   }
 };
 
-// At the old address: once the new home is up (serving this game from its own
-// root), hand the save over and go. An invite link keeps its ?with= (read now,
+// At the old address: once the new home is up (serving this game from its
+// path there), hand the save over and go. An invite link keeps its ?with= (read now,
 // before the invite is tidied out of the address).
 export async function moveIfHomeIsUp() {
   if (!atOldHome()) return;
@@ -48,7 +49,7 @@ export async function moveIfHomeIsUp() {
   try {
     const res = await fetch(new URL('home.json', HOME), { cache: 'no-store' });
     const home = res.ok ? await res.json() : null;
-    if (home?.game !== 'hairy-popsicles-mmo' || home.base !== '/') return;
+    if (home?.game !== 'hairy-popsicles-mmo' || home.base !== HOME.pathname) return;
   } catch {
     return;  // not up yet
   }

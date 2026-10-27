@@ -12,7 +12,7 @@ function contentSecurityPolicy() {
     configResolved(config) {
       server = new URL(config.env.VITE_SERVER_URL || 'ws://localhost:2567');
       // A copy at the old address asks the new home whether it's up (net/home.js).
-      home = new URL(config.env.VITE_HOME_URL || 'https://hairypopsicles.com/').origin;
+      home = new URL(config.env.VITE_HOME_URL || 'https://hairypopsicles.com/the-mmo/').origin;
     },
     transformIndexHtml(html) {
       // The client joins over HTTP(S) to the same host, then opens the socket.
@@ -66,7 +66,7 @@ function linkPreview() {
 
 // home.json: which game this is and the path it's built to be served from.
 // A copy at the old address moves to the new home only once the new home
-// serves this game from its root (net/home.js).
+// serves this game from the path it expects (net/home.js).
 function homeMarker() {
   let base = '/';
   return {
