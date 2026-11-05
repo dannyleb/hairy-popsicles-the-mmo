@@ -49,8 +49,8 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('world', { room });
       loading.hide();
     } catch (error) {
-      // Turned away for joining too often, or too many from one network: say so.
-      loading.error(error?.code === 429 ? error.message : "Couldn't reach the server.", () => this.play(name));
+      // Turned away (joining too often, too many from one network, or banned for abusive chat): say why.
+      loading.error(error?.code === 429 || error?.code === 403 ? error.message : "Couldn't reach the server.", () => this.play(name));
     } finally {
       clearTimeout(slow);
     }

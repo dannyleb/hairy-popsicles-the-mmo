@@ -35,7 +35,7 @@ import { sfx } from '../audio/sfx.js';
 import {
   applyRenderScale, cameraZoom, drawingInSoftware, lookAhead, lowerQuality, quality, renderScale, textResolution,
 } from '../display.js';
-import { reconnect } from '../net/connection.js';
+import { noteBanned, reconnect } from '../net/connection.js';
 import { storeProfile } from '../net/profile.js';
 import { remember, remembered, settings } from '../settings.js';
 import { formatClock } from '../ui/dom.js';
@@ -78,6 +78,8 @@ const BOSS_STANDOFF = 105;        // where to stand when walking up to The Boil
 const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, 16000, 30000];
 const HARVEST_HIDE_MS = 1500;     // a harvested crop stays hidden this long waiting for the server
 const REPLACED = 4001;            // close code: this save was opened somewhere else
+const BANNED = 4003;              // close code: banned for abusive chat
+const FLAGGED_AS = { hate: 'hateful', sexual: 'sexual', harassment: 'abusive' };
 const ZOOM_RANGE = [0.55, 1.6];   // how far a pinch (or the mouse wheel) zooms the world, around the usual view
 const TAP_SLOP = 12;              // px a finger can drift and still count as a tap
 const FLING_MS = 300;             // a view flung as the finger lifts glides to a stop over about this long
@@ -281,6 +283,11 @@ export class WorldScene extends Phaser.Scene {
     on('gifted', ({ from, characterId, isNew }) => this.revealGot(characterId, isNew, { giftFrom: from }));
     on('bought', this.onBought);
     on('caughtStray', ({ characterId, isNew }) => this.revealGot(characterId, isNew, { caught: true }));
+    on('chatFlagged', this.onChatFlagged);
+    on('banned', ({ pid }) => {
+      this.banned = true;
+      noteBanned(pid);
+    });
     on('gave', this.onGave);
     room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
@@ -358,8 +365,23 @@ export class WorldScene extends Phaser.Scene {
     sfx.quest();
   }
 
+  // A line the server wouldn't send: a strike, and how many are left.
+  onChatFlagged({ category, strikes, max }) {
+    const left = max - strikes;
+    const text = `That message wasn't sent: it was flagged as ${FLAGGED_AS[category] ?? 'abusive'}. Strike ${strikes} of ${max}. `
+      + (left === 1 ? "One more and you're banned." : `At ${max}, you're banned.`);
+    this.hud.warn(text);
+    this.hud.chatLine({ text, kind: 'system' });
+    sfx.nope();
+  }
+
   async onDisconnect(code) {
     if (this.leaving) return;
+    if (code === BANNED || this.banned) {
+      loading.show('');
+      loading.error("You've been banned for abusive chat.", () => window.location.reload());
+      return;
+    }
     if (code === REPLACED) {
       loading.show('');
       loading.error("You're playing in another tab or window.", () => window.location.reload());

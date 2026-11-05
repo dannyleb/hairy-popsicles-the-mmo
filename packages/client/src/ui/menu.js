@@ -11,11 +11,12 @@ import { settingToggles } from './toggles.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.13';
+const VERSION = 'v0.14';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    "Chat safety: hateful, sexual or abusive messages aren't sent and count as strikes, with a warning. Three strikes and you're banned. Swearing is just bleeped.",
     'Drag the ground to look around: the view stays put while you tap about, and comes back to you when you walk somewhere (or tap Back to me).',
     "Who's around, right here on this screen (and in the world: Who's here, then Who's been by): who's on now and how long since they did anything, and who's been by in the last 3 days. Pals first. Appear offline (Settings) keeps you off it.",
     'More world events: Ingrown Hair (tap on its throb to tug it out), Blackheads (hold to squeeze; the gunk makes fertilizer) and Navel Lint (grab what the Navel coughs up; one ball hides a prize).',

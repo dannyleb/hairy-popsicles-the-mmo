@@ -770,6 +770,7 @@
 .banner-rare { border-color: #7fb2e5; color: #cfe4ff; }
 .banner-legendary { border-color: var(--gold); color: #ffe6a8; box-shadow: 0 0 24px rgba(232, 176, 74, 0.5); }
 .banner-boss { border-color: #e0614f; background: rgba(90, 16, 14, 0.95); }
+.banner-warn { border-color: #f3d27a; background: rgba(90, 16, 14, 0.97); }
 .banner-bloodMoon { border-color: #c0182a; background: rgba(70, 4, 12, 0.95); }
 .banner-level { border-color: #a8c66c; }
 .banner-quest { border-color: var(--gold); }
@@ -1987,6 +1988,11 @@
 .hud.tutorial .banners,
 .hud.tutorial .event-arrow {
   display: none;
+}
+
+/* ...but a chat strike warning always shows. */
+.hud.tutorial .banners:has(.banner-warn) {
+  display: flex;
 }
 
 .hud-round.nudge {

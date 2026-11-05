@@ -269,6 +269,10 @@ Rarities live in
   streak starts over. The title screen says what's waiting before you tap
   Continue: "Day 4 gift waiting", "2 crops ripe on your plot", today's
   featured character and any season, read from the save on the device.
+- **Chat safety.** Hateful, sexual or abusive messages (threats, telling
+  someone to hurt themselves, insults aimed at someone) aren't sent and are a
+  strike, with a warning; three strikes and the save is banned. Swearing is
+  bleeped, with no strike. See docs/DEVELOPMENT.md, Security.
 
 ## The world
 

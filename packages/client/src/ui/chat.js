@@ -15,7 +15,7 @@ export function createChat({ onSend, onEmote }) {
   bar.hidden = true;
   const input = el('input', 'chat-input');
   input.maxLength = CHAT_MAX;
-  input.placeholder = 'Say something...';
+  input.placeholder = 'Say something (be decent)...';
   input.autocomplete = 'off';
   input.enterKeyHint = 'send';
   const send = iconButton('chat-send', 'send', 'Send');

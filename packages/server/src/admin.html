@@ -130,6 +130,12 @@
   .chat time { color: var(--dim); font-size: 12px; margin-right: 8px; font-variant-numeric: tabular-nums; }
   .chat b { color: var(--pink); font-weight: 600; margin-right: 6px; }
   .note { color: var(--dim); font-size: 13px; margin-top: 24px; }
+  /* chat safety */
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: var(--panel-2); color: var(--dim); }
+  .tag.hate, .tag.sexual, .tag.harassment, .tag.banned { background: #5a1418; color: #ffd7cf; }
+  .tag.profanity { color: var(--gold); }
+  .chat .said { color: var(--text); }
+  td.wrap-text { white-space: normal; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -197,6 +203,15 @@
 
     <h2>Recent chat</h2>
     <div class="chat" id="chat"></div>
+
+    <h2>Chat safety</h2>
+    <p class="note" id="safety-note"></p>
+    <table>
+      <thead><tr><th>Player</th><th class="num">Strikes</th><th>Status</th><th></th></tr></thead>
+      <tbody id="strikes"></tbody>
+    </table>
+    <h2>Flagged lines</h2>
+    <div class="chat" id="flags"></div>
 
     <p class="note">Who left in the last 3 days comes from the server's memory, so a restart (Render's free plan restarts it when it sleeps) empties that list. Their saves are kept in the database either way.</p>
     <p class="note" id="you"></p>
@@ -280,6 +295,7 @@
     renderEvents();
     renderPlayers();
     renderChat();
+    renderSafety();
     // Limits go by address: this should be your own, not one shared by everyone.
     $('you').textContent = data.you ? `The server sees you as ${data.you.address} (from ${data.you.source}). Join limits and wrong-key lockouts go by this address.` : '';
   }
@@ -497,6 +513,69 @@
       p.append(el('time', null, new Date(line.at).toLocaleTimeString()), el('b', null, line.name), document.createTextNode(line.text));
       return p;
     }));
+  }
+
+  const CATEGORY = { hate: 'hate', sexual: 'sexual', harassment: 'harassment', profanity: 'swearing' };
+
+  // Strikes and bans (three strikes and a save is banned), and every flagged line.
+  function renderSafety() {
+    const m = data.moderation;
+    if (!m) return;
+    $('safety-note').textContent = `Hate, sexual talk and harassment in chat aren't sent and are a strike; ${m.maxStrikes} strikes ban the save, and new players can't join from its network for a day (${m.networkBans} network ban${m.networkBans === 1 ? '' : 's'} on now). Swearing is masked and listed below, without a strike. Pardon clears a player's strikes and lifts their ban.`;
+    if (!m.players.length) {
+      const row = el('tr');
+      const td = el('td', 'empty', 'No strikes yet.');
+      td.colSpan = 4;
+      row.append(td);
+      $('strikes').replaceChildren(row);
+    } else {
+      $('strikes').replaceChildren(...m.players.map((p) => {
+        const row = el('tr');
+        const who = el('td');
+        who.append(el('div', 'who'));
+        who.firstChild.append(el('span', null, p.name || 'Someone'), el('small', null, p.pid));
+        const status = el('td');
+        status.append(p.bannedAt ? el('span', 'tag banned', `banned ${ago(p.bannedAt)}`) : el('span', 'tag', 'warned'));
+        const action = el('td');
+        const button = el('button', null, 'Pardon');
+        button.addEventListener('click', () => pardonPlayer(p, button));
+        action.append(button);
+        row.append(who, el('td', 'num', `${p.strikes} / ${m.maxStrikes}`), status, action);
+        return row;
+      }));
+    }
+    if (!m.flags.length) {
+      $('flags').replaceChildren(el('p', 'empty', 'Nothing flagged.'));
+      return;
+    }
+    $('flags').replaceChildren(...m.flags.map((f) => {
+      const line = el('p');
+      line.append(
+        el('time', null, `${new Date(f.at).toLocaleDateString()} ${new Date(f.at).toLocaleTimeString()}`),
+        el('b', null, f.name || 'Someone'),
+        el('span', `tag ${f.category}`, f.strike ? `${CATEGORY[f.category] ?? f.category} · strike ${f.strike}` : CATEGORY[f.category] ?? f.category),
+        document.createTextNode(' '),
+        el('span', 'said', f.text),
+      );
+      return line;
+    }));
+  }
+
+  async function pardonPlayer(player, button) {
+    if (!confirm(`Pardon ${player.name || 'this player'}? Their strikes go back to none${player.bannedAt ? ' and their ban is lifted' : ''}.`)) return;
+    button.disabled = true;
+    try {
+      const res = await fetch('/admin/pardon', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: player.profileId }),
+      });
+      if (!res.ok) throw new Error(`Server said ${res.status}`);
+      load();
+    } catch (error) {
+      button.disabled = false;
+      $('error').textContent = `Couldn't pardon (${error.message}).`;
+    }
   }
 
   $('login').addEventListener('submit', (event) => {

@@ -36,6 +36,29 @@ export async function setUpDatabase() {
         updated_at timestamptz NOT NULL DEFAULT now()
       )`);
     await direct.query('CREATE INDEX IF NOT EXISTS saves_updated_at ON saves (updated_at)');
+    // Chat safety (game/moderation.js): strikes and bans by save, and every flagged line.
+    await direct.query(`
+      CREATE TABLE IF NOT EXISTS moderation (
+        profile_id text PRIMARY KEY,
+        pid        text NOT NULL,
+        name       text NOT NULL DEFAULT '',
+        strikes    integer NOT NULL DEFAULT 0,
+        banned_at  timestamptz,
+        network    text,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )`);
+    await direct.query(`
+      CREATE TABLE IF NOT EXISTS chat_flags (
+        id         bigserial PRIMARY KEY,
+        at         timestamptz NOT NULL,
+        profile_id text NOT NULL,
+        pid        text NOT NULL,
+        name       text NOT NULL DEFAULT '',
+        text       text NOT NULL,
+        category   text NOT NULL,
+        strike     integer NOT NULL DEFAULT 0
+      )`);
+    await direct.query('CREATE INDEX IF NOT EXISTS chat_flags_at ON chat_flags (at)');
     ready = true;
   } finally {
     await direct.end();
@@ -83,6 +106,56 @@ export async function recentSaves(since, limit) {
     [since, limit],
   );
   return rows;
+}
+
+// ---------- chat safety (game/moderation.js) ----------
+
+// Writes that must not be lost go through here: logged if they fail, waited
+// for at shutdown, never thrown.
+function track(write, what) {
+  const settled = write.then(() => {}, (error) => console.error(`${what} failed:`, error.message));
+  pending.add(settled);
+  settled.finally(() => pending.delete(settled));
+  return settled;
+}
+
+// Everyone with a strike or a ban: { profileId, pid, name, strikes, bannedAt, network }.
+export async function loadModeration() {
+  if (!pool) return [];
+  const { rows } = await pool.query(
+    `SELECT profile_id, pid, name, strikes, (extract(epoch FROM banned_at) * 1000)::float8 AS banned_at, network
+     FROM moderation WHERE strikes > 0 OR banned_at IS NOT NULL`,
+  );
+  return rows.map((r) => ({ profileId: r.profile_id, pid: r.pid, name: r.name, strikes: r.strikes, bannedAt: r.banned_at, network: r.network }));
+}
+
+export function storeModeration({ profileId, pid, name, strikes, bannedAt, network }) {
+  if (!pool) return Promise.resolve();
+  return track(pool.query(
+    `INSERT INTO moderation (profile_id, pid, name, strikes, banned_at, network) VALUES ($1, $2, $3, $4, to_timestamp($5 / 1000.0), $6)
+     ON CONFLICT (profile_id) DO UPDATE SET pid = EXCLUDED.pid, name = EXCLUDED.name, strikes = EXCLUDED.strikes,
+       banned_at = EXCLUDED.banned_at, network = EXCLUDED.network, updated_at = now()`,
+    [profileId, pid, name, strikes, bannedAt, network],
+  ), 'storing a strike');
+}
+
+export function storeFlag({ at, profileId, pid, name, text, category, strike }) {
+  if (!pool) return Promise.resolve();
+  return track(pool.query(
+    `INSERT INTO chat_flags (at, profile_id, pid, name, text, category, strike) VALUES (to_timestamp($1 / 1000.0), $2, $3, $4, $5, $6, $7)`,
+    [at, profileId, pid, name, text, category, strike],
+  ), 'storing a flagged line');
+}
+
+// The newest flagged lines, oldest first.
+export async function recentFlags(limit) {
+  if (!pool) return [];
+  const { rows } = await pool.query(
+    `SELECT (extract(epoch FROM at) * 1000)::float8 AS at, profile_id, pid, name, text, category, strike
+     FROM chat_flags ORDER BY at DESC LIMIT $1`,
+    [limit],
+  );
+  return rows.reverse().map((r) => ({ at: r.at, profileId: r.profile_id, pid: r.pid, name: r.name, text: r.text, category: r.category, strike: r.strike }));
 }
 
 // For the admin page: whether it's connected, and how many players it holds.

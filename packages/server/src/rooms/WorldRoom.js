@@ -70,7 +70,8 @@ import { collectOwed, earnToday, nameOf, noteName, owe } from '../game/invites.j
 import { createItch } from '../game/itch.js';
 import { createRain } from '../game/rain.js';
 import { createStrays } from '../game/strays.js';
-import { maskText, plainText } from '../game/filter.js';
+import { checkText, plainText } from '../game/filter.js';
+import { MAX_STRIKES, bannedProfile, flagChat, refusal } from '../game/moderation.js';
 import { cleanName, inviteCode, newProfileId, publicIdOf, readInviteCode, readToken, saveToken } from '../game/profile.js';
 import { advance, advanceDaily, dealDaily, dropImpossible, restoreDaily, restoreQuests, topUp } from '../game/quests.js';
 import { randomCommon, rollCharacter } from '../game/roll.js';
@@ -111,6 +112,7 @@ const STATUE_SAVES = 2000;
 let theWorld = null;
 export const getWorld = () => theWorld;
 const REPLACED = 4001;           // close code: the same save was opened somewhere else
+const BANNED = 4003;             // close code: banned for abusive chat (game/moderation.js)
 const MESSAGES = { perSecond: 20, burst: 40 };  // per player; anything past this is dropped
 const SEATS_PER_ADDRESS = Number(process.env.SEATS_PER_ADDRESS) || 10;  // players at once from one network
 const SEAT_HOLD_SECONDS = 10;    // a join's seat waits this long for its connection
@@ -308,7 +310,11 @@ export class WorldRoom extends Room {
   // and a reconnection skips this altogether, keeping the network.)
   onAuth(client, options, request) {
     const { network } = clientAddress(request);
-    const returning = readToken(options?.profile)?.id;
+    const save = readToken(options?.profile);
+    // Banned for abusive chat: this save, this phone, or new saves from this network for a while.
+    const refused = refusal({ save, bannedAs: options?.bannedAs, network });
+    if (refused) throw new ServerError(403, refused);
+    const returning = save?.id;
     const here = Object.values(this.players).filter((p) => p.network === network && p.profileId !== returning).length;
     if (here >= SEATS_PER_ADDRESS) throw new ServerError(429, 'Too many players from your network right now. Try again later.');
     return { network };
@@ -397,7 +403,7 @@ export class WorldRoom extends Room {
     const saves = await recentSaves(Date.now() - PLOT_HOLD_MS, MAX_HELD_PLOTS);
     for (const { token, at } of saves.reverse()) {  // oldest first, as holdPlot keeps them
       const save = readToken(token);
-      if (!save?.plot || save.level < HOLD_FROM_LEVEL || !save.plot.slots.some(Boolean)) continue;
+      if (!save?.plot || save.level < HOLD_FROM_LEVEL || !save.plot.slots.some(Boolean) || bannedProfile(save.id)) continue;
       // Plots from before a landmark went up move next to it.
       const key = isReservedPlot(save.plot.key) ? this.freePlotNear(save.plot.key) : save.plot.key;
       if (!key || this.plots[key] || this.heldPlots.has(save.id)) continue;
@@ -417,7 +423,7 @@ export class WorldRoom extends Room {
     const saves = await recentSaves(Date.now() - STATUE_LOOKBACK_MS, STATUE_SAVES);
     for (const { token } of saves) {
       const save = readToken(token);
-      if (save) this.offerStatue({ pid: publicIdOf(save.id), name: save.name || 'Someone', avatar: save.avatar, collection: save.collection, nameColor: save.nameColor });
+      if (save && !bannedProfile(save.id)) this.offerStatue({ pid: publicIdOf(save.id), name: save.name || 'Someone', avatar: save.avatar, collection: save.collection, nameColor: save.nameColor });
     }
   }
 
@@ -495,6 +501,13 @@ export class WorldRoom extends Room {
     delete plot.ownerAvatar;
     delete plot.ownerPid;
     return key;
+  }
+
+  dropPlot(player) {
+    const [key] = this.plotOf(player);
+    if (key) delete this.plots[key];
+    this.heldPlots.delete(player.profileId);
+    this.markDirty();
   }
 
   dropHeldPlot(profileId) {
@@ -637,7 +650,7 @@ export class WorldRoom extends Room {
     // Phones drop the socket whenever the app goes to the background; hold the
     // player (and their plot) for a while so they can pick up where they left off.
     const player = this.players[client.sessionId];
-    if (!consented && player) {
+    if (!consented && player && !player.banned) {
       player.away = true;
       player.awaySince = Date.now();
       // Nothing reaches them while away: anything worth seeing waits as a notice
@@ -666,13 +679,15 @@ export class WorldRoom extends Room {
     const token = saveToken(player, plot, plotKey);
     rememberDeparture(player.profileId, token, player.xp > 0);
     if (worthStoring(player)) storeSave(player.profileId, token);
-    noteLeft(player);
+    if (!player.banned) noteLeft(player);
     delete this.players[client.sessionId];
     recordSession((player.awaySince ?? Date.now()) - player.joinedAt);
     recordOnline(Object.keys(this.players).length);
     console.log(`left ${client.sessionId} ${player.name}`);
     // The plot is in their save too, and comes back with them either way.
-    this.holdPlot(player);
+    // A banned player's goes now: they're not coming back.
+    if (player.banned) this.dropPlot(player);
+    else this.holdPlot(player);
     // Quests that need a neighbor are impossible if the last neighbor just left.
     for (const other of Object.values(this.players)) {
       if (dropImpossible(other, this.othersPresent(other))) {
@@ -1046,16 +1061,41 @@ export class WorldRoom extends Room {
     const now = Date.now();
     if (now - player.lastChatAt < CHAT_COOLDOWN_MS) return;
     if (typeof text !== 'string') return;
-    const clean = maskText(plainText(text, CHAT_MAX));
-    if (!clean) return;
+    const said = plainText(text, CHAT_MAX);
+    if (!said) return;
     player.lastChatAt = now;
-    const line = { id: player.id, name: player.name, text: clean, at: now };
+    // Hate, sexual talk or harassment: not sent, and a strike (the third
+    // bans them). Swearing goes out masked, and is noted.
+    const { category, strike, masked } = checkText(said);
+    if (category) {
+      const { strikes, banned } = flagChat(player, said, category, strike);
+      if (strike) {
+        this.clientOf(player)?.send('chatFlagged', { category, strikes, max: MAX_STRIKES });
+        if (banned) this.ban(player);
+        return;
+      }
+    }
+    const line = { id: player.id, name: player.name, text: masked, at: now };
     this.chatLog.push(line);
     if (this.chatLog.length > CHAT_LOG) this.chatLog.shift();
     this.broadcast('chat', line);
     this.progress(player, 'chat');
     this.bump(player, 'chats');
     this.sendMe(player);
+  }
+
+  // The third strike: off the server, not held for a reconnection, plot and
+  // all gone, and off Who's around. The phone keeps a note (see onAuth).
+  ban(player) {
+    const client = this.clientOf(player);
+    player.banned = true;
+    forgetSeen(player.pid);
+    if (this.statue?.pid === player.pid) {
+      this.statue = null;  // until someone else earns it
+      this.markDirty();
+    }
+    client?.send('banned', { pid: player.pid });
+    client?.leave(BANNED);
   }
 
   handleEmote(player, { emote }) {

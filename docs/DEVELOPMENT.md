@@ -152,8 +152,10 @@ address), `life` (day and night, weather, strays, sleepers, landmarks, the
 statue), `events` (The Scab, The Gash, The Tick and the event rotation),
 `events2` (Ingrown Hair, Blackheads, Navel Lint), `who` (who's around:
 who's here and idle, who's been by, nothing private, the limit), `database`
-(Postgres saves, restarts, the database being down, who's been by after one), `titles`, `gifts`, `hardening`
-(filter, rate limits) and `filter`.
+(Postgres saves, restarts, the database being down, who's been by after one;
+strikes and bans after one), `moderation` (chat strikes, the ban, network
+bans, pardons), `titles`, `gifts`, `hardening` (masked swearing, rate limits)
+and `filter` (what counts as hate, sexual talk, harassment or swearing).
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 
@@ -265,6 +267,30 @@ What protects what, and what's still open.
   unread; a full copy of the world goes out at most once a second per
   connection. Raise the two settings on Render if a school or office shares
   one address.
+- **Chat safety: three strikes and you're out.** Every chat line goes
+  through `packages/server/src/game/filter.js`, which sorts it as hate (slurs,
+  hate slogans), sexual talk, harassment (threats, telling someone to hurt
+  themselves, insults aimed at someone: "you idiot", "u r trash", "fuck
+  you"), swearing, or fine. It undoes l33t letters, repeats, punctuation
+  inside words and words spelled out a letter at a time, and the game's own
+  words (The Gash, pus, Bone Seed) are fine. Hate, sexual talk and
+  harassment aren't sent: they're a strike against the save that said them,
+  with a warning ("Strike 1 of 3"). The third bans the save
+  (`packages/server/src/game/moderation.js`): it's sent off (close code
+  4003), its plot is removed, it's dropped from Who's around and can't join
+  again. The phone keeps a note of the ban and sends it when joining, so a
+  fresh save on it is turned away too, and for a day (`NETWORK_BAN_MS`) no
+  new save can join from the banned player's network; anyone who was
+  already playing from there still can. Swearing goes out masked, with no
+  strike. Every flagged line, as typed, is kept for the admin page's Chat
+  safety section, which lists strikes and bans and can pardon (strikes back
+  to none, ban and network ban lifted). Strikes, bans and flagged lines are
+  in Postgres (`moderation`, `chat_flags`), so they outlive a restart; the
+  banned player's network address is stored only with their ban. Known
+  gaps: a word list misses new spellings and meaning ("you're garbage at
+  this" is a strike, a sneaky slur split across words isn't); a banned
+  player who clears their browser data and switches networks can start
+  over; there's no reporting by players yet.
 - **Old saves can't be replayed** while the server is up: it keeps everyone's
   latest save for 3 days, with newcomers in a separate pool so a flood of
   throwaway players can't push out anyone with progress.
@@ -328,10 +354,10 @@ What protects what, and what's still open.
   per player at 50 players, ~850 KB/s at 200). Send only what changed
   (moved players, changed plots), or swap in `@colyseus/schema` delta
   encoding, before inviting a crowd.
-- **Light moderation only:** a word filter masks slurs and the worst sexual
-  terms in chat and turns offending names into Guest names
-  (`packages/server/src/game/filter.js`), players can mute each other, and
-  each player's messages are rate limited. No reporting or bans yet.
+- **Moderation is a word filter and three strikes, not people.** See
+  Security, "Chat safety". Players can mute each other and each player's
+  messages are rate limited, but there's no way for players to report
+  someone yet, and the filter only knows the words and phrases it's given.
 - **World art is procedural placeholder** (see "World art").
 
 ## Deploy

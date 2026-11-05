@@ -1,6 +1,7 @@
 // Saves in Postgres: stored while playing, on leaving and at shutdown; after a
 // restart the newest copy beats an older one from the device, and absent
-// players' plots are back in the world. Starts and stops its own servers.
+// players' plots are back in the world; chat strikes and bans outlive it too.
+// Starts and stops its own servers.
 // Needs a database it may wipe: TEST_DATABASE_URL (skipped without one).
 import { check, finish, sleep } from './lib.mjs';
 import { spawn } from 'node:child_process';
@@ -21,7 +22,7 @@ const SERVER = path.join(path.dirname(fileURLToPath(import.meta.url)), '../packa
 
 const sql = new pg.Client({ connectionString: DB });
 await sql.connect();
-await sql.query('DROP TABLE IF EXISTS saves');
+await sql.query('DROP TABLE IF EXISTS saves, moderation, chat_flags');
 const stored = async (profileId) => {
   const { rows } = await sql.query('SELECT token FROM saves WHERE profile_id = $1', [profileId]);
   return rows[0] && JSON.parse(Buffer.from(rows[0].token.split('.')[0], 'base64url').toString());
@@ -32,7 +33,9 @@ function startServer(port, env = {}) {
   const server = spawn(process.execPath, [SERVER], {
     env: {
       ...process.env, PORT: String(port), DATABASE_URL: DB, DATABASE_URL_UNPOOLED: DB, STORE_MS: '1000',
-      GROW_SCALE: '0.01', JOINS_PER_MINUTE: '1000', SEATS_PER_ADDRESS: '1000', ADMIN_KEY: 'test-admin-key', ...env,
+      GROW_SCALE: '0.01', JOINS_PER_MINUTE: '1000', SEATS_PER_ADDRESS: '1000', ADMIN_KEY: 'test-admin-key',
+      // A ban here would otherwise turn away every new test player from this machine (tests/moderation.test.mjs covers it).
+      NETWORK_BAN_MS: '1', ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -54,8 +57,10 @@ function startServer(port, env = {}) {
 
 async function join(port, options) {
   const room = await new Client(`ws://localhost:${port}`).joinOrCreate('world', options);
-  const p = { room };
+  const p = { room, flagged: [], left: null };
   room.onMessage('*', () => {});
+  room.onMessage('chatFlagged', (m) => p.flagged.push(m));
+  room.onLeave((code) => { p.left = code; });
   room.onMessage('init', (s) => { p.state = s; });
   room.onMessage('state', (s) => { p.state = { ...s, plots: s.plots ?? p.state?.plots }; });
   room.onMessage('me', (m) => { p.me = m; });
@@ -98,6 +103,23 @@ await fresh.room.leave(true);
 await sleep(500);
 check('a player with no progress is not stored', !(await stored(freshId)));
 
+// Chat strikes: one player on two, another banned.
+const say = async (p, text) => {
+  p.room.send('chat', { text });
+  await sleep(1300);
+};
+const rudeSave = player(`db-rude-${Date.now()}`, 'Rude');
+const bannedSave = player(`db-banned-${Date.now()}`, 'Banned');
+const rude = await join(2590, { profile: rudeSave });
+await say(rude, 'you absolute fag');
+await say(rude, 'kys');
+const banned = await join(2590, { profile: bannedSave });
+for (const line of ['you absolute fag', 'kys', 'send nudes']) await say(banned, line);
+check('strikes are stored', (await sql.query('SELECT strikes FROM moderation WHERE name = $1', ['Rude'])).rows[0]?.strikes === 2);
+check('and the ban', banned.left === 4003 && Boolean((await sql.query('SELECT banned_at FROM moderation WHERE name = $1', ['Banned'])).rows[0]?.banned_at));
+check('and every flagged line', (await sql.query('SELECT count(*)::int AS n FROM chat_flags')).rows[0].n === 5);
+await rude.room.leave(true);
+
 // Someone still playing when the server is told to stop (a deploy, a restart).
 const late = `db-late-${Date.now()}`;
 const lastMinute = await join(2590, { profile: player(late, 'Late') });
@@ -132,6 +154,7 @@ const b = await startServer(2591);
 await sleep(300);
 const seenAfter = (await (await fetch('http://localhost:2591/players')).json()).left.map((p) => p.name);
 check("who'd been by is still listed after a restart", ['Keeper', 'Late', 'Settler'].every((name) => seenAfter.includes(name)) && !seenAfter.includes('Nobody'), seenAfter.join());
+check('but not anyone banned', !seenAfter.includes('Banned'));
 check('but not anyone appearing offline', !seenAfter.includes('Hidden'));
 const watcher = await join(2591, { name: 'Watcher' });
 const held = watcher.state.plots['4,4'];
@@ -145,6 +168,17 @@ check('and their plot', back.state.plots['4,4']?.ownerId === back.room.sessionId
 const status = await (await fetch('http://localhost:2591/admin/data', { headers: { Authorization: 'Bearer test-admin-key' } })).json();
 check('the admin page shows the database and how many saves it holds', status.database?.on === true && status.database.saves >= 2, JSON.stringify(status.database));
 check('/stats says the database is ready', (await (await fetch('http://localhost:2591/stats')).json()).database === 'ready');
+let bannedBack = null;
+try {
+  bannedBack = await new Client('ws://localhost:2591').joinOrCreate('world', { profile: bannedSave });
+} catch (error) {
+  bannedBack = error;
+}
+check('a ban outlives a restart', bannedBack?.code === 403, bannedBack?.message);
+const rudeBack = await join(2591, { profile: rudeSave });
+await say(rudeBack, 'you idiot');
+check('so do strikes: the next one is the third, and bans', rudeBack.flagged[0]?.strikes === 3 && rudeBack.left === 4003, JSON.stringify(rudeBack.flagged));
+check('flagged lines from before the restart are on the admin page', ['you absolute fag', 'kys', 'send nudes'].every((t) => status.moderation?.flags.some((f) => f.text === t)));
 await back.room.leave(true);
 await watcher.room.leave(true);
 b.kill('SIGTERM');

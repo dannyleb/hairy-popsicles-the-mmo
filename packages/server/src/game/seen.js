@@ -5,6 +5,7 @@
 // player: their public id (what pals are kept by), name, level and character.
 // Kept in memory, and refilled from the database after a restart.
 import { recentSaves } from '../db.js';
+import { bannedPid } from './moderation.js';
 import { publicIdOf, readToken } from './profile.js';
 
 const SEEN_MS = 3 * 24 * 60 * 60_000;
@@ -51,7 +52,7 @@ export function seenReport(players, now = Date.now()) {
   })).sort((a, b) => Number(a.away) - Number(b.away) || a.idle - b.idle);
   const hereNow = new Set(players.map((p) => p.pid));
   const gone = [...left.values()]
-    .filter((p) => !hereNow.has(p.pid) && now - p.at <= SEEN_MS)
+    .filter((p) => !hereNow.has(p.pid) && now - p.at <= SEEN_MS && !bannedPid(p.pid))
     .sort((a, b) => b.at - a.at)
     .slice(0, MAX_LISTED)
     .map(({ pid, name, level, avatar, at }) => ({ pid, name, level, avatar, ago: Math.max(0, Math.floor((now - at) / 1000)) }));

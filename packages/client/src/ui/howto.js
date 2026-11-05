@@ -13,5 +13,6 @@ export const HOW_TO_PLAY = [
   'The skin goes on a long way: the Scalp, the Armpit, Freckle Flats and Wart Hills surround the Navel. Tap things to see what they do.',
   'When The Itch strikes, everyone works on one goal together (top left). Help and you share the reward.',
   "Come back every day for a bigger gift. Your crops keep growing while you're away.",
+  "Be decent in chat: hateful, sexual or abusive messages aren't sent and count as strikes. Three strikes and you're banned. Swearing is just bleeped.",
   'Progress is saved on this device (Start over on the menu wipes it).',
 ];

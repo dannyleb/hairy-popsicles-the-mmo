@@ -3,14 +3,16 @@ import { readFileSync } from 'node:fs';
 import { CHARACTERS, RARITY_ORDER, TITLE_BY_ID, levelFor } from '@hptm/shared';
 import { databaseStatus } from './db.js';
 import { listDepartures } from './game/departed.js';
+import { moderationReport, pardon } from './game/moderation.js';
 import { readToken } from './game/profile.js';
 import { clientAddress, createLimiter } from './net.js';
 import { getWorld } from './rooms/WorldRoom.js';
 import { funnelReport, statsReport } from './stats.js';
 
 // The admin page: who's playing and what they've got. GET /admin is the page
-// (no data in it); GET /admin/data is the data, for whoever holds ADMIN_KEY.
-// Without ADMIN_KEY set, none of it exists.
+// (no data in it); GET /admin/data is the data, and POST /admin/pardon clears a
+// player's chat strikes and ban, for whoever holds ADMIN_KEY. Without
+// ADMIN_KEY set, none of it exists.
 const KEY = process.env.ADMIN_KEY ?? '';
 const PAGE = readFileSync(new URL('./admin.html', import.meta.url), 'utf8');
 // Wrong keys allowed per address, per 10 minutes.
@@ -100,16 +102,42 @@ async function report(you) {
     heldPlots: world.heldPlots,
     events: world.events,
     chat: world.chat,
+    moderation: moderationReport(),
     characters: CHARACTERS.map(({ id, name, rarity }) => ({ id, name, rarity })),
     rarities: RARITY_ORDER,
     titles: Object.fromEntries(Object.entries(TITLE_BY_ID).map(([id, t]) => [id, t.name])),
   };
 }
 
+// POST /admin/pardon {"profileId": "..."}: strikes and ban lifted.
+const PARDON_BODY_MAX = 1024;
+function pardonFrom(req, res) {
+  if (req.method !== 'POST') {
+    send(res, 405, 'application/json', JSON.stringify({ error: 'POST only.' }));
+    return;
+  }
+  let body = '';
+  req.setEncoding('utf8');
+  req.on('data', (chunk) => {
+    body += chunk;
+    if (body.length > PARDON_BODY_MAX) req.destroy();
+  });
+  req.on('end', () => {
+    let profileId = null;
+    try {
+      profileId = JSON.parse(body)?.profileId;
+    } catch {
+      // Not JSON: answered below.
+    }
+    const done = typeof profileId === 'string' && pardon(profileId);
+    send(res, done ? 200 : 404, 'application/json', JSON.stringify(done ? { ok: true } : { error: 'No such player with strikes.' }));
+  });
+}
+
 // True if this request was the admin page's to answer.
 export function handleAdmin(req, res) {
   const path = String(req.url ?? '').split('?')[0];
-  if (path !== '/admin' && path !== '/admin/data') return false;
+  if (path !== '/admin' && path !== '/admin/data' && path !== '/admin/pardon') return false;
   if (!KEY) {
     send(res, 404, 'text/plain', 'not found');
     return true;
@@ -129,6 +157,10 @@ export function handleAdmin(req, res) {
     return true;
   }
   failures.clear(you.network);
+  if (path === '/admin/pardon') {
+    pardonFrom(req, res);
+    return true;
+  }
   report(you).then(
     (body) => send(res, 200, 'application/json', JSON.stringify(body)),
     (error) => send(res, 500, 'application/json', JSON.stringify({ error: error.message })),

@@ -15,9 +15,9 @@ async function join(name) {
 const bad = await join('xXR4pistXx');
 check('offensive name becomes a Guest', bad.state.players[bad.room.sessionId].name.startsWith('Guest'));
 const a = await join('Polite');
-a.room.send('chat', { text: 'you absolute fag' });
+a.room.send('chat', { text: 'oh shit the boil' });
 await sleep(300);
-check('slur in chat is masked for everyone', bad.chat[0]?.text === 'you absolute ***');
+check('swearing in chat is masked for everyone', bad.chat[0]?.text === 'oh **** the boil');
 // Flood: 300 moves at once. The server keeps up and drops the excess.
 const before = Date.now();
 for (let i = 0; i < 300; i++) a.room.send('move', { x: 100 + i, y: 100 });

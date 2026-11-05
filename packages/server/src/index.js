@@ -4,6 +4,7 @@ import wsTransport from '@colyseus/ws-transport';
 import { handleAdmin } from './admin.js';
 import { closeDatabase, databaseState, hasDatabase, setUpDatabase } from './db.js';
 import { nameOf } from './game/invites.js';
+import { loadModeration } from './game/moderation.js';
 import { readInviteCode } from './game/profile.js';
 import { loadSeen, seenReport } from './game/seen.js';
 import { clientAddress, createLimiter } from './net.js';
@@ -107,6 +108,8 @@ try {
 }
 // Who'd been by before the restart, for "Who's around".
 loadSeen().catch((error) => console.error('loading who had been by failed:', error.message));
+// Strikes and bans from before the restart (game/moderation.js).
+await loadModeration().catch((error) => console.error('loading strikes and bans failed:', error.message));
 
 httpServer.listen(port, () => {
   console.log(`Hairy Popsicles MMO server listening on ws://localhost:${port}`);

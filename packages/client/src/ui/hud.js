@@ -14,6 +14,7 @@ const MAX_TOASTS = 3;
 const PLACE_MS = 2600;   // how long a place's name stays up
 const QUESTS_OPEN_MS = 10_000;  // on a phone, quests tapped open fold away again after this
 const BANNER_MS = 3800;
+const WARN_MS = 7000;
 const MAX_BANNERS = 2;
 
 // Everything drawn over the world: DOM, so text stays crisp and taps are easy to hit.
@@ -395,6 +396,17 @@ export function createHud(actions) {
       root.append(node);
       setTimeout(() => node.classList.add('out'), PLACE_MS);
       setTimeout(() => node.remove(), PLACE_MS + 900);
+    },
+
+    // Something the player has to see (a chat strike): a banner that stays a while, even in the first minute.
+    warn(text) {
+      const node = el('div', 'banner banner-warn', text);
+      banners.append(node);
+      while (banners.children.length > MAX_BANNERS) banners.firstElementChild.remove();
+      setTimeout(() => {
+        node.classList.add('out');
+        setTimeout(() => node.remove(), 400);
+      }, WARN_MS);
     },
 
     announce(text, kind) {
