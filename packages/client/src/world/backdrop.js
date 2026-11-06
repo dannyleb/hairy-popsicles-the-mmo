@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { LANDMARKS, PLOT_PX, REGIONS, SCAB, regionAt } from '@hptm/shared';
-import { DEPTH, NIGHT_TINT, WORLD_H, WORLD_W, seededRandom } from './layout.js';
+import { DEPTH, NIGHT_TINT, WORLD_H, WORLD_W, seededRandom, track } from './layout.js';
 
 // Art from tools/world.py, all lit from the upper left like the character renders.
 const PROPS = [
@@ -55,8 +55,7 @@ const SPORES = 45;
 // multiplied together. One layer for the GPU to fill each frame, not five.
 const TINT_REACH = 1300;  // px from a region's middle that its cast reaches
 const MACRO_TILE = 256 * 8;
-function groundCast(scene) {
-  const key = 'ground-cast';
+export function groundCast(scene, key = 'ground-cast', tints = REGION_TINTS, regions = REGIONS) {
   if (!scene.textures.exists(key)) {
     const n = 512;
     const canvas = document.createElement('canvas');
@@ -67,9 +66,9 @@ function groundCast(scene) {
     const tile = (MACRO_TILE / WORLD_W) * n;
     for (let x = 0; x < n; x += tile) for (let y = 0; y < n; y += tile) g.drawImage(macro, x, y, tile, tile);
     g.globalCompositeOperation = 'multiply';
-    for (const [region, tint] of Object.entries(REGION_TINTS)) {
-      const cx = (REGIONS[region].x / WORLD_W) * n;
-      const cy = (REGIONS[region].y / WORLD_H) * n;
+    for (const [region, tint] of Object.entries(tints)) {
+      const cx = (regions[region].x / WORLD_W) * n;
+      const cy = (regions[region].y / WORLD_H) * n;
       const gradient = g.createRadialGradient(cx, cy, 0, cx, cy, (TINT_REACH / WORLD_W) * n);
       for (let i = 0; i <= 8; i++) {
         const k = (1 - i / 8) ** 2.2;
@@ -87,7 +86,7 @@ function groundCast(scene) {
 
 // Veins under the skin, from the Navel out to each region and landmark.
 const GROUND_TILE = 512;  // world px of one repeat of the ground (its 1024px tile at half scale)
-const VEIN = { step: 26, tint: 0x9a7e86, alpha: 0.55 };  // a dull plum, in the world's warm light
+export const VEIN = { step: 26, tint: 0x9a7e86, alpha: 0.55 };  // a dull plum, in the world's warm light
 // Phaser draws everything in a scene every frame, on screen or not, so the
 // ground's still things are grouped into cells and only the cells near the
 // view are shown. CULL_MARGIN covers the biggest of them (a long hair).
@@ -97,7 +96,7 @@ const CULL_MARGIN = 220;
 const STEAM = { count: 18, every: 380, lifeMs: 2800, rise: 80 };
 
 // Through the world's veins: points every VEIN.step px from one place to another, wandering a little.
-function veinPath(rand, x0, y0, x1, y1) {
+export function veinPath(rand, x0, y0, x1, y1) {
   const length = Math.hypot(x1 - x0, y1 - y0);
   const n = Math.max(2, Math.round(length / VEIN.step));
   const nx = -(y1 - y0) / length;
@@ -114,6 +113,7 @@ function veinPath(rand, x0, y0, x1, y1) {
 }
 
 export function createBackdrop(scene) {
+  const stopTracking = track(scene);
   const rand = seededRandom(1337);
   const between = (a, b) => a + (b - a) * rand();
   const cells = new Map();  // 'cx,cy' → the still things in that cell
@@ -273,12 +273,18 @@ export function createBackdrop(scene) {
   const wind = { strength: 0, angle: 0 };
 
   let lite = false;  // ambient glows off, when the device is struggling
+  const made = stopTracking();
 
   return {
     setLite(on) {
       lite = on;
       for (const c of candles) c.glow.setVisible(!on);
       for (const f of flies) f.halo.setVisible(!on);
+    },
+
+    // Gone, every bit of it (climbing down to Under the Skin).
+    destroy() {
+      for (const object of made) object.destroy();
     },
 
     // Everything goes red while a Blood Moon is up.

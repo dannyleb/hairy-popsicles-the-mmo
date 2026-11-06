@@ -39,14 +39,20 @@ import {
   WORLD_WIDTH_PLOTS,
   XP,
   greenThumb,
-  holeOpen,
   BLACKHEADS,
+  BASIC_SEED,
+  DEEP,
   GASH,
+  PLACES,
+  crustFor,
+  crustScraps,
+  holeOpenIn,
+  isLayer,
+  seedGrowsIn,
   INGROWN,
   SCAB,
   TICK,
   featuredFor,
-  isReservedPlot,
   levelFor,
   rowComplete,
   seasonOn,
@@ -118,6 +124,9 @@ const SEATS_PER_ADDRESS = Number(process.env.SEATS_PER_ADDRESS) || 10;  // playe
 const SEAT_HOLD_SECONDS = 10;    // a join's seat waits this long for its connection
 const SYNC_COOLDOWN_MS = 1000;   // a full copy of the world, at most this often per connection
 const ANNOUNCE_LEVELS = 5;  // announce every 5th level
+// Things happening up on the skin (world events, the Navel coughing): nobody
+// Under the Skin hears about them but in the announcements.
+const SURFACE_ONLY = new Set(['bossHp', 'bossPopped', 'bossGone', 'crumbPicked', 'eventOver', 'grabbed', 'navelGurgle', 'navelCough', 'squeezed']);
 const BLOOD_MOON = { firstMs: 150_000, everyMs: 9 * 60_000, lastsMs: 90_000 };
 // Pretend it's this (UTC) day for seasons, e.g. SEASON_DAY=2026-10-25 for testing.
 const today = () => process.env.SEASON_DAY || dayOf(Date.now());
@@ -140,6 +149,8 @@ function newPlayer(id, profileId, name) {
     // Near the middle of the world, so new players land near each other.
     x: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
     y: WORLD_PX / 2 + (Math.random() - 0.5) * SPAWN_SPREAD,
+    layer: 'surface',    // or 'deep', Under the Skin (everyone comes back up on the skin)
+    travelAt: 0,
     avatar: starter.id,
     level: 1,
     xp: 0,
@@ -224,8 +235,12 @@ export class WorldRoom extends Room {
     this.autoDispose = false;
     this.setSeatReservationTime(SEAT_HOLD_SECONDS);
     this.players = {};
+    // Each layer of the world has its own plots: the skin, and Under the Skin.
     this.plots = {};
     this.heldPlots = new Map();  // profile id → key of their plot, while they're gone (oldest first)
+    this.surface = { plots: this.plots, held: this.heldPlots };
+    this.deep = { plots: {}, held: new Map() };
+    this.sentPlots = {};  // layer → its plots as last sent (see flush)
     this.chatLog = [];
     this.dirty = false;
     // The world events take turns (WORLD_EVENT.order in @hptm/shared).
@@ -259,7 +274,11 @@ export class WorldRoom extends Room {
         console.error(`'${type}' from ${client.sessionId} failed:`, error);
       }
     });
+    // Up on the skin only: world events, strays and Pus Rain don't happen Under the Skin.
+    const onSkin = (type, handler) => on(type, (p, m, c) => p.layer === 'surface' && handler(p, m, c));
     on('move', (p, m) => this.handleMove(p, m));
+    on('travel', (p, m) => this.handleTravel(p, m));
+    on('loosen', (p, m) => this.handleLoosen(p, m));
     on('claimPlot', (p, m) => this.handleClaimPlot(p, m));
     on('plant', (p, m) => this.handlePlant(p, m));
     on('harvest', (p, m) => this.handleHarvest(p, m));
@@ -267,19 +286,19 @@ export class WorldRoom extends Room {
     on('setAvatar', (p, m) => this.handleSetAvatar(p, m));
     on('chat', (p, m) => this.handleChat(p, m));
     on('emote', (p, m) => this.handleEmote(p, m));
-    on('hitBoss', (p) => this.handleHitBoss(p));
-    on('peel', (p) => this.handlePeel(p));
-    on('pick', (p, m) => this.handlePick(p, m));
-    on('pry', (p) => this.handlePry(p));
-    on('tug', (p, m) => this.handleTug(p, m));
-    on('squeeze', (p, m) => this.handleSqueeze(p, m));
-    on('grab', (p, m) => this.handleGrab(p, m));
+    onSkin('hitBoss', (p) => this.handleHitBoss(p));
+    onSkin('peel', (p) => this.handlePeel(p));
+    onSkin('pick', (p, m) => this.handlePick(p, m));
+    onSkin('pry', (p) => this.handlePry(p));
+    onSkin('tug', (p, m) => this.handleTug(p, m));
+    onSkin('squeeze', (p, m) => this.handleSqueeze(p, m));
+    onSkin('grab', (p, m) => this.handleGrab(p, m));
     on('setTitle', (p, m) => this.handleSetTitle(p, m));
     on('gift', (p, m) => this.handleGift(p, m));
     on('buy', (p, m) => this.handleBuy(p, m));
     on('setColor', (p, m) => this.handleSetColor(p, m));
     on('appearOffline', (p, m) => this.setAppearOffline(p, m.on === true));
-    on('catchStray', (p, m) => this.handleCatchStray(p, m));
+    onSkin('catchStray', (p, m) => this.handleCatchStray(p, m));
     on('sync', (p, m, client) => {
       // The biggest thing the server sends, so it's not something to ask for on repeat.
       const now = Date.now();
@@ -387,8 +406,7 @@ export class WorldRoom extends Room {
     player.unstored = false;
     player.storedAt = Date.now();
     if (!worthStoring(player)) return Promise.resolve();
-    const [key, plot] = this.plotOf(player);
-    return storeSave(player.profileId, saveToken(player, plot, key));
+    return storeSave(player.profileId, this.tokenOf(player));
   }
 
   // Shutting down (a deploy or restart): everyone's latest, into the database.
@@ -403,18 +421,22 @@ export class WorldRoom extends Room {
     const saves = await recentSaves(Date.now() - PLOT_HOLD_MS, MAX_HELD_PLOTS);
     for (const { token, at } of saves.reverse()) {  // oldest first, as holdPlot keeps them
       const save = readToken(token);
-      if (!save?.plot || save.level < HOLD_FROM_LEVEL || !save.plot.slots.some(Boolean) || bannedProfile(save.id)) continue;
-      // Plots from before a landmark went up move next to it.
-      const key = isReservedPlot(save.plot.key) ? this.freePlotNear(save.plot.key) : save.plot.key;
-      if (!key || this.plots[key] || this.heldPlots.has(save.id)) continue;
+      if (!save || save.level < HOLD_FROM_LEVEL || bannedProfile(save.id)) continue;
       if (Object.values(this.players).some((p) => p.profileId === save.id)) continue;
-      this.plots[key] = {
-        ownerId: null, ownerName: save.name, slots: save.plot.slots, candles: save.plot.candles,
-        away: true, leftAt: at, ownerLevel: save.level, ownerAvatar: save.avatar, ownerPid: publicIdOf(save.id), squeezedAway: 0,
-      };
-      this.heldPlots.set(save.id, key);
+      for (const [layer, saved] of [['surface', save.plot], ['deep', save.deepPlot]]) {
+        const { plots, held } = this.layer(layer);
+        if (!saved?.slots.some(Boolean) || held.has(save.id)) continue;
+        // Plots from before a landmark went up move next to it.
+        const key = PLACES[layer].isReserved(saved.key) ? this.freePlotNear(saved.key, layer) : saved.key;
+        if (!key || plots[key]) continue;
+        plots[key] = {
+          ownerId: null, ownerName: save.name, slots: saved.slots, candles: saved.candles,
+          away: true, leftAt: at, ownerLevel: save.level, ownerAvatar: save.avatar, ownerPid: publicIdOf(save.id), squeezedAway: 0,
+        };
+        held.set(save.id, key);
+      }
     }
-    if (saves.length) console.log(`restored ${this.heldPlots.size} held plots from the database`);
+    if (saves.length) console.log(`restored ${this.heldPlots.size} held plots (and ${this.deep.held.size} Under the Skin) from the database`);
     this.markDirty();
   }
 
@@ -444,55 +466,82 @@ export class WorldRoom extends Room {
     if (save) applySave(player, save);
     player.inviteCode = inviteCode(player.pid);
     this.players[player.id] = player;
-    if (save?.plot || this.heldPlots.has(player.profileId)) this.restorePlot(player, save);
+    if (save) this.restorePlots(player, save);
     return player;
   }
 
-  // Put a saved plot back, where it was if nobody has taken the spot. Crops
-  // kept growing while the player was away.
-  restorePlot(player, save) {
-    // Their plot may still be in the world, as others left it: newer than any save.
-    const held = this.reclaimPlot(player);
-    const key = held ?? (save.plot && this.freePlotNear(save.plot.key));
-    if (!key) return;
-    if (!held) this.plots[key] = { ownerId: player.id, ownerName: player.name, slots: save.plot.slots, candles: save.plot.candles };
-    const plot = this.plots[key];
-    const [px, py] = key.split(',').map(Number);
-    player.x = px * PLOT_PX + PLOT_PX / 2;
-    player.y = (py + 1) * PLOT_PX + 26;
+  // A layer's plots, and the plots held there for players who've gone.
+  layer(id) {
+    return id === 'deep' ? this.deep : this.surface;
+  }
 
+  // Put their saved plots back (on the skin, and Under the Skin), where they
+  // were if nobody has taken the spot. Crops kept growing while they were away.
+  restorePlots(player, save) {
+    const crops = [];
+    let squeezed = 0;
+    let restored = false;
+    for (const layer of ['surface', 'deep']) {
+      const key = this.restorePlot(player, save, layer);
+      if (!key) continue;
+      restored = true;
+      const plot = this.layer(layer).plots[key];
+      crops.push(...plot.slots.filter(Boolean));
+      squeezed += plot.squeezedAway ?? 0;
+      delete plot.squeezedAway;
+      if (layer === 'surface') {
+        const [px, py] = key.split(',').map(Number);
+        player.x = px * PLOT_PX + PLOT_PX / 2;
+        player.y = (py + 1) * PLOT_PX + 26;
+      }
+    }
     const now = Date.now();
-    const crops = plot.slots.filter(Boolean);
-    const squeezed = plot.squeezedAway ?? 0;
-    delete plot.squeezedAway;
-    if (save.savedAt && now - save.savedAt >= WELCOME_AFTER_MS * GROW_SCALE) {
+    if (restored && save.savedAt && now - save.savedAt >= WELCOME_AFTER_MS * GROW_SCALE) {
       const ripe = crops.filter((c) => c.readyAt <= now).length;
       player.notices.push({ kind: 'welcome', awayMs: now - save.savedAt, ripe, growing: crops.length - ripe, squeezed });
     }
   }
 
-  // A departed player's plot stays put while anything grows in it.
-  holdPlot(player) {
-    const [key, plot] = this.plotOf(player);
+  // One layer's plot: returns its key, or null if they have none there.
+  restorePlot(player, save, layer) {
+    // Their plot may still be in the world, as others left it: newer than any save.
+    const held = this.reclaimPlot(player, layer);
+    if (held) return held;
+    const saved = layer === 'deep' ? save.deepPlot : save.plot;
+    const key = saved && this.freePlotNear(saved.key, layer);
+    if (!key) return null;
+    this.layer(layer).plots[key] = { ownerId: player.id, ownerName: player.name, slots: saved.slots, candles: saved.candles };
+    return key;
+  }
+
+  // A departed player's plots stay put while anything grows in them.
+  holdPlots(player) {
+    for (const layer of ['surface', 'deep']) this.holdPlot(player, layer);
+  }
+
+  holdPlot(player, layer) {
+    const { plots, held } = this.layer(layer);
+    const [key, plot] = this.plotOf(player, layer);
     if (!plot) return;
     if (!plot.slots.some(Boolean) || player.level < HOLD_FROM_LEVEL) {
-      delete this.plots[key];
+      delete plots[key];
       return;
     }
     // The owner naps beside it (on everyone's screen) until they're back.
     Object.assign(plot, {
       ownerId: null, away: true, leftAt: Date.now(), ownerLevel: player.level, ownerAvatar: player.avatar, ownerPid: player.pid, squeezedAway: 0,
     });
-    this.heldPlots.delete(player.profileId);
-    this.heldPlots.set(player.profileId, key);
-    while (this.heldPlots.size > MAX_HELD_PLOTS) this.dropHeldPlot(this.heldPlots.keys().next().value);
+    held.delete(player.profileId);
+    held.set(player.profileId, key);
+    while (held.size > MAX_HELD_PLOTS) this.dropHeldPlot(held.keys().next().value, layer);
   }
 
   // Their plot back, if it's still being held: returns its key.
-  reclaimPlot(player) {
-    const key = this.heldPlots.get(player.profileId);
-    this.heldPlots.delete(player.profileId);
-    const plot = key && this.plots[key];
+  reclaimPlot(player, layer) {
+    const { plots, held } = this.layer(layer);
+    const key = held.get(player.profileId);
+    held.delete(player.profileId);
+    const plot = key && plots[key];
     if (!plot?.away) return null;
     Object.assign(plot, { ownerId: player.id, ownerName: player.name });
     delete plot.away;
@@ -503,23 +552,30 @@ export class WorldRoom extends Room {
     return key;
   }
 
-  dropPlot(player) {
-    const [key] = this.plotOf(player);
-    if (key) delete this.plots[key];
-    this.heldPlots.delete(player.profileId);
+  // Both their plots, gone for good.
+  dropPlots(player) {
+    for (const layer of ['surface', 'deep']) {
+      const { plots, held } = this.layer(layer);
+      const [key] = this.plotOf(player, layer);
+      if (key) delete plots[key];
+      held.delete(player.profileId);
+    }
     this.markDirty();
   }
 
-  dropHeldPlot(profileId) {
-    const key = this.heldPlots.get(profileId);
-    this.heldPlots.delete(profileId);
-    if (this.plots[key]?.away) delete this.plots[key];
+  dropHeldPlot(profileId, layer) {
+    const { plots, held } = this.layer(layer);
+    const key = held.get(profileId);
+    held.delete(profileId);
+    if (plots[key]?.away) delete plots[key];
     this.markDirty();
   }
 
-  freePlotNear(key) {
+  freePlotNear(key, layer = 'surface') {
     const [x0, y0] = String(key).split(',').map(Number);
     if (!Number.isInteger(x0) || !Number.isInteger(y0)) return null;
+    const { plots } = this.layer(layer);
+    const { isReserved } = PLACES[layer];
     const inside = (x, y) => x >= 0 && y >= 0 && x < WORLD_WIDTH_PLOTS && y < WORLD_HEIGHT_PLOTS;
     for (let r = 0; r < Math.max(WORLD_WIDTH_PLOTS, WORLD_HEIGHT_PLOTS); r++) {
       for (let dy = -r; dy <= r; dy++) {
@@ -527,7 +583,7 @@ export class WorldRoom extends Room {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           const x = x0 + dx;
           const y = y0 + dy;
-          if (inside(x, y) && !this.plots[`${x},${y}`] && !isReservedPlot(`${x},${y}`)) return `${x},${y}`;
+          if (inside(x, y) && !plots[`${x},${y}`] && !isReserved(`${x},${y}`)) return `${x},${y}`;
         }
       }
     }
@@ -543,7 +599,7 @@ export class WorldRoom extends Room {
     delete this.players[oldId];
     Object.assign(player, { id: newId, away: false, awaySince: null, reconnection: null, synced: false, activeAt: Date.now() });
     this.players[newId] = player;
-    for (const plot of Object.values(this.plots)) {
+    for (const plot of this.allPlots()) {
       if (plot.ownerId === oldId) plot.ownerId = newId;
     }
     return player;
@@ -554,7 +610,8 @@ export class WorldRoom extends Room {
   arriveInvited(player, pid) {
     player.invitedBy = pid;
     const inviter = Object.values(this.players).find((p) => p.pid === pid && !p.away);
-    if (inviter) {
+    // (Placed by them if they're up on the skin, where a newcomer starts.)
+    if (inviter?.layer === 'surface') {
       const near = (at, offset) => Math.min(WORLD_PX - 1, Math.max(0, at + offset));
       player.x = near(inviter.x, (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 40));
       player.y = near(inviter.y, 20 + Math.random() * 40);
@@ -641,7 +698,7 @@ export class WorldRoom extends Room {
 
   rename(player, name) {
     player.name = name;
-    for (const plot of Object.values(this.plots)) {
+    for (const plot of this.allPlots()) {
       if (plot.ownerId === player.id) plot.ownerName = name;
     }
   }
@@ -675,8 +732,7 @@ export class WorldRoom extends Room {
     // Taken over by a new connection: the player lives on under another id.
     if (!player || this.players[client.sessionId] !== player) return;
     // Keep their final state for when they come back (their device may not have the last of it).
-    const [plotKey, plot] = this.plotOf(player);
-    const token = saveToken(player, plot, plotKey);
+    const token = this.tokenOf(player);
     rememberDeparture(player.profileId, token, player.xp > 0);
     if (worthStoring(player)) storeSave(player.profileId, token);
     if (!player.banned) noteLeft(player);
@@ -686,8 +742,8 @@ export class WorldRoom extends Room {
     console.log(`left ${client.sessionId} ${player.name}`);
     // The plot is in their save too, and comes back with them either way.
     // A banned player's goes now: they're not coming back.
-    if (player.banned) this.dropPlot(player);
-    else this.holdPlot(player);
+    if (player.banned) this.dropPlots(player);
+    else this.holdPlots(player);
     // Quests that need a neighbor are impossible if the last neighbor just left.
     for (const other of Object.values(this.players)) {
       if (dropImpossible(other, this.othersPresent(other))) {
@@ -715,7 +771,11 @@ export class WorldRoom extends Room {
   }
 
   othersPresent(player) {
-    return Object.values(this.plots).some((plot) => plot.ownerId !== player.id && this.players[plot.ownerId]);
+    return this.allPlots().some((plot) => plot.ownerId !== player.id && this.players[plot.ownerId]);
+  }
+
+  allPlots() {
+    return [...Object.values(this.plots), ...Object.values(this.deep.plots)];
   }
 
   markDirty() {
@@ -729,7 +789,7 @@ export class WorldRoom extends Room {
   // `synced`: the client asked with 'sync', so it's listening for everything,
   // including notices and its save.
   sendWorld(player, client, synced = false) {
-    client.send('init', this.snapshot());
+    client.send('init', this.snapshot(player.layer));
     client.send('chatLog', this.chatLog);
     this.sendMe(player);
     if (!synced) return;
@@ -746,21 +806,29 @@ export class WorldRoom extends Room {
     this.clientOf(player)?.send('me', {
       profileId: player.profileId,
       currency, xp, level, collection, shinies, inventory, quests, dailyQuest, stats, titles, title, colors, nameColor, rows, streak, itchShare,
+      crust: crustFor(xp),
+      layer: player.layer,
       inviteCode: player.inviteCode,
       strayDay: player.strayDay,
     });
     player.saveDirty = true;
   }
 
-  plotOf(player) {
-    return Object.entries(this.plots).find(([, plot]) => plot.ownerId === player.id) ?? [null, null];
+  // Their plot on a layer, as [key, plot] ([null, null] if they have none there).
+  plotOf(player, layer = 'surface') {
+    return Object.entries(this.layer(layer).plots).find(([, plot]) => plot.ownerId === player.id) ?? [null, null];
+  }
+
+  // Their save, plots and all.
+  tokenOf(player) {
+    const [key, plot] = this.plotOf(player);
+    return saveToken(player, plot, key, this.plotOf(player, 'deep'));
   }
 
   sendSave(player) {
     const client = this.clientOf(player);
     if (!client) return;
-    const [key, plot] = this.plotOf(player);
-    client.send('save', { token: saveToken(player, plot, key) });
+    client.send('save', { token: this.tokenOf(player) });
     this.offerStatue(player);
     player.saveDirty = false;
     player.lastSaveAt = Date.now();
@@ -808,8 +876,16 @@ export class WorldRoom extends Room {
 
   grantXp(player, amount) {
     const before = player.level;
+    const crustBefore = crustFor(player.xp);
     player.xp += amount;
     player.level = levelFor(player.xp);
+    const crust = crustFor(player.xp);
+    if (crust > crustBefore) {
+      if (player.synced) this.clientOf(player)?.send('crustUp', { crust });
+      else player.notices.push({ kind: 'crust', crust });
+      this.announce(`${player.name} grew another layer of Crust: Crust ${crust}!`, 'level');
+      this.markDirty();
+    }
     if (player.level > before) {
       for (const level of [2, 3, 5]) if (before < level && player.level >= level) recordStage(player.profileId, `level${level}`);
       if (player.invitedBy && player.level >= INVITE.level) this.payInvite(player);
@@ -857,8 +933,10 @@ export class WorldRoom extends Room {
     }
   }
 
-  plotAt(plotKey, slot) {
-    const plot = typeof plotKey === 'string' && Object.hasOwn(this.plots, plotKey) ? this.plots[plotKey] : null;
+  // A plot on a layer, if `slot` is one of its holes.
+  plotAt(layer, plotKey, slot) {
+    const { plots } = this.layer(layer);
+    const plot = typeof plotKey === 'string' && Object.hasOwn(plots, plotKey) ? plots[plotKey] : null;
     if (!plot || !Number.isInteger(slot) || slot < 0 || slot >= plot.slots.length) return null;
     return plot;
   }
@@ -912,14 +990,16 @@ export class WorldRoom extends Room {
     this.markDirty();
   }
 
+  // One plot per player on each layer, claimed on the layer they're on.
   handleClaimPlot(player, { plotX, plotY }) {
     if (!Number.isInteger(plotX) || !Number.isInteger(plotY)) return;
     if (plotX < 0 || plotY < 0 || plotX >= WORLD_WIDTH_PLOTS || plotY >= WORLD_HEIGHT_PLOTS) return;
     const key = `${plotX},${plotY}`;
-    if (this.plots[key] || isReservedPlot(key)) return;
-    if (Object.values(this.plots).some((p) => p.ownerId === player.id)) return; // one plot per player
+    const { plots } = this.layer(player.layer);
+    if (plots[key] || PLACES[player.layer].isReserved(key)) return;
+    if (this.plotOf(player, player.layer)[1]) return;
 
-    this.plots[key] = {
+    plots[key] = {
       ownerId: player.id,
       ownerName: player.name,
       slots: Array.from({ length: PLOT_SIZE * PLOT_SIZE }, () => null),
@@ -929,11 +1009,13 @@ export class WorldRoom extends Room {
     this.markDirty();
   }
 
-  handlePlant(player, { plotKey, slot, seed = 'pimple' }) {
-    const plot = this.plotAt(plotKey, slot);
+  handlePlant(player, { plotKey, slot, seed = BASIC_SEED[player.layer] }) {
+    const { layer } = player;
+    const deep = layer === 'deep';
+    const plot = this.plotAt(layer, plotKey, slot);
     const seedDef = typeof seed === 'string' && Object.hasOwn(SEED_BY_ID, seed) ? SEED_BY_ID[seed] : null;
     if (!plot || !seedDef || plot.ownerId !== player.id || plot.slots[slot]) return;
-    if (!holeOpen(slot, player.level) || player.level < seedDef.level) return;
+    if (!seedGrowsIn(seedDef, layer) || !holeOpenIn(layer, slot, player.level) || player.level < seedDef.level) return;
     if (seedDef.dropOnly) {
       if (!(player.inventory[seed] > 0)) return;
       player.inventory[seed] -= 1;
@@ -951,15 +1033,18 @@ export class WorldRoom extends Room {
     if (fertilized < 1) player.inventory.fertilizer -= 1;
     const now = Date.now();
     let growMs = RARITIES[character.rarity].growMs * GROW_SCALE * (1 - bonus.grow) * (1 - greenThumb(player.level)) * fertilized;
+    if (deep) growMs *= DEEP.growSlower;
     if (player.level === 1 && player.stats.harvests === 0) growMs = Math.min(growMs, FIRST_CROPS_MS * GROW_SCALE);
     plot.slots[slot] = {
       characterId: character.id,
       seed,
       plantedAt: now,
       readyAt: now + growMs,
-      shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1),
+      shiny: Math.random() < SHINY_CHANCE * SHINY_BOOST * bonus.shiny * (this.bloodMoon ? 2 : 1) * (deep ? DEEP.shiny : 1),
       tendedBy: [],
     };
+    // Under the Skin, a Legendary comes up rooted (see handleLoosen).
+    if (deep && rank(character.id) >= RARITY_ORDER.indexOf(DEEP.rootedFrom)) Object.assign(plot.slots[slot], { rooted: true, loosened: false });
     this.grantXp(player, XP.plant);
     this.progress(player, 'plant');
     recordStage(player.profileId, 'plant');
@@ -968,10 +1053,11 @@ export class WorldRoom extends Room {
   }
 
   handleHarvest(player, { plotKey, slot }) {
-    const plot = this.plotAt(plotKey, slot);
+    const deep = player.layer === 'deep';
+    const plot = this.plotAt(player.layer, plotKey, slot);
     if (!plot || plot.ownerId !== player.id) return;
     const planted = plot.slots[slot];
-    if (!planted || Date.now() < planted.readyAt) return;
+    if (!planted || Date.now() < planted.readyAt || this.stillRooted(planted, Date.now())) return;
 
     const { characterId, shiny } = planted;
     const character = CHARACTER_BY_ID[characterId];
@@ -982,7 +1068,8 @@ export class WorldRoom extends Room {
     const stars = starsFor(before + 1);
     // Whoever you're playing as when you pick it decides the bonus.
     const bonus = wearBonus(player.avatar, player.collection[player.avatar]);
-    const scraps = Math.round(rarity.scraps * (shiny ? SHINY_SCRAPS : 1) * (1 + bonus.scraps));
+    const crust = crustScraps(crustFor(player.xp));
+    const scraps = Math.round(rarity.scraps * (shiny ? SHINY_SCRAPS : 1) * (deep ? DEEP.scraps : 1) * (1 + bonus.scraps + crust));
     if (shiny) player.shinies[characterId] = (player.shinies[characterId] ?? 0) + 1;
     player.currency += scraps;
     plot.slots[slot] = null;
@@ -991,7 +1078,7 @@ export class WorldRoom extends Room {
     const teeth = season && (shiny || Math.random() < season.drop[character.rarity]) ? 1 : 0;
     player.inventory.teeth += teeth;
 
-    const xp = XP.harvest[character.rarity];
+    const xp = XP.harvest[character.rarity] * (deep ? DEEP.xp : 1);
     this.clientOf(player)?.send('harvested', {
       characterId,
       scraps,
@@ -1019,7 +1106,7 @@ export class WorldRoom extends Room {
 
   // Squeezing a neighbor's growing crop speeds it up; the squeezer gets a few scraps.
   handleTend(player, { plotKey, slot }) {
-    const plot = this.plotAt(plotKey, slot);
+    const plot = this.plotAt(player.layer, plotKey, slot);
     if (!plot || plot.ownerId === player.id) return;
     const crop = plot.slots[slot];
     const now = Date.now();
@@ -1034,7 +1121,7 @@ export class WorldRoom extends Room {
     crop.tendedBy.push(player.pid);
     if (plot.away) plot.squeezedAway += 1;
     player.currency += TEND_SCRAPS;
-    this.broadcast('tend', { plotKey, slot, by: player.id });
+    this.broadcastTo(player.layer, 'tend', { plotKey, slot, by: player.id });
     const owner = this.players[plot.ownerId];
     if (owner) {
       this.clientOf(owner)?.send('tended', { by: player.name, characterId: crop.characterId });
@@ -1044,6 +1131,64 @@ export class WorldRoom extends Room {
     this.grantXp(player, XP.tend);
     this.progress(player, 'tend');
     this.bump(player, 'squeezes');
+    this.sendMe(player);
+    this.markDirty();
+  }
+
+  // A rooted crop (Under the Skin) can't be pulled by its owner alone until
+  // it works loose by itself, DEEP.rootMs after it ripens.
+  stillRooted(crop, now) {
+    return Boolean(crop.rooted) && !crop.loosened && now < crop.readyAt + DEEP.rootMs * GROW_SCALE;
+  }
+
+  // Loosening a neighbor's rooted crop: it's free for them to pull, and the
+  // helper is paid for the hand.
+  handleLoosen(player, { plotKey, slot }) {
+    if (player.layer !== 'deep') return;
+    const plot = this.plotAt('deep', plotKey, slot);
+    if (!plot || plot.ownerId === player.id) return;
+    const crop = plot.slots[slot];
+    const now = Date.now();
+    if (!crop || now < crop.readyAt || !this.stillRooted(crop, now)) return;
+    const at = slotCenter(plotKey, slot);
+    if (Math.hypot(player.x - at.x, player.y - at.y) > REACH || !this.arrived(player)) return;
+    crop.loosened = true;
+    const { scraps, xp } = DEEP.loosen;
+    player.currency += scraps;
+    this.broadcastTo('deep', 'loosen', { plotKey, slot, by: player.id });
+    const owner = this.players[plot.ownerId];
+    if (owner) {
+      this.clientOf(owner)?.send('loosened', { by: player.name, characterId: crop.characterId });
+      owner.saveDirty = true;
+    }
+    this.clientOf(player)?.send('loosenDone', { scraps, xp, owner: plot.ownerName });
+    this.grantXp(player, xp);
+    this.bump(player, 'roots');
+    this.sendMe(player);
+    this.markDirty();
+  }
+
+  // Down the Navel to Under the Skin (from DEEP.level), or back up through the
+  // Knot: standing at the way through, they come out beside the other end.
+  handleTravel(player, { to }) {
+    const now = Date.now();
+    if (!isLayer(to) || to === player.layer || now - player.travelAt < DEEP.travelMs) return;
+    if (to === 'deep' && player.level < DEEP.level) return;
+    const here = PLACES[player.layer];
+    const door = here.landmarks[here.door];
+    if (Math.hypot(player.x - door.x, player.y - door.y) > REACH + 40 || !this.arrived(player)) return;
+    const exit = PLACES[to].landmarks[PLACES[to].door];
+    Object.assign(player, {
+      layer: to,
+      travelAt: now,
+      x: exit.x + (Math.random() - 0.5) * 140,
+      y: exit.y + 150 + Math.random() * 40,
+      arrivesAt: 0,
+    });
+    if (to === 'deep') this.bump(player, 'dives');
+    this.broadcast('traveled', { id: player.id, name: player.name, to });
+    // Their screen swaps to the other layer's world.
+    this.clientOf(player)?.send('init', this.snapshot(to));
     this.sendMe(player);
     this.markDirty();
   }
@@ -1149,7 +1294,7 @@ export class WorldRoom extends Room {
     if (item === 'fertilizer') {
       player.inventory.fertilizer += def.doses;
     } else if (item === 'candle') {
-      const [, plot] = this.plotOf(player);
+      const [, plot] = this.plotOf(player, player.layer);
       if (!plot || (plot.candles ?? 0) >= def.max) return;
       plot.candles = (plot.candles ?? 0) + 1;
       this.markDirty();
@@ -1396,9 +1541,12 @@ export class WorldRoom extends Room {
 
   tick() {
     const now = Date.now();
-    for (const [profileId, key] of this.heldPlots) {
-      const plot = this.plots[key];
-      if (!plot?.away || now - plot.leftAt > PLOT_HOLD_MS) this.dropHeldPlot(profileId);
+    for (const layer of ['surface', 'deep']) {
+      const { plots, held } = this.layer(layer);
+      for (const [profileId, key] of held) {
+        const plot = plots[key];
+        if (!plot?.away || now - plot.leftAt > PLOT_HOLD_MS) this.dropHeldPlot(profileId, layer);
+      }
     }
     this.worldEvents.tick(now);
     this.rain.tick(now);
@@ -1426,21 +1574,43 @@ export class WorldRoom extends Room {
     if (hp) this.broadcast('bossHp', hp);
     if (!this.dirty || !this.clients.length) return;  // a join gets the whole world anyway
     this.dirty = false;
-    // Plots (every crop of everyone, held ones too) are most of the state and
-    // change far less often than people walk about: they go out only when changed.
-    const state = this.snapshot();
-    const plots = JSON.stringify(this.plots);
-    if (plots === this.sentPlots) delete state.plots;
-    else this.sentPlots = plots;
-    this.broadcast('state', state);
+    // Each layer's state goes only to those on it. Plots (every crop of
+    // everyone, held ones too) are most of it and change far less often than
+    // people walk about: they go out only when changed.
+    for (const layer of ['surface', 'deep']) {
+      if (!this.clients.some((c) => this.layerOfClient(c) === layer)) continue;
+      const state = this.snapshot(layer);
+      const plots = JSON.stringify(state.plots);
+      if (plots === this.sentPlots[layer]) delete state.plots;
+      else this.sentPlots[layer] = plots;
+      this.broadcastTo(layer, 'state', state);
+    }
+  }
+
+  layerOfClient(client) {
+    return this.players[client.sessionId]?.layer ?? 'surface';
+  }
+
+  // To everyone on one layer only (encoded once).
+  broadcastTo(layer, type, message) {
+    const others = this.clients.filter((c) => this.layerOfClient(c) !== layer);
+    return super.broadcast(type, message, others.length ? { except: others } : undefined);
+  }
+
+  // What happens up on the skin stays there (SURFACE_ONLY); the rest goes to all.
+  broadcast(type, message, options) {
+    if (SURFACE_ONLY.has(type) && !options?.except) return this.broadcastTo('surface', type, message);
+    return super.broadcast(type, message, options);
   }
 
   // Everything about the world and who's in it, for the admin page only.
   adminView() {
     const now = Date.now();
-    const players = Object.values(this.players).map((p) => {
-      const [key, plot] = this.plotOf(p);
+    const plotView = ([key, plot]) => {
       const crops = plot?.slots.filter(Boolean) ?? [];
+      return key && { key, ripe: crops.filter((c) => c.readyAt <= now).length, growing: crops.filter((c) => c.readyAt > now).length, candles: plot.candles ?? 0 };
+    };
+    const players = Object.values(this.players).map((p) => {
       return {
         profileId: p.profileId,
         pid: p.pid,
@@ -1462,14 +1632,20 @@ export class WorldRoom extends Room {
         streak: p.daily.streak,
         quests: p.quests.map(({ kind, target, progress }) => ({ kind, target, progress })),
         dailyQuest: p.dailyQuest,
-        plot: key && { key, ripe: crops.filter((c) => c.readyAt <= now).length, growing: crops.filter((c) => c.readyAt > now).length, candles: plot.candles ?? 0 },
+        layer: p.layer,
+        crust: crustFor(p.xp),
+        plot: plotView(this.plotOf(p)),
+        deepPlot: plotView(this.plotOf(p, 'deep')),
       };
     });
     return {
       players,
-      heldPlots: [...this.heldPlots.entries()].map(([profileId, key]) => {
-        const plot = this.plots[key];
-        return { profileId, key, owner: plot?.ownerName, leftAt: plot?.leftAt, crops: plot?.slots.filter(Boolean).length ?? 0, squeezed: plot?.squeezedAway ?? 0 };
+      heldPlots: ['surface', 'deep'].flatMap((layer) => {
+        const { plots, held } = this.layer(layer);
+        return [...held.entries()].map(([profileId, key]) => {
+          const plot = plots[key];
+          return { profileId, key, layer, owner: plot?.ownerName, leftAt: plot?.leftAt, crops: plot?.slots.filter(Boolean).length ?? 0, squeezed: plot?.squeezedAway ?? 0 };
+        });
       }),
       events: {
         boss: this.boss.view(),
@@ -1489,9 +1665,17 @@ export class WorldRoom extends Room {
     return season && { id: season.id, name: season.name, ends: season.ends };
   }
 
-  snapshot() {
+  // The world as seen from one layer: who's on it, its plots, and (on the
+  // skin) the world events, strays and the statue. `elsewhere` is how many are
+  // on the other layer.
+  snapshot(layer = 'surface') {
     const players = {};
+    let elsewhere = 0;
     for (const p of Object.values(this.players)) {
+      if (p.layer !== layer) {
+        if (!p.away) elsewhere++;
+        continue;
+      }
       const album = Object.keys(p.collection);
       const best = album.reduce((a, b) => (rank(b) > rank(a) ? b : a));
       players[p.id] = {
@@ -1505,6 +1689,7 @@ export class WorldRoom extends Room {
         stars: starsFor(p.collection[p.avatar] ?? 0),
         shiny: Boolean(p.shinies[p.avatar]),
         level: p.level,
+        crust: crustFor(p.xp),
         album: album.length,
         shinies: Object.keys(p.shinies).length,
         title: TITLE_BY_ID[p.title]?.name ?? null,
@@ -1513,20 +1698,24 @@ export class WorldRoom extends Room {
         away: p.away,
       };
     }
+    const skin = layer === 'surface';
     // serverNow lets clients correct for their own clock being off when showing grow progress.
     return {
+      layer,
       players,
-      plots: this.plots,
-      boss: this.boss.view(),
+      elsewhere,
+      plots: this.layer(layer).plots,
+      boss: skin ? this.boss.view() : null,
       bloodMoon: this.bloodMoon,
-      rain: this.rain.view(),
+      rain: skin ? this.rain.view() : null,
       itch: this.itch.view(),
       featured: featuredFor(dayOf(Date.now())),
       season: this.seasonView(),
-      drops: this.rain.drops(),
-      strays: this.strays.view(),
-      event: this.worldEvents.view(),
-      statue: this.statue,
+      drops: skin ? this.rain.drops() : [],
+      strays: skin ? this.strays.view() : [],
+      event: skin ? this.worldEvents.view() : null,
+      statue: skin ? this.statue : null,
+      rootMs: DEEP.rootMs * GROW_SCALE,  // how long a rooted crop holds on (sped up in testing)
       serverNow: Date.now(),
     };
   }

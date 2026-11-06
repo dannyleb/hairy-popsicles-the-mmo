@@ -31,6 +31,8 @@ character you've grown. Rarer characters take longer and pay more.
 | Pimple | 5 | level 1 | 55 / 28 / 13 / 4 % |
 | Pus | 15 | level 3 | 20 / 50 / 24 / 6 % |
 | Bone | 40 | level 6 | 0 / 35 / 50 / 15 % |
+| Vein | 60 | level 15, Under the Skin only | 0 / 25 / 50 / 25 % |
+| Marrow | 150 | level 20, Under the Skin only | 0 / 0 / 45 / 55 % |
 | Boil | drop only | from The Boil | 0 / 0 / 70 / 30 % |
 
 Rarities live in
@@ -39,12 +41,19 @@ Rarities live in
 
 ## The MMO layer
 
-- **Levels (1-15).** XP from planting, harvesting, squeezing, quests and the
+- **Levels (1-25).** XP from planting, harvesting, squeezing, quests and the
   boss. Your plot starts with 3 open holes; each level opens another
   (scabs cover the locked ones and pop off when they open), and better seeds
   unlock at levels 3 and 6. Past level 7, when every hole is open, each
-  level makes your crops grow 3% faster (24% at level 15). Every 5th level
-  is announced to the world.
+  level up to 15 makes your crops grow 3% faster (24% at 15). At 15, Under
+  the Skin opens (below); levels 16 to 21 open its holes, one a level, 20
+  brings Marrow Seeds, and 22 to 25 add another 3% each (36% at 25). Levels
+  past 15 take much more XP (31,000 for 25), mostly earned down there at
+  double XP. Every 5th level is announced to the world.
+- **Crust.** Past level 25, XP keeps counting: every 5,000 is another layer
+  of Crust, a rank with no top, shown instead of your level over your head
+  and in the HUD. Each layer adds 1% to the scraps a harvest pays (up to
+  20%), and each is announced.
 - **Quests.** Three at a time, dealt from eleven kinds (harvest, harvest
   an Uncommon, harvest a Rare, plant, discover something new, squeeze a
   neighbor, chat, emote, help at world events, grab Pus Rain globs, change
@@ -290,6 +299,39 @@ the world, in the same place on every screen. Players who are away nap beside
 the plot the world is keeping for them, with a z drifting up now and then.
 All of it is cheap (well under a millisecond a frame together), and trails
 are off on the lite quality setting.
+
+## Under the Skin
+
+From level 15, tapping the Navel climbs you down through it into a second
+layer of the world, the same size and on the same plot grid: raw, wet
+muscle for ground, marbled with fat, with arteries that throb out from a
+giant beating Heart on every beat and blood cells drifting through. No
+sky, no weather, a dim red light. Its places: the Knot in the middle
+(where the Navel comes out underneath, with daylight falling down it: tap
+it to climb back up), the Veinwood, the Gut, the Fat Fields and the Marrow
+Pits, each with its own props, and the Heart to the east (tap it and it
+skips a beat).
+
+- **A second plot.** Everyone keeps one plot on each layer. Down here, Vein
+  and Marrow Seeds grow (the skin's seeds don't, Boil Seeds grow
+  anywhere). Its holes open three at level 15, then one a level to all nine
+  at 21. Both plots keep growing whichever layer you're on, both are in
+  your save, and both stay in the world while you're away.
+- **Harder, and better.** Crops grow 1.5 times slower, but pay double XP,
+  half as many scraps again, and come up shiny twice as often.
+- **Rooted.** A Legendary grown down here comes up rooted: once it's ripe,
+  its owner can't pull it alone. A neighbor taps it to loosen it (and gets
+  12 scraps and 40 XP for the hand, toward the Root Puller title), or after
+  2 minutes it works loose by itself. Climbing down the first time earns
+  Navel Diver.
+- **One world.** It's the same server and the same room: chat, announcements
+  and the Itch reach both layers, and the minimap says how many are on the
+  other one. World events, strays, Pus Rain and the statue stay up on the
+  skin (their announcements reach everyone, so you can climb up for them).
+  Each layer's state only goes to those on it, which also halves what a
+  crowd costs in bandwidth when it's split between them.
+- Everyone comes back up on the skin when they rejoin. Its art loads the
+  first time you go down, so new players never download it.
 
 ## Regions and landmarks
 

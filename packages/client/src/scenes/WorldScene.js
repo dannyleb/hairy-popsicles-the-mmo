@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import {
   CHARACTER_BY_ID,
+  CRUST_XP,
+  DEEP,
   EMOTE_BY_ID,
   HOLE_ORDER,
   INVITE,
   MAX_LEVEL,
-  REGIONS,
+  PLACES,
   PLOT_PX,
   PLOT_SIZE,
   RARITY_ORDER,
@@ -17,15 +19,15 @@ import {
   TEND_MAX,
   TILE_SIZE,
   WEATHER,
+  crustScraps,
   daylight,
+  deepHolesFor,
   greenThumb,
-  holeOpen,
+  holeOpenIn,
   holesFor,
-  isReservedPlot,
-  levelForHole,
+  levelForHoleIn,
   describeBonus,
   linesOf,
-  regionAt,
   travelMs,
   wearBonus,
   weatherAt,
@@ -46,6 +48,7 @@ import { loading } from '../ui/loading.js';
 import { createBackdrop } from '../world/backdrop.js';
 import { createBossView } from '../world/boss.js';
 import { createCritters } from '../world/critters.js';
+import { HEART_LINES, createDeepBackdrop, createDeepLandmarks, loadDeep, plotTexture } from '../world/deep.js';
 import { createDropsView } from '../world/drops.js';
 import { createEventViews } from '../world/worldEvents.js';
 import { createFx } from '../world/fx.js';
@@ -97,10 +100,13 @@ const SHEEN = 0xffcf5a;
 const BLOOD_MOON_LIGHT = 0.3;     // a Blood Moon is up: as dark as dusk, whatever the hour
 const PLACE_SETTLE_MS = 700;      // in a new region this long before its name comes up
 const NAVEL_LINES = [
-  'The Navel. It goes down further than you would think.',
+  `The Navel. It goes down further than you would think. At level ${DEEP.level}, you can climb in.`,
   'Something gurgles, deep down in there.',
   'There is lint in here older than the world.',
 ];
+const SWITCH_FADE_MS = 380;       // the screen goes dark this long climbing between layers
+const ROOTED_TINT = 0xff6a8a;     // a ripe crop stuck fast Under the Skin
+const CRUST_COLOR = '#e0a35c';
 const EYE_LINES = ['The Eye screws itself shut. It will remember that.', 'Ow.', 'It blinks the sting away, and keeps watching.'];
 
 const RANK = Object.fromEntries(RARITY_ORDER.map((r, i) => [r, i]));
@@ -167,6 +173,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   initFields() {
+    this.layer = 'surface';   // which layer of the world is on screen (see switchLayer)
+    this.switching = null;    // the climb in progress, and the latest state that came meanwhile
+    this.traveled = new Map();  // player id → layer, for those who just climbed (not "arrived" or "left")
     this.walkers = [];  // everything walking about this frame: players and strays
     this.lastTarget = null;   // where I last walked to, which is where the server has me
     this.arrivesAt = 0;
@@ -289,6 +298,14 @@ export class WorldScene extends Phaser.Scene {
       noteBanned(pid);
     });
     on('gave', this.onGave);
+    on('traveled', this.onTraveled);
+    on('loosen', this.onLoosen);
+    on('loosened', ({ by, characterId }) => {
+      this.hud.toast(`${by} loosened your rooted ${CHARACTER_BY_ID[characterId].name}. Pull it!`, { characterId });
+      sfx.squelch();
+    });
+    on('loosenDone', this.onLoosenDone);
+    on('crustUp', ({ crust }) => this.onCrustUp(crust));
     room.onLeave((code) => this.onDisconnect(code));
     room.send('sync');
   }
@@ -407,6 +424,111 @@ export class WorldScene extends Phaser.Scene {
     this.room.leave(true).finally(() => window.location.reload());
   }
 
+  // ---------- the two layers: the skin, and Under the Skin ----------
+
+  // Walk to the way through (the Navel, or the Knot underneath it) and climb.
+  // Its art starts loading on the way, the first time down.
+  climb(to) {
+    const { landmarks, door } = PLACES[this.layer];
+    const at = landmarks[door];
+    const me = this.myTarget();
+    if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 30) this.walk(at.x, at.y + 110);
+    this.hud.toast(to === 'deep' ? `Climbing down the Navel, ${DEEP.name}...` : 'Climbing back up to the skin...');
+    sfx.gurgle();
+    const art = to === 'deep' ? loadDeep(this) : Promise.resolve();
+    this.whenThere(() => art.then(() => this.room.send('travel', { to })));
+  }
+
+  // The server has me on the other layer: the screen goes dark, the world on
+  // screen comes down and the other layer's goes up, and the state that
+  // brought it on (or any newer, kept by applyState meanwhile) goes in.
+  async switchLayer(layer, state) {
+    this.switching = { state };
+    const camera = this.cameras.main;
+    const first = !this.state;  // straight back to where a dropped phone left off
+    if (!first) {
+      camera.fadeOut(SWITCH_FADE_MS, 14, 6, 8);
+      sfx.squelch();
+    }
+    await Promise.all([layer === 'deep' ? loadDeep(this) : null, first ? null : sleep(SWITCH_FADE_MS)]);
+    this.clearWorld();
+    this.backdrop.destroy();
+    this.landmarks.destroy();
+    this.layer = layer;
+    const deep = layer === 'deep';
+    this.backdrop = deep ? createDeepBackdrop(this) : createBackdrop(this);
+    this.backdrop.setLite(quality().lite);
+    this.landmarks = deep ? createDeepLandmarks(this) : createLandmarks(this);
+    this.bloodMoon = false;  // put back by the state, if one's up
+    // Arriving by the way through, it's the layer that's named, not the region.
+    this.regionHere = this.regionShown = PLACES[layer].door === 'knot' ? 'knot' : 'navel';
+    const latest = this.switching.state;
+    this.switching = null;
+    this.applyState(latest);
+    camera.fadeIn(SWITCH_FADE_MS * 1.5, 14, 6, 8);
+    if (!first || deep) this.hud.place(deep ? DEEP.name : 'The skin', deep ? 'Down through the Navel, into the warm.' : 'Back up in the open air.');
+  }
+
+  // Everything on screen that came from the state: plots, crops, players, speech.
+  clearWorld() {
+    for (const key of [...this.crops.keys()]) this.destroyCrop(key);
+    for (const { art, label, scabs, candles = [] } of this.plots.values()) {
+      const parts = [art, label, ...[...scabs.values()].flatMap((s) => [s.image, s.text].filter(Boolean)), ...candles.flatMap((c) => [c.glow, c.candle, c.flame])];
+      for (const part of parts) {
+        this.tweens.killTweensOf(part);
+        part.destroy();
+      }
+    }
+    this.plots.clear();
+    for (const avatar of this.avatars.values()) {
+      this.tweens.killTweensOf(avatar.container);
+      avatar.container.destroy();
+    }
+    this.avatars.clear();
+    for (const { bubble } of this.bubbles) bubble.destroy();
+    this.bubbles = [];
+    this.traveled.clear();
+    this.cameras.main.stopFollow();
+    Object.assign(this, { state: null, lastTarget: null, seenFirstState: false, fling: null, drag: null, hold: null, pointerTarget: null, lastHarvest: null });
+    if (this.lookingAround) {
+      this.lookingAround = false;
+      this.hud.lookingAround(false);
+    }
+  }
+
+  // Someone climbed between the layers: said in the chat if it's to or from mine.
+  onTraveled({ id, name, to }) {
+    if (id === this.myId()) return;
+    const leaving = Boolean(this.state?.players[id]);
+    if (!leaving && to !== this.layer) return;
+    this.traveled.set(id, to);
+    const text = to === 'deep'
+      ? (leaving ? `${name} climbed down the Navel.` : `${name} came down the Navel.`)
+      : (leaving ? `${name} climbed back up to the skin.` : `${name} came up out of the Navel.`);
+    this.hud.chatLine({ text, kind: 'system' });
+    if (!leaving) return;
+    const at = this.landmarks.heave(this.time.now, 700);
+    this.fx.droplets(at.x, at.y, { count: 6, key: this.layer === 'deep' ? 'drop-blood' : 'drop-pus', speed: [40, 100], size: [3, 6] });
+    sfx.squelch();
+  }
+
+  // A rooted crop loosened (by anyone, as seen from here).
+  onLoosen({ plotKey, slot }) {
+    const crop = this.crops.get(`${plotKey}:${slot}`);
+    if (!crop) return;
+    crop.squishUntil = this.time.now + 200;
+    this.fx.droplets(crop.image.x, crop.image.y - 6, { count: 8, key: 'drop-blood', speed: [60, 160], size: [4, 8] });
+    sfx.squelch();
+  }
+
+  onLoosenDone({ scraps, xp, owner }) {
+    const me = this.me();
+    this.hud.toast(`You loosened ${owner}'s crop. They can pull it now.`);
+    if (!me) return;
+    this.fx.float(me.x, me.y - AVATAR_SIZE - 6, `+${scraps}`, { color: '#f3d27a', size: 20 });
+    this.fx.float(me.x, me.y - AVATAR_SIZE + 14, `+${xp} xp`, { color: '#bfe38a', size: 14, delay: 140 });
+  }
+
   // ---------- state ----------
 
   now() {
@@ -426,6 +548,19 @@ export class WorldScene extends Phaser.Scene {
   }
 
   applyState(state) {
+    // A different layer of the world (climbing down the Navel or back up, or
+    // coming back to a phone that was left down there): swap the world over
+    // first, keeping the latest state for when it's done.
+    const layer = state.layer ?? 'surface';
+    if (this.switching) {
+      state.plots ??= this.switching.state.plots;
+      this.switching.state = state;
+      return;
+    }
+    if (layer !== this.layer) {
+      this.switchLayer(layer, state);
+      return;
+    }
     // Plots only come when they've changed; otherwise they're as they were.
     state.plots ??= this.state?.plots ?? {};
     this.clockOffset = state.serverNow - Date.now();
@@ -478,6 +613,7 @@ export class WorldScene extends Phaser.Scene {
   noticeComings(before, after) {
     for (const p of Object.values(after)) {
       if (before[p.id] || p.id === this.myId()) continue;
+      if (this.traveled.delete(p.id)) continue;  // came up or down (onTraveled said so)
       if (this.invitedArrivals.delete(p.pid)) {
         this.welcomeInvited(p);
       } else if (isPal(p.pid)) {
@@ -489,7 +625,7 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     for (const p of Object.values(before)) {
-      if (!after[p.id]) this.hud.chatLine({ text: `${p.name} left.`, kind: 'system' });
+      if (!after[p.id] && !this.traveled.delete(p.id)) this.hud.chatLine({ text: `${p.name} left.`, kind: 'system' });
     }
   }
 
@@ -535,8 +671,20 @@ export class WorldScene extends Phaser.Scene {
     this.hud.tip('look', 'Drag the ground to look around. Tap to walk (or tap Back to me) and the view comes back to you.');
     if (this.private.level >= 2) this.hud.tip('map', 'Tap the little map (top right) for the big one, with every place named. Tap anywhere on it to walk there.');
     if (this.private.inventory.boil > 0) this.hud.tip('boil-seed', 'You have a Boil Seed: it only grows Rare or better. Pick it in the dock, then plant it.');
+    if (this.private.level >= DEEP.level && this.layer === 'surface') {
+      this.hud.tip('deep-open', `${DEEP.name} is open to you: tap the Navel to climb down. Crops grow slower down there, but pay double XP.`);
+    }
+    if (this.layer === 'deep') {
+      this.hud.tip('deep-here', `${DEEP.name}! Claim a plot down here too: Vein Seeds only grow here. Your plot on the skin keeps growing meanwhile. Tap the Knot to climb back up.`);
+    }
+    const view = this.cameras.main.worldView;
     for (const crop of this.crops.values()) {
-      if (crop.glow.visible && !crop.mine && this.cameras.main.worldView.contains(crop.image.x, crop.image.y)) {
+      if (!crop.glow.visible || !view.contains(crop.image.x, crop.image.y)) continue;
+      if (crop.ripe && this.stillRooted(crop.slotData, this.now())) {
+        this.hud.tip('rooted', "Rooted! A Legendary grown down here won't come up alone. Tap a neighbor's to loosen it (and get paid for it), or wait: it works loose by itself.");
+        break;
+      }
+      if (!crop.mine) {
         this.hud.tip('squeeze', "The green glow: tap a neighbor's growing crop to squeeze it. It ripens sooner and you get scraps.");
         break;
       }
@@ -584,7 +732,7 @@ export class WorldScene extends Phaser.Scene {
     const plot = key && this.state.plots[key];
     if (!plot) return null;
     if (step === 'plant' || step === 'wait') {
-      const slot = HOLE_ORDER.find((s) => holeOpen(s, this.private.level) && !plot.slots[s]);
+      const slot = HOLE_ORDER.find((s) => holeOpenIn(this.layer, s, this.private.level) && !plot.slots[s]);
       return slot === undefined ? null : holeCenter(key, slot);
     }
     if (step === 'harvest') {
@@ -626,7 +774,7 @@ export class WorldScene extends Phaser.Scene {
           const px = cx + dx;
           const py = cy + dy;
           const key = `${px},${py}`;
-          if (px >= 0 && py >= 0 && px < cols && py < rows && !this.state.plots[key] && !isReservedPlot(key)) return [px, py];
+          if (px >= 0 && py >= 0 && px < cols && py < rows && !this.state.plots[key] && !PLACES[this.layer].isReserved(key)) return [px, py];
         }
       }
     }
@@ -846,7 +994,7 @@ export class WorldScene extends Phaser.Scene {
     if (landmark) return this.tapLandmark(landmark, x, y);
     if (plot) return this.tapNeighborHole(hit.plotKey, plot, hit.slot, x, y);
 
-    if (!this.myPlotKey() && !isReservedPlot(hit.plotKey)) {
+    if (!this.myPlotKey() && !PLACES[this.layer].isReserved(hit.plotKey)) {
       const [plotX, plotY] = hit.plotKey.split(',').map(Number);
       // Stand at the new plot's front edge, not on top of the holes.
       this.walk(x, (plotY + 1) * PLOT_PX + FRONT_OF_PLOT);
@@ -954,11 +1102,18 @@ export class WorldScene extends Phaser.Scene {
 
   tapLandmark(landmark, x, y) {
     const pick = (lines) => lines[Math.floor(Math.random() * lines.length)];
+    if (landmark === 'navel' && this.private.level >= DEEP.level) return this.climb('deep');
+    if (landmark === 'knot') return this.climb('surface');
     if (landmark !== 'statue') this.walk(x, y + 30);
     if (landmark === 'navel') {
       sfx.gurgle();
       this.fx.droplets(x, y, { count: 5, key: 'drop-pus', speed: [30, 80], size: [3, 6] });
       this.hud.toast(pick(NAVEL_LINES));
+    } else if (landmark === 'heart') {
+      const at = this.landmarks.poke(this.time.now);
+      sfx.heartbeat(1);
+      this.fx.droplets(at.x, at.y, { count: 6, key: 'drop-blood', speed: [40, 110], size: [4, 7] });
+      this.hud.toast(pick(HEART_LINES));
     } else if (landmark === 'eye') {
       const at = this.landmarks.poke(this.time.now);
       sfx.poke();
@@ -975,6 +1130,7 @@ export class WorldScene extends Phaser.Scene {
 
   // A line in the chat log as night falls or the morning comes, and as weather sets in.
   updateSky(now) {
+    if (this.layer === 'deep') return;  // no sky Under the Skin
     const dark = daylight(now) < 0.5;
     if (this.skyDark !== undefined && dark !== this.skyDark) {
       this.hud.chatLine({ text: dark ? 'Night falls. The candles burn brighter.' : 'Morning comes to the skin.', kind: 'system' });
@@ -989,6 +1145,7 @@ export class WorldScene extends Phaser.Scene {
   updateRegion(time) {
     const mine = this.avatars.get(this.myId());
     if (!mine || this.hud.blocking()) return;
+    const { regions, regionAt } = PLACES[this.layer];
     const region = regionAt(mine.container.x, mine.container.y);
     if (region !== this.regionHere) {
       this.regionHere = region;
@@ -996,7 +1153,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (region !== this.regionShown && time - this.regionSince > PLACE_SETTLE_MS) {
       this.regionShown = region;
-      this.hud.place(REGIONS[region].name, REGIONS[region].line);
+      this.hud.place(regions[region].name, regions[region].line);
     }
   }
 
@@ -1133,15 +1290,23 @@ export class WorldScene extends Phaser.Scene {
     const crop = plot.slots[slot];
     const now = this.now();
     if (crop) {
-      if (now >= crop.readyAt) return this.harvest(plotKey, slot);
+      const stuck = this.stillRooted(crop, now);
+      if (now >= crop.readyAt && !stuck) return this.harvest(plotKey, slot);
+      if (stuck) {
+        sfx.tug();
+        const stuckCrop = this.crops.get(`${plotKey}:${slot}`);
+        if (stuckCrop) this.tweens.add({ targets: stuckCrop.image, y: '-=6', duration: 90, yoyo: true, repeat: 1 });  // it won't budge
+        this.hud.toast(`Rooted deep: it won't come up alone. A neighbor can loosen it, or it works loose by itself in ${formatClock(crop.readyAt + (this.state.rootMs ?? DEEP.rootMs) - now)}.`);
+        return;
+      }
       const squeezed = crop.tendedBy.length ? ` Squeezed ${crop.tendedBy.length}×.` : '';
       this.hud.toast(`Still growing: ${formatClock(crop.readyAt - now)} left.${squeezed}`);
       return;
     }
     const { level, currency, inventory } = this.private;
-    if (!holeOpen(slot, level)) {
+    if (!holeOpenIn(this.layer, slot, level)) {
       sfx.nope();
-      this.hud.toast(`This hole opens at level ${levelForHole(slot)}.`);
+      this.hud.toast(`This hole opens at level ${levelForHoleIn(this.layer, slot)}.`);
       return;
     }
     const seed = SEED_BY_ID[this.hud.selectedSeed];
@@ -1185,10 +1350,23 @@ export class WorldScene extends Phaser.Scene {
         this.whenThere(() => this.room.send('tend', { plotKey, slot }));
         return;
       }
+    } else if (crop && this.stillRooted(crop, this.now())) {
+      // Rooted Under the Skin: give them a hand loosening it.
+      const at = holeCenter(plotKey, slot);
+      const me = this.myTarget();
+      if (Math.hypot(me.x - at.x, me.y - at.y) > REACH - 10) this.walk(at.x + 18, at.y + 34);
+      this.whenThere(() => this.room.send('loosen', { plotKey, slot }));
+      sfx.tug();
+      return;
     } else if (crop) {
       this.hud.toast(`Ripe, and waiting for ${plot.ownerName}.`);
     }
     this.walk(x, y);
+  }
+
+  // A rooted crop (Under the Skin) that hasn't been loosened or worked loose yet.
+  stillRooted(crop, now) {
+    return Boolean(crop.rooted) && !crop.loosened && now < crop.readyAt + (this.state?.rootMs ?? DEEP.rootMs);
   }
 
   // ---------- plots and crops ----------
@@ -1255,7 +1433,7 @@ export class WorldScene extends Phaser.Scene {
     const x0 = px * PLOT_PX;
     const y0 = py * PLOT_PX;
     const mine = plot.ownerId === this.myId();
-    const art = this.add.image(x0 + PLOT_PX / 2, y0 + PLOT_PX / 2, `world:plot-${plotVariant(key)}`)
+    const art = this.add.image(x0 + PLOT_PX / 2, y0 + PLOT_PX / 2, plotTexture(this.layer, plotVariant(key)))
       .setDepth(DEPTH.plot).setTint(EVENT_TINT);
     const scale = PLOT_ART_SIZE / art.width;
     art.setScale(scale * 0.4).setAlpha(0);
@@ -1318,14 +1496,14 @@ export class WorldScene extends Phaser.Scene {
   syncScabs(key, plot, ownerLevel) {
     const entry = this.plots.get(key);
     for (let slot = 0; slot < PLOT_SIZE * PLOT_SIZE; slot++) {
-      const locked = !holeOpen(slot, ownerLevel) && !plot.slots[slot];
+      const locked = !holeOpenIn(this.layer, slot, ownerLevel) && !plot.slots[slot];
       const scab = entry.scabs.get(slot);
       if (locked && !scab) {
         const at = holeCenter(key, slot);
         const image = this.add.image(at.x, at.y, 'world:scab').setDepth(DEPTH.plot + 2).setTint(EVENT_TINT);
         image.setScale(SCAB_SIZE / image.width).setRotation((slot * 1.7) % (Math.PI * 2));
         const text = entry.mine
-          ? this.add.text(at.x, at.y + 12, `Lv ${levelForHole(slot)}`, textStyle(11, '#e9c8b8')).setOrigin(0.5, 0)
+          ? this.add.text(at.x, at.y + 12, `Lv ${levelForHoleIn(this.layer, slot)}`, textStyle(11, '#e9c8b8')).setOrigin(0.5, 0)
             .setShadow(0, 1, '#000', 3, false, true).setDepth(DEPTH.plot + 2).setAlpha(0.8)
           : null;
         entry.scabs.set(slot, { image, text });
@@ -1386,13 +1564,20 @@ export class WorldScene extends Phaser.Scene {
         crop.sheen.setVisible(crop.ripe && image.visible).setAlpha(0.45 + 0.2 * Math.sin(time * 0.004 + image.x));
       }
 
+      // Rooted (Under the Skin): it strains at the roots, glowing red, until
+      // a neighbor loosens it or it works loose.
+      const rooted = crop.ripe && this.stillRooted(slotData, now);
+      if (rooted && !settings.get('calm')) image.setRotation(0.05 * Math.sin(time * 0.02) * (Math.sin(time * 0.003 + image.x) > 0.6 ? 1 : 0));
+      else if (image.rotation) image.setRotation(0);
       const squeezable = !crop.mine && !crop.ripe && !tendedBy.includes(me) && tendedBy.length < TEND_MAX;
+      const loosenable = !crop.mine && rooted;
       const harvestable = crop.mine && crop.ripe && image.visible;
-      glow.setVisible(squeezable || harvestable);
+      glow.setVisible(squeezable || loosenable || harvestable);
       if (glow.visible) {
         const pulse = 0.5 + 0.5 * Math.sin(time * 0.005 + image.x);
-        glow.setTint(harvestable ? 0xffd080 : 0x9cff7a).setAlpha(harvestable ? 0.35 + 0.25 * pulse : 0.2 + 0.2 * pulse)
-          .setScale((harvestable ? 70 : 54) / 256, (harvestable ? 34 : 26) / 256);
+        const color = rooted ? ROOTED_TINT : harvestable ? 0xffd080 : 0x9cff7a;
+        glow.setTint(color).setAlpha(harvestable || loosenable ? 0.35 + 0.25 * pulse : 0.2 + 0.2 * pulse)
+          .setScale((harvestable || loosenable ? 70 : 54) / 256, (harvestable || loosenable ? 34 : 26) / 256);
       }
     }
   }
@@ -1449,13 +1634,15 @@ export class WorldScene extends Phaser.Scene {
         }
       }
       const pal = !mine && isPal(p.pid);
-      const label = `${p.name}|${p.level}|${p.stars}|${p.title}|${p.color}|${pal}`;
+      const label = `${p.name}|${p.level}|${p.crust}|${p.stars}|${p.title}|${p.color}|${pal}`;
       if (avatar.label !== label) {
         avatar.label = label;
         if (pal) notePal(p.pid, p.name);
         avatar.name.setText(pal ? `♥ ${p.name}` : p.name).setColor(p.color ?? (mine ? TEXT : '#d9b8a8'));
         avatar.title.setText(p.title ? `~ ${p.title} ~` : '');
-        avatar.level.setText(p.stars ? `${p.level} ${'★'.repeat(p.stars)}` : `${p.level}`);
+        // Past the top level, Crust instead of a level.
+        const rank = p.crust ? `Crust ${p.crust}` : `${p.level}`;
+        avatar.level.setText(p.stars ? `${rank} ${'★'.repeat(p.stars)}` : rank).setColor(p.crust ? CRUST_COLOR : '#f3d27a');
         const total = avatar.name.width + 4 + avatar.level.width;
         avatar.name.setX(-total / 2 + avatar.name.width / 2);
         avatar.level.setX(-total / 2 + avatar.name.width + 4);
@@ -1626,12 +1813,15 @@ export class WorldScene extends Phaser.Scene {
     const unlocks = [];
     const holes = holesFor(level) - holesFor(from);
     if (holes > 0) unlocks.push(holes === 1 ? 'A new hole opened in your plot' : `${holes} new holes opened in your plot`);
+    if (from < DEEP.level && level >= DEEP.level) unlocks.push(`${DEEP.name} is open: tap the Navel to climb down`);
+    const deepHoles = deepHolesFor(level) - Math.max(deepHolesFor(from), deepHolesFor(DEEP.level));
+    if (deepHoles > 0) unlocks.push(deepHoles === 1 ? `A new hole opened in your plot ${DEEP.name}` : `${deepHoles} new holes opened in your plot ${DEEP.name}`);
     for (const seed of SEEDS) {
-      if (!seed.dropOnly && seed.level > from && seed.level <= level) unlocks.push(`${seed.name}s unlocked`);
+      if (!seed.dropOnly && seed.level > from && seed.level <= level) unlocks.push(`${seed.name}s unlocked${seed.layer === 'deep' ? ` (they grow ${DEEP.name})` : ''}`);
     }
     const thumb = greenThumb(level) - greenThumb(from);
     if (thumb > 0) unlocks.push(`Your crops grow ${Math.round(thumb * 100)}% faster (${Math.round(greenThumb(level) * 100)}% in all)`);
-    if (level >= MAX_LEVEL) unlocks.push('Max level. Bragging rights.');
+    if (level >= MAX_LEVEL) unlocks.push(`Top level. From here, every ${CRUST_XP.toLocaleString()} XP grows a layer of Crust.`);
     this.hud.levelUp(level, unlocks);
     sfx.fanfare();
     const me = this.me();
@@ -1639,6 +1829,14 @@ export class WorldScene extends Phaser.Scene {
       this.fx.ring(me.x, me.y - 30, { color: 0xffd070, size: 260, duration: 800 });
       this.fx.droplets(me.x, me.y - 40, { count: 16, speed: [120, 260] });
     }
+  }
+
+  // Another layer of Crust (past the top level): a little more from every harvest.
+  onCrustUp(crust) {
+    this.hud.levelUp(crust, [`+${Math.round(crustScraps(crust) * 100)}% scraps from every harvest`, `Next layer in ${CRUST_XP.toLocaleString()} XP`], 'crust');
+    sfx.fanfare();
+    const me = this.me();
+    if (me) this.fx.ring(me.x, me.y - 30, { color: 0xe0a35c, size: 260, duration: 800 });
   }
 
   onTend({ plotKey, slot, by }) {
@@ -1682,6 +1880,8 @@ export class WorldScene extends Phaser.Scene {
       this.onItchScratched(notice);
     } else if (notice.kind === 'levelUp') {
       this.onLevelUp(notice);
+    } else if (notice.kind === 'crust') {
+      this.onCrustUp(notice.crust);
     } else if (notice.kind === 'row') {
       this.hud.albumRow(notice);
       sfx.fanfare();
@@ -1854,8 +2054,9 @@ export class WorldScene extends Phaser.Scene {
     if (!this.state) return;
 
     const now = this.now();
-    const light = this.bloodMoon ? BLOOD_MOON_LIGHT : daylight(now);
-    const weather = weatherAt(now);
+    const deep = this.layer === 'deep';
+    const light = this.bloodMoon ? BLOOD_MOON_LIGHT : deep ? 0.4 : daylight(now);
+    const weather = deep ? { kind: 'clear', strength: 0, angle: 0 } : weatherAt(now);
     this.backdrop.setDaylight(light);
     this.backdrop.setWind(weather.kind === 'wind' ? weather.strength : 0, weather.angle);
     this.weather.update(time, delta, camera.worldView, weather, calm, quality().lite);
@@ -1882,7 +2083,7 @@ export class WorldScene extends Phaser.Scene {
     this.pointAtEvent();
 
     const mine = this.avatars.get(this.myId());
-    if (mine) this.ambience.update(time, { at: mine.container, region: this.regionHere, light, weather });
+    if (mine) this.ambience.update(time, { at: mine.container, region: this.regionHere, light, weather, layer: this.layer });
     this.updateAvatars(time, camera.worldView, mine);
     this.updateChatter(time);
     if (time > this.nextSlowTick) {

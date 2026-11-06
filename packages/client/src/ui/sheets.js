@@ -78,7 +78,7 @@ export function createSheets(actions) {
         el('span', 'rank-place', String(i + 1)),
         img(spriteUrl(p.avatar), 'rank-avatar'),
         who,
-        el('span', 'rank-level', `Lv ${p.level}`),
+        el('span', 'rank-level', p.crust ? `Crust ${p.crust}` : `Lv ${p.level}`),
         el('span', 'rank-album', `${p.album}/${CHARACTERS.length}`),
         bestImg,
       );
@@ -116,7 +116,7 @@ export function createSheets(actions) {
     facts.append(
       nameLine,
       ...(p.title ? [el('p', 'inspect-title', p.title)] : []),
-      el('p', null, `Level ${p.level}${p.away ? ' · away' : ''}`),
+      el('p', null, `Level ${p.level}${p.crust ? ` · Crust ${p.crust}` : ''}${p.away ? ' · away' : ''}`),
       el('p', null, `Playing as ${p.shiny ? 'shiny ' : ''}${avatar.name}${p.stars ? ` ${'★'.repeat(p.stars)}` : ''}`),
       el('p', null, `Album ${p.album}/${CHARACTERS.length}${p.shinies ? ` · ${p.shinies} shiny` : ''}`),
     );

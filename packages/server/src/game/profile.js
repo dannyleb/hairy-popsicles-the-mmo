@@ -31,8 +31,20 @@ export function cleanName(name) {
   return hasBlocked(clean) ? '' : clean;
 }
 
-// Everything about a player worth keeping, except where they're standing.
-export function saveToken(player, plot, plotKey) {
+// A plot as it goes into a save.
+const plotData = (plot, key) => plot && {
+  key,
+  candles: plot.candles ?? 0,
+  slots: plot.slots.map((s) => s && {
+    characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny, tendedBy: s.tendedBy,
+    ...(s.rooted ? { rooted: true, loosened: Boolean(s.loosened) } : {}),
+  }),
+};
+
+// Everything about a player worth keeping, except where they're standing (and
+// on which layer: everyone comes back up on the skin). `deep` is their plot
+// Under the Skin, as [key, plot], if they have one.
+export function saveToken(player, plot, plotKey, deep = null) {
   const profile = {
     format: FORMAT,
     id: player.profileId,
@@ -57,13 +69,8 @@ export function saveToken(player, plot, plotKey) {
     strayDay: player.strayDay ?? null,  // the day they last caught the featured stray
     startedAt: player.startedAt ?? null,  // when the save was first made
     appearOffline: player.appearOffline === true,  // off Who's around (game/seen.js)
-    plot: plot && {
-      key: plotKey,
-      candles: plot.candles ?? 0,
-      slots: plot.slots.map((s) => s && {
-        characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny, tendedBy: s.tendedBy,
-      }),
-    },
+    plot: plotData(plot, plotKey),
+    deepPlot: deep?.[1] ? plotData(deep[1], deep[0]) : null,
     savedAt: Date.now(),
   };
   const body = Buffer.from(JSON.stringify(profile)).toString('base64url');
@@ -97,17 +104,24 @@ export function readToken(token) {
   for (const [id, n] of Object.entries(p.shinies ?? {})) {
     if (Object.hasOwn(collection, id) && count(n)) shinies[id] = Math.min(count(n), collection[id]);
   }
-  const slots = Array.from({ length: PLOT_SIZE * PLOT_SIZE }, (_, i) => {
-    const s = p.plot?.slots?.[i];
-    if (!s || !Object.hasOwn(CHARACTER_BY_ID, s.characterId) || !Object.hasOwn(SEED_BY_ID, s.seed)) return null;
-    if (!time(s.plantedAt) || !time(s.readyAt)) return null;
-    // Squeezers are public ids; older saves recorded save ids, which are converted
-    // here so they aren't sent to everyone and still count as already squeezed.
-    const tendedBy = Array.isArray(s.tendedBy)
-      ? s.tendedBy.filter((id) => typeof id === 'string').slice(0, TEND_MAX).map((id) => (id.length === PUBLIC_ID_LENGTH ? id : publicIdOf(id)))
-      : [];
-    return { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy };
-  });
+  // A saved plot, checked: crops of characters or seeds that no longer exist are dropped.
+  const readPlot = (saved) => {
+    if (typeof saved?.key !== 'string') return null;
+    const slots = Array.from({ length: PLOT_SIZE * PLOT_SIZE }, (_, i) => {
+      const s = saved.slots?.[i];
+      if (!s || !Object.hasOwn(CHARACTER_BY_ID, s.characterId) || !Object.hasOwn(SEED_BY_ID, s.seed)) return null;
+      if (!time(s.plantedAt) || !time(s.readyAt)) return null;
+      // Squeezers are public ids; older saves recorded save ids, which are converted
+      // here so they aren't sent to everyone and still count as already squeezed.
+      const tendedBy = Array.isArray(s.tendedBy)
+        ? s.tendedBy.filter((id) => typeof id === 'string').slice(0, TEND_MAX).map((id) => (id.length === PUBLIC_ID_LENGTH ? id : publicIdOf(id)))
+        : [];
+      const crop = { characterId: s.characterId, seed: s.seed, plantedAt: s.plantedAt, readyAt: s.readyAt, shiny: s.shiny === true, tendedBy };
+      if (s.rooted === true) Object.assign(crop, { rooted: true, loosened: s.loosened === true });
+      return crop;
+    });
+    return { key: saved.key, slots, candles: Math.min(count(saved.candles), SHOP.candle.max) };
+  };
   const xp = count(p.xp);
   return {
     id: p.id.slice(0, 64),
@@ -137,7 +151,8 @@ export function readToken(token) {
     startedAt: time(p.startedAt) || null,
     appearOffline: p.appearOffline === true,
     strayDay: typeof p.strayDay === 'string' ? p.strayDay.slice(0, 10) : null,
-    plot: typeof p.plot?.key === 'string' ? { key: p.plot.key, slots, candles: Math.min(count(p.plot.candles), SHOP.candle.max) } : null,
+    plot: readPlot(p.plot),
+    deepPlot: readPlot(p.deepPlot),
     savedAt: time(p.savedAt),
   };
 }

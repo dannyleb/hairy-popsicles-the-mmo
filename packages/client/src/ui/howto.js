@@ -5,6 +5,7 @@ export const HOW_TO_PLAY = [
   'A shadow rises out of the hole. Rarer characters take longer. Tap it when it ripens.',
   "Everything you grow goes in your album. Tap one to play as them.",
   'Level up to open more holes and better seeds. Quests (top left) pay extra.',
+  'At level 15, tap the Navel to climb down: Under the Skin is a second world with its own plot, seeds and places. Crops there grow slower but pay double XP. A Legendary grown down there comes up rooted: tap a neighbor\'s to loosen it for them, or wait for yours to work loose. Tap the Knot to climb back up. Levels go to 25; past that, XP grows Crust.',
   "Tap a neighbor's growing crop to squeeze it: it ripens sooner and you get scraps.",
   'When The Boil swells up, everyone runs over and taps it until it bursts. Boil Seeds only grow Rare or better.',
   'Other world events take turns with it. The Scab: wait for it to dry, then hold your finger on it to peel. The Gash: tap the crumbs of crust out. The Tick: crops near it stop growing until you pry it off; it comes off faster with more of you. Ingrown Hair: tap on its throb to tug. Blackheads: hold to squeeze (the gunk makes fertilizer). Navel Lint: grab what the Navel coughs up.',

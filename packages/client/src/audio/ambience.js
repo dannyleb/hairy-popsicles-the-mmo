@@ -1,4 +1,5 @@
-import { LANDMARKS } from '@hptm/shared';
+import { DEEP_LANDMARKS, LANDMARKS } from '@hptm/shared';
+import { HEARTBEAT_MS } from '../world/deep.js';
 import { sfx } from './sfx.js';
 
 // Quiet sounds of wherever you are, under the music: the world's heartbeat near
@@ -10,10 +11,27 @@ const HEART = { reach: 900, every: 1150 };
 export function createAmbience() {
   const next = { heart: 0, gurgle: 0, rustle: 0, chirp: 0, gust: 0 };
   const after = (min, max) => min + Math.random() * (max - min);
+  let beat = -1;
+
+  // Under the Skin: the Heart, heard everywhere and loud close by, in time
+  // with its beat on screen; the Gut rumbling.
+  function deep(time, at, region) {
+    const n = Math.floor(time / HEARTBEAT_MS);
+    if (n !== beat) {
+      beat = n;
+      const toHeart = Math.hypot(at.x - DEEP_LANDMARKS.heart.x, at.y - DEEP_LANDMARKS.heart.y);
+      sfx.heartbeat(0.25 + 0.75 * Math.max(0, 1 - toHeart / 1400) ** 1.5);
+    }
+    if (region === 'gut' && time > next.gurgle) {
+      next.gurgle = time + after(1800, 4500);
+      sfx.gurgle(0.4 + Math.random() * 0.4);
+    }
+  }
 
   return {
-    // `at`: where I am; `region`: its id; `light`: daylight 0..1; `weather`: from weatherAt.
-    update(time, { at, region, light, weather }) {
+    // `at`: where I am; `region`: its id; `light`: daylight 0..1; `weather`: from weatherAt; `layer`: which.
+    update(time, { at, region, light, weather, layer }) {
+      if (layer === 'deep') return deep(time, at, region);
       const toNavel = Math.hypot(at.x - LANDMARKS.navel.x, at.y - LANDMARKS.navel.y);
       if (toNavel < HEART.reach && time > next.heart) {
         next.heart = time + HEART.every;

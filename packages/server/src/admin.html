@@ -407,10 +407,11 @@
       who.append(name, el('small', null, data.titles[p.title] ?? ''));
       const status = el('span', `status ${p.status}`);
       status.append(el('span', 'dot'), el('span', null, p.status === 'offline' ? `left ${ago(p.since)}` : p.status === 'away' ? 'reconnecting' : `here ${ago(p.since).replace(' ago', '')}`));
+      if (p.layer === 'deep' && p.status !== 'offline') status.append(el('span', 'tag', 'under the skin'));
       const cells = [
         who,
         status,
-        p.level,
+        p.crust ? `${p.level} · crust ${p.crust}` : p.level,
         `${albumSize(p)}/${data.characters.length}`,
         p.scraps,
         Object.keys(p.shinies ?? {}).length,
@@ -455,16 +456,19 @@
     const td = el('td', 'detail');
     td.colSpan = 8;
     const grid = el('div', 'detail-grid');
-    const plot = p.plot
-      ? `${p.plot.key}${p.plot.ripe != null ? ` · ${p.plot.ripe} ripe, ${p.plot.growing} growing` : ` · ${p.plot.crops} crops`}`
-      : 'none';
-    const held = data.heldPlots.find((h) => h.profileId === p.profileId);
+    const plotText = (plot) => (plot
+      ? `${plot.key}${plot.ripe != null ? ` · ${plot.ripe} ripe, ${plot.growing} growing` : ` · ${plot.crops} crops`}`
+      : 'none');
+    const plot = plotText(p.plot);
+    const held = data.heldPlots.find((h) => h.profileId === p.profileId && h.layer !== 'deep');
+    const heldDeep = data.heldPlots.find((h) => h.profileId === p.profileId && h.layer === 'deep');
     grid.append(
       box('Player', [
         ['Name', p.name],
-        ['Level', `${p.level} (${p.xp} xp)`],
+        ['Level', `${p.level}${p.crust ? ` · Crust ${p.crust}` : ''} (${p.xp} xp)`],
         ['Playing as', data.characters.find((c) => c.id === p.avatar)?.name ?? p.avatar],
         ['Plot', held ? `${held.key} · held, ${held.crops} crops, squeezed ${held.squeezed}×` : plot],
+        ...(p.deepPlot || heldDeep ? [['Under the Skin', heldDeep ? `${heldDeep.key} · held, ${heldDeep.crops} crops` : plotText(p.deepPlot)]] : []),
         ['Daily streak', p.streak],
         ['Save id', p.profileId],
         ...(p.pid ? [['Public id', p.pid]] : []),

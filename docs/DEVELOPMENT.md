@@ -87,6 +87,13 @@ address, from `VITE_SITE_URL` in `packages/client/.env.production`.
 Fonts (Rubik Wet Paint, Patrick Hand — same as the first game) are
 self-hosted in `packages/client/public/fonts/` under the SIL Open Font License.
 
+Under the Skin's art comes from `tools/deep.py` (same approach, same
+helpers, imported from `world.py`): a raw-muscle ground tile marbled with
+fat, three plot variants cut into the muscle, fat, clots, marrow and a gut
+coil for props, the Knot and the Heart, and the Vein and Marrow seed icons.
+The client loads it only when someone first climbs down
+(`packages/client/src/world/deep.js`).
+
 ## Repo layout
 
 Npm workspaces monorepo:
@@ -150,7 +157,11 @@ shows), `invites` (invite links, rewards, the daily cap), `limits` (joins
 and seats per address, request sizes, invisible characters, lockout by real
 address), `life` (day and night, weather, strays, sleepers, landmarks, the
 statue), `events` (The Scab, The Gash, The Tick and the event rotation),
-`events2` (Ingrown Hair, Blackheads, Navel Lint), `who` (who's around:
+`events2` (Ingrown Hair, Blackheads, Navel Lint), `deep` (Under the Skin:
+who can climb down and where, a second plot and its seeds and holes, slower
+crops at double XP, rooted Legendaries loosened by a neighbor or by
+themselves, what each layer sees, the deep plot in the save; and Crust past
+level 25), `who` (who's around:
 who's here and idle, who's been by, nothing private, the limit), `database`
 (Postgres saves, restarts, the database being down, who's been by after one;
 strikes and bans after one), `moderation` (chat strikes, the ban, network
@@ -158,6 +169,10 @@ bans, pardons), `titles`, `gifts`, `hardening` (masked swearing, rate limits)
 and `filter` (what counts as hate, sexual talk, harassment or swearing).
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
+
+For checks in a real browser (Playwright), build the client with
+`VITE_EXPOSE_GAME=1` and the Phaser game is on `window.__game`, to drive
+(`scene.getScene('world').walk(x, y)`) and inspect; a normal build leaves it out.
 
 ## Load testing
 

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { CHARACTERS, RARITY_ORDER, TITLE_BY_ID, levelFor } from '@hptm/shared';
+import { CHARACTERS, RARITY_ORDER, TITLE_BY_ID, crustFor, levelFor } from '@hptm/shared';
 import { databaseStatus } from './db.js';
 import { listDepartures } from './game/departed.js';
 import { moderationReport, pardon } from './game/moderation.js';
@@ -69,6 +69,7 @@ function departedPlayers(liveIds) {
       status: 'offline',
       since: at,
       level: levelFor(save.xp),
+      crust: crustFor(save.xp),
       xp: save.xp,
       scraps: save.currency,
       avatar: save.avatar,
@@ -84,6 +85,7 @@ function departedPlayers(liveIds) {
       quests: save.quests,
       dailyQuest: save.dailyQuest,
       plot: save.plot && { key: save.plot.key, crops: save.plot.slots.filter(Boolean).length },
+      deepPlot: save.deepPlot && { key: save.deepPlot.key, crops: save.deepPlot.slots.filter(Boolean).length },
     });
   }
   return players;

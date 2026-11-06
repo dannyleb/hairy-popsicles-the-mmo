@@ -1,17 +1,33 @@
-import { LANDMARKS, PLOT_PX, REGIONS, WORLD_EVENT, WORLD_PX, regionAt } from '@hptm/shared';
+import { PLACES, PLOT_PX, WORLD_EVENT, WORLD_PX } from '@hptm/shared';
 import { el, iconButton } from './dom.js';
 
 const SIZE = 92;  // CSS px
 const EVENT_COLORS = { scab: '#d08a50', gash: '#ff6a7a', tick: '#c8a0f0', ingrown: '#e8b080', blackheads: '#e8e070', lint: '#c8d4f0' };
-const REGION_COLORS = { navel: [74, 34, 38], scalp: [34, 22, 28], armpit: [48, 44, 26], freckles: [58, 32, 22], warts: [46, 24, 38] };
+const REGION_COLORS = {
+  navel: [74, 34, 38], scalp: [34, 22, 28], armpit: [48, 44, 26], freckles: [58, 32, 22], warts: [46, 24, 38],
+  knot: [96, 30, 36], veins: [64, 14, 30], gut: [92, 42, 50], fat: [92, 74, 36], marrow: [90, 80, 66],
+};
 // Brighter, for the big map, where the regions are what you're looking at.
-const MAP_COLORS = { navel: [128, 62, 68], scalp: [70, 50, 80], armpit: [100, 98, 50], freckles: [128, 78, 48], warts: [104, 56, 88] };
+const MAP_COLORS = {
+  navel: [128, 62, 68], scalp: [70, 50, 80], armpit: [100, 98, 50], freckles: [128, 78, 48], warts: [104, 56, 88],
+  knot: [156, 58, 66], veins: [118, 30, 62], gut: [150, 80, 92], fat: [150, 124, 62], marrow: [150, 138, 112],
+};
+// Each layer's landmarks, as marked on the maps: a ring, an eye, a plinth, a heart.
+const MARKS = {
+  surface: [['navel', 'ring', 'The Navel'], ['eye', 'eye', 'The Eye'], ['statue', 'plinth', null]],
+  deep: [['knot', 'ring', 'The Knot (way up)'], ['heart', 'heart', 'The Heart']],
+};
 const MAP_MAX = 560;  // CSS px, the big map's largest size
 const MAP_REFRESH_MS = 400;
 
-// The regions, drawn once: each pixel the color of where it is.
-function regionMap(size, colors = REGION_COLORS) {
+// A layer's regions, drawn once each: each pixel the color of where it is.
+const drawn = new Map();
+function regionMap(size, colors = REGION_COLORS, layer = 'surface') {
+  const key = `${layer}:${size}:${colors === REGION_COLORS}`;
+  if (drawn.has(key)) return drawn.get(key);
+  const { regionAt } = PLACES[layer];
   const canvas = document.createElement('canvas');
+  drawn.set(key, canvas);
   canvas.width = size;
   canvas.height = size;
   const g = canvas.getContext('2d');
@@ -25,6 +41,16 @@ function regionMap(size, colors = REGION_COLORS) {
   }
   g.putImageData(image, 0, 0);
   return canvas;
+}
+
+// A little heart, for the Heart Under the Skin.
+function heartMark(g, x, y, r) {
+  g.fillStyle = '#e04a5a';
+  g.beginPath();
+  g.moveTo(x, y + r);
+  g.bezierCurveTo(x - r * 1.6, y - r * 0.2, x - r * 0.6, y - r * 1.4, x, y - r * 0.4);
+  g.bezierCurveTo(x + r * 0.6, y - r * 1.4, x + r * 1.6, y - r * 0.2, x, y + r);
+  g.fill();
 }
 
 // The big map: the world with every place named, opened from the minimap. Tap
@@ -41,7 +67,6 @@ function createWorldMap({ onTravel }) {
   root.append(panel);
   document.body.append(root);
   const g = canvas.getContext('2d');
-  const regions = regionMap(200, MAP_COLORS);  // drawn big and smooth, so the borders blur softly
   let size = 0;
   let last = null;  // the latest draw()'s arguments, to draw with on opening
   let timer = null;
@@ -85,14 +110,40 @@ function createWorldMap({ onTravel }) {
     g.arc(x, y, r, 0, Math.PI * 2);
     g.fill();
   };
+  // A landmark on the big map.
+  const bigMark = (mark, x, y) => {
+    if (mark === 'ring') {
+      g.strokeStyle = '#f0c0a8';
+      g.lineWidth = 2;
+      for (const r of [9, 5]) {
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.stroke();
+      }
+    } else if (mark === 'eye') {
+      g.fillStyle = '#f2ece4';
+      g.beginPath();
+      g.ellipse(x, y, 11, 6, 0, 0, Math.PI * 2);
+      g.fill();
+      dot(x, y, 3.5, '#3a7a34');
+    } else if (mark === 'plinth') {
+      g.fillStyle = '#e4dccb';
+      g.fillRect(x - 6, y - 3, 12, 10);
+      dot(x, y - 7, 4, '#c8bfae');
+    } else {
+      heartMark(g, x, y, 9);
+    }
+  };
 
   function draw() {
     if (!last) return;
     const { state, myId, view, time, stray } = last;
+    const layer = state.layer ?? 'surface';
+    const { regions, landmarks } = PLACES[layer];
     const k = size / WORLD_PX;
     g.clearRect(0, 0, size, size);
     g.imageSmoothingEnabled = true;
-    g.drawImage(regions, 0, 0, size, size);
+    g.drawImage(regionMap(200, MAP_COLORS, layer), 0, 0, size, size);  // drawn big and smooth, so the borders blur softly
     if (state.bloodMoon) {
       g.fillStyle = 'rgba(120, 8, 18, 0.35)';
       g.fillRect(0, 0, size, size);
@@ -111,31 +162,14 @@ function createWorldMap({ onTravel }) {
     // The places' names go down first; everything else finds room around them.
     placed = [];
     const big = Math.round(Math.max(18, size / 17));
-    for (const [id, region] of Object.entries(REGIONS)) {
-      if (id === 'navel') continue;
+    for (const [id, region] of Object.entries(regions)) {
+      if (id === 'navel' || id === 'knot') continue;
       label(region.name, region.x * k, region.y * k, { font: `${big}px "Rubik Wet Paint", "Patrick Hand", cursive`, fixed: true });
       label(region.line, region.x * k, region.y * k + big * 0.85, { font: '13px "Patrick Hand", system-ui, sans-serif', color: '#e9b9a0', fixed: true });
     }
 
     // Landmarks.
-    const [nx, ny] = [LANDMARKS.navel.x * k, LANDMARKS.navel.y * k];
-    g.strokeStyle = '#f0c0a8';
-    g.lineWidth = 2;
-    for (const r of [9, 5]) {
-      g.beginPath();
-      g.arc(nx, ny, r, 0, Math.PI * 2);
-      g.stroke();
-    }
-    const [ex, ey] = [LANDMARKS.eye.x * k, LANDMARKS.eye.y * k];
-    g.fillStyle = '#f2ece4';
-    g.beginPath();
-    g.ellipse(ex, ey, 11, 6, 0, 0, Math.PI * 2);
-    g.fill();
-    dot(ex, ey, 3.5, '#3a7a34');
-    const [sx, sy] = [LANDMARKS.statue.x * k, LANDMARKS.statue.y * k];
-    g.fillStyle = '#e4dccb';
-    g.fillRect(sx - 6, sy - 3, 12, 10);
-    dot(sx, sy - 7, 4, '#c8bfae');
+    for (const [id, mark] of MARKS[layer]) bigMark(mark, landmarks[id].x * k, landmarks[id].y * k);
 
     // Everyone here, and what I can see now.
     for (const p of Object.values(state.players)) {
@@ -160,9 +194,11 @@ function createWorldMap({ onTravel }) {
     if (me) label('You', me.x * k, me.y * k, { font: bold(14), gap: 13 });
     if (happening) label(WORLD_EVENT.names[happening.kind], happening.x * k, happening.y * k, { font: bold(15), color: '#ffd0c0' });
     if (stray) label("Today's stray", stray.x * k, stray.y * k, { font: '13px "Patrick Hand", system-ui, sans-serif', color: '#ffd77a', gap: 12 });
-    label('The Navel', nx, ny, { font: bold(15), gap: 20 });
-    label('The Eye', ex, ey, { font: bold(15), gap: 17 });
-    label(state.statue ? `Statue of ${state.statue.name}` : 'The statue', sx, sy, { font: bold(14), gap: -20 });
+    for (const [id, mark, name] of MARKS[layer]) {
+      const { x, y } = landmarks[id];
+      if (mark === 'plinth') label(state.statue ? `Statue of ${state.statue.name}` : 'The statue', x * k, y * k, { font: bold(14), gap: -20 });
+      else label(name, x * k, y * k, { font: bold(15), gap: mark === 'ring' ? 20 : 17 });
+    }
     if (mine) label('Your plot', (mine[0] + 0.5) * plotPx, (mine[1] + 0.5) * plotPx, { font: '13px "Patrick Hand", system-ui, sans-serif', color: '#ffe0c8', gap: plotPx / 2 + 8 });
   }
 
@@ -201,7 +237,6 @@ export function createMinimap({ onTravel }) {
   const g = canvas.getContext('2d');
   g.scale(dpr, dpr);
   const k = SIZE / WORLD_PX;
-  const regions = regionMap(Math.round(SIZE * dpr));
   const big = createWorldMap({ onTravel });
   // A corner mark, so it reads as something to open.
   root.append(el('span', 'minimap-expand', '⤢'));
@@ -213,27 +248,39 @@ export function createMinimap({ onTravel }) {
     // `stray`: where today's featured stray is, while it's still to be caught.
     draw(state, myId, view, time, stray = null) {
       big.update({ state, myId, view, time, stray });
+      const layer = state.layer ?? 'surface';
+      const { landmarks } = PLACES[layer];
       g.clearRect(0, 0, SIZE, SIZE);
-      g.drawImage(regions, 0, 0, SIZE, SIZE);
+      g.drawImage(regionMap(Math.round(SIZE * dpr), REGION_COLORS, layer), 0, 0, SIZE, SIZE);
       if (state.bloodMoon) {
         g.fillStyle = 'rgba(110, 6, 16, 0.5)';
         g.fillRect(0, 0, SIZE, SIZE);
       }
 
-      // Landmarks: the Navel, the Eye, the statue.
-      g.strokeStyle = 'rgba(233, 185, 160, 0.9)';
-      g.lineWidth = 1;
-      g.beginPath();
-      g.arc(LANDMARKS.navel.x * k, LANDMARKS.navel.y * k, 3, 0, Math.PI * 2);
-      g.stroke();
-      g.fillStyle = '#f2ece4';
-      g.beginPath();
-      g.ellipse(LANDMARKS.eye.x * k, LANDMARKS.eye.y * k, 3.4, 1.8, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = '#3a6a30';
-      g.fillRect(LANDMARKS.eye.x * k - 0.8, LANDMARKS.eye.y * k - 0.8, 1.6, 1.6);
-      g.fillStyle = '#d9cfbc';
-      g.fillRect(LANDMARKS.statue.x * k - 1.2, LANDMARKS.statue.y * k - 1, 2.4, 3.4);
+      // Landmarks: the Navel, the Eye, the statue (or the Knot and the Heart).
+      for (const [id, mark] of MARKS[layer]) {
+        const x = landmarks[id].x * k;
+        const y = landmarks[id].y * k;
+        if (mark === 'ring') {
+          g.strokeStyle = 'rgba(233, 185, 160, 0.9)';
+          g.lineWidth = 1;
+          g.beginPath();
+          g.arc(x, y, 3, 0, Math.PI * 2);
+          g.stroke();
+        } else if (mark === 'eye') {
+          g.fillStyle = '#f2ece4';
+          g.beginPath();
+          g.ellipse(x, y, 3.4, 1.8, 0, 0, Math.PI * 2);
+          g.fill();
+          g.fillStyle = '#3a6a30';
+          g.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+        } else if (mark === 'plinth') {
+          g.fillStyle = '#d9cfbc';
+          g.fillRect(x - 1.2, y - 1, 2.4, 3.4);
+        } else {
+          heartMark(g, x, y, 3.2);
+        }
+      }
 
       for (const [key, plot] of Object.entries(state.plots)) {
         const [px, py] = key.split(',').map(Number);
@@ -286,6 +333,11 @@ export function createMinimap({ onTravel }) {
       g.textBaseline = 'bottom';
       g.fillStyle = 'rgba(255, 232, 214, 0.85)';
       g.fillText(`${players.length} here`, SIZE - 4, SIZE - 2);
+      // And how many are on the other layer.
+      if (state.elsewhere) {
+        g.textAlign = 'left';
+        g.fillText(layer === 'deep' ? `${state.elsewhere} up top` : `${state.elsewhere} below`, 4, SIZE - 2);
+      }
     },
   };
 }

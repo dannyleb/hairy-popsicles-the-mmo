@@ -1,4 +1,4 @@
-import { ITCH, QUEST_KINDS, SEEDS, TITLE_BY_ID, WORLD_EVENT, levelProgress, MAX_LEVEL } from '@hptm/shared';
+import { BASIC_SEED, ITCH, QUEST_KINDS, SEEDS, SEED_BY_ID, TITLE_BY_ID, WORLD_EVENT, levelProgress, seedGrowsIn } from '@hptm/shared';
 import { sfx } from '../audio/sfx.js';
 import { createAlbum } from './album.js';
 import { createChat } from './chat.js';
@@ -168,7 +168,9 @@ export function createHud(actions) {
 
   let me = null;      // private data from the server
   let pub = null;     // my public player record
-  let preferred = 'pimple';  // the seed last picked; pimple seeds stand in while it's unavailable
+  // The seed last picked on each layer; the layer's basic seed stands in while it's unavailable.
+  const preferred = { ...BASIC_SEED };
+  const layer = () => me?.layer ?? 'surface';
   let lastScraps = null;
   let featured = null;  // today's featured character
   let season = null;    // the limited-time season, while one is on
@@ -181,12 +183,14 @@ export function createHud(actions) {
   }
 
   function selectSeed(id) {
-    preferred = id;
+    const seed = SEED_BY_ID[id];
+    if (seedGrowsIn(seed, layer())) preferred[layer()] = id;
     renderSeeds();
   }
 
   function selected() {
-    return chipState(SEEDS.find((s) => s.id === preferred)).locked ? 'pimple' : preferred;
+    const id = preferred[layer()];
+    return chipState(SEED_BY_ID[id]).locked || !seedGrowsIn(SEED_BY_ID[id], layer()) ? BASIC_SEED[layer()] : id;
   }
 
   function renderSeeds() {
@@ -194,6 +198,7 @@ export function createHud(actions) {
     for (const seed of SEEDS) {
       const { chip, tag } = seedChips.get(seed.id);
       const { locked } = chipState(seed);
+      chip.hidden = !seedGrowsIn(seed, layer());  // only what grows on this layer
       chip.classList.toggle('locked', locked);
       chip.classList.toggle('selected', seed.id === selected());
       if (seed.dropOnly) tag.textContent = `×${me.inventory[seed.id] ?? 0}`;
@@ -237,8 +242,9 @@ export function createHud(actions) {
     if (!pub || !me) return;
     portrait.src = spriteUrl(pub.avatar);
     name.textContent = pub.name;
-    level.textContent = `Lv ${me.level}`;
-    xpFill.style.width = `${(me.level >= MAX_LEVEL ? 1 : levelProgress(me.xp)) * 100}%`;
+    level.textContent = me.crust ? `Crust ${me.crust}` : `Lv ${me.level}`;
+    level.classList.toggle('crust', Boolean(me.crust));
+    xpFill.style.width = `${levelProgress(me.xp) * 100}%`;
     scraps.textContent = me.currency;
     teethCount.hidden = !season && !me.inventory.teeth;
     teethCount.textContent = `🦷 ${me.inventory.teeth ?? 0}`;

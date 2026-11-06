@@ -1,8 +1,20 @@
 import { CHARACTERS, CHARACTER_BY_ID } from './characters.js';
 
-// Cumulative XP needed to reach each level (index 0 = level 1).
-const LEVEL_XP = [0, 40, 110, 220, 380, 600, 880, 1250, 1700, 2250, 2900, 3700, 4600, 5700, 7000];
+// Cumulative XP needed to reach each level (index 0 = level 1). Levels 16-25
+// are mostly earned Under the Skin (deep.js), where crops pay double XP.
+const LEVEL_XP = [
+  0, 40, 110, 220, 380, 600, 880, 1250, 1700, 2250, 2900, 3700, 4600, 5700, 7000,
+  8500, 10200, 12100, 14200, 16500, 19000, 21700, 24600, 27700, 31000,
+];
 export const MAX_LEVEL = LEVEL_XP.length;
+
+// Past the top level, XP keeps counting toward Crust: a rank with no top, one
+// more every CRUST_XP. Each rank adds a little to the scraps a harvest pays.
+export const CRUST_XP = 5000;
+const CRUST_SCRAPS = 0.01;
+const CRUST_SCRAPS_MAX = 0.2;
+export const crustFor = (xp) => Math.max(0, Math.floor((xp - LEVEL_XP[MAX_LEVEL - 1]) / CRUST_XP));
+export const crustScraps = (crust) => Math.min(CRUST_SCRAPS_MAX, crust * CRUST_SCRAPS);
 
 export function levelFor(xp) {
   let level = 1;
@@ -10,10 +22,10 @@ export function levelFor(xp) {
   return level;
 }
 
-// Progress through the current level, 0..1 (1 at max level).
+// Progress through the current level, 0..1 (at the top level, toward the next Crust).
 export function levelProgress(xp) {
   const level = levelFor(xp);
-  if (level >= MAX_LEVEL) return 1;
+  if (level >= MAX_LEVEL) return ((xp - LEVEL_XP[MAX_LEVEL - 1]) % CRUST_XP) / CRUST_XP;
   const from = LEVEL_XP[level - 1];
   return (xp - from) / (LEVEL_XP[level] - from);
 }
@@ -24,10 +36,14 @@ export const holesFor = (level) => Math.min(HOLE_ORDER.length, 2 + level);
 export const holeOpen = (slot, level) => HOLE_ORDER.indexOf(slot) < holesFor(level);
 export const levelForHole = (slot) => Math.max(1, HOLE_ORDER.indexOf(slot) - 1);
 
-// Once every hole is open (level 7), each further level makes crops grow a bit faster.
+// Once every hole is open (level 7), each level up to 15 makes crops grow a bit
+// faster; past that, levels open holes Under the Skin instead, until the last
+// few (from GREEN_THUMB_AGAIN), which speed crops up again.
 const GREEN_THUMB_FROM = HOLE_ORDER.length - 2;
+const GREEN_THUMB_UNTIL = 15;
+const GREEN_THUMB_AGAIN = 21;
 const GREEN_THUMB_STEP = 0.03;
-export const greenThumb = (level) => Math.max(0, level - GREEN_THUMB_FROM) * GREEN_THUMB_STEP;
+export const greenThumb = (level) => (Math.max(0, Math.min(level, GREEN_THUMB_UNTIL) - GREEN_THUMB_FROM) + Math.max(0, level - GREEN_THUMB_AGAIN)) * GREEN_THUMB_STEP;
 
 export const XP = {
   harvest: { common: 10, uncommon: 22, rare: 50, legendary: 120 },
@@ -38,14 +54,20 @@ export const XP = {
 };
 
 // What you can plant. Better seeds unlock with level and shift the odds toward rarer characters.
-// Boil seeds can't be bought: the world boss drops them.
+// Boil seeds can't be bought: the world boss drops them. A seed with a `layer`
+// only grows there (the skin, or Under the Skin); one without grows anywhere.
 export const SEEDS = [
-  { id: 'pimple', name: 'Pimple Seed', cost: 5, level: 1, weights: { common: 55, uncommon: 28, rare: 13, legendary: 4 } },
-  { id: 'pus', name: 'Pus Seed', cost: 15, level: 3, weights: { common: 20, uncommon: 50, rare: 24, legendary: 6 } },
-  { id: 'bone', name: 'Bone Seed', cost: 40, level: 6, weights: { common: 0, uncommon: 35, rare: 50, legendary: 15 } },
+  { id: 'pimple', name: 'Pimple Seed', cost: 5, level: 1, layer: 'surface', weights: { common: 55, uncommon: 28, rare: 13, legendary: 4 } },
+  { id: 'pus', name: 'Pus Seed', cost: 15, level: 3, layer: 'surface', weights: { common: 20, uncommon: 50, rare: 24, legendary: 6 } },
+  { id: 'bone', name: 'Bone Seed', cost: 40, level: 6, layer: 'surface', weights: { common: 0, uncommon: 35, rare: 50, legendary: 15 } },
+  { id: 'vein', name: 'Vein Seed', cost: 60, level: 15, layer: 'deep', weights: { common: 0, uncommon: 25, rare: 50, legendary: 25 } },
+  { id: 'marrow', name: 'Marrow Seed', cost: 150, level: 20, layer: 'deep', weights: { common: 0, uncommon: 0, rare: 45, legendary: 55 } },
   { id: 'boil', name: 'Boil Seed', cost: 0, level: 1, dropOnly: true, weights: { common: 0, uncommon: 0, rare: 70, legendary: 30 } },
 ];
 export const SEED_BY_ID = Object.fromEntries(SEEDS.map((s) => [s.id, s]));
+export const seedGrowsIn = (seed, layer) => !seed.layer || seed.layer === layer;
+// The seed to fall back on in each layer.
+export const BASIC_SEED = { surface: 'pimple', deep: 'vein' };
 
 // During a Blood Moon the rare end of every seed's odds is multiplied.
 export const BLOOD_MOON_BOOST = { rare: 2.5, legendary: 3 };

@@ -35,6 +35,7 @@ const SUITES = {
   events2: [{ PORT: 2595, EVENT_SCALE: 0.15, WORLD_EVENTS: 'ingrown,blackheads,lint' }],
   who: [{ PORT: 2596 }],
   moderation: [{ PORT: 2597, ADMIN_KEY: 'test-admin-key' }],
+  deep: [{ PORT: 2598, GROW_SCALE: 0.02 }],
   database: [],  // starts its own servers (2590-2592), against TEST_DATABASE_URL
   limits: [{ PORT: 2585, JOINS_PER_MINUTE: 16, SEATS_PER_ADDRESS: 3, NEWCOMERS_KEPT: 3, ADMIN_KEY: 'test-admin-key' }],
 };

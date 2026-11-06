@@ -31,9 +31,11 @@ export function spotNear(near, { dist = [220, 340], margin = 160, tries = 16, fi
   return spot;
 }
 
-// Players who are actually here and playing: not dropped and waiting to
-// reconnect, and done something in the last few minutes. World events start
-// near them and size themselves by them, so connections left sitting idle
-// can't make one bigger (and pay more).
+// Players who are actually here and playing, up on the skin: not dropped and
+// waiting to reconnect, not Under the Skin (world events happen up here), and
+// done something in the last few minutes. World events start near them and
+// size themselves by them, so connections left sitting idle can't make one
+// bigger (and pay more).
 const ACTIVE_MS = 3 * 60_000;
-export const present = (room, now = Date.now()) => Object.values(room.players).filter((p) => !p.away && now - p.activeAt < ACTIVE_MS);
+export const present = (room, now = Date.now()) => Object.values(room.players)
+  .filter((p) => !p.away && p.layer !== 'deep' && now - p.activeAt < ACTIVE_MS);

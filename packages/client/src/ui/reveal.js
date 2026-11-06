@@ -241,17 +241,18 @@ export function createReveal({ onWear }) {
       });
     },
 
-    levelUp(level, unlocks) {
+    // `kind`: 'level', or 'crust' for a layer of Crust past the top level.
+    levelUp(level, unlocks, kind = 'level') {
       // A burst of XP can level you up several times at once: fold those into
       // the splash on screen (or waiting in line) instead of queueing more.
       const current = waitingLevelUp ?? showingLevelUp;
-      if (current) {
+      if (current?.kind === kind) {
         current.level = level;
         current.unlocks.push(...unlocks);
         current.render?.();
         return;
       }
-      const entry = { level, unlocks: [...unlocks], render: null };
+      const entry = { level, kind, unlocks: [...unlocks], render: null };
       waitingLevelUp = entry;
       enqueue(() => {
         waitingLevelUp = null;
@@ -260,7 +261,8 @@ export function createReveal({ onWear }) {
         const number = el('h2', 'reveal-level');
         const list = el('ul', 'reveal-unlocks');
         const card = el('div', 'reveal-card');
-        card.append(el('p', 'reveal-rarity', 'Level up'), number, list, button('reveal-button primary', 'Keep growing', () => next()));
+        card.append(el('p', 'reveal-rarity', kind === 'crust' ? 'Another layer of Crust' : 'Level up'), number, list, button('reveal-button primary', 'Keep growing', () => next()));
+        if (kind === 'crust') root.classList.add('crust');
         root.append(card);
         entry.render = () => {
           number.textContent = String(entry.level);

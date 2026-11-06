@@ -4,7 +4,7 @@ import { PLOT_PX, WORLD_PX } from './constants.js';
 // one quarter to the next. Their borders wander a little so they don't look
 // ruled. Landmarks stand on blocks of plots nobody can claim.
 const MID = WORLD_PX / 2;
-const NAVEL_REACH = 210;  // px from the middle that still counts as the Navel
+export const NAVEL_REACH = 210;  // px from the middle that still counts as the Navel
 
 export const REGIONS = {
   navel: { name: 'The Navel', line: 'The middle of everything.', x: MID, y: MID },
@@ -22,19 +22,27 @@ export function regionAt(x, y) {
   return x < westOf ? 'freckles' : 'warts';
 }
 
-// Each on [first plot x, first plot y, width, height] in plots; x and y are its middle in px.
+// Each on [first plot x, first plot y, width, height] in plots; x and y are its
+// middle in px (filled in by placeLandmarks).
 export const LANDMARKS = {
   navel: { plots: [9, 9, 2, 2] },
   statue: { plots: [9, 7, 2, 2] },
   eye: { plots: [13, 9, 2, 2] },
 };
-const RESERVED = new Set();
-for (const landmark of Object.values(LANDMARKS)) {
-  const [x0, y0, w, h] = landmark.plots;
-  landmark.x = (x0 + w / 2) * PLOT_PX;
-  landmark.y = (y0 + h / 2) * PLOT_PX;
-  for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + h; y++) RESERVED.add(`${x},${y}`);
-}
 
-// A plot key ('x,y') under a landmark, where nobody can farm.
+// Works out where each landmark's middle is, and returns the plot keys under
+// them, where nobody can farm.
+export function placeLandmarks(landmarks) {
+  const reserved = new Set();
+  for (const landmark of Object.values(landmarks)) {
+    const [x0, y0, w, h] = landmark.plots;
+    landmark.x = (x0 + w / 2) * PLOT_PX;
+    landmark.y = (y0 + h / 2) * PLOT_PX;
+    for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + h; y++) reserved.add(`${x},${y}`);
+  }
+  return reserved;
+}
+const RESERVED = placeLandmarks(LANDMARKS);
+
+// A plot key ('x,y') under a landmark on the skin, where nobody can farm.
 export const isReservedPlot = (key) => RESERVED.has(key);

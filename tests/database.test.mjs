@@ -149,6 +149,15 @@ const hiddenSave = saveToken({
 }, null, null);
 await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2, now())', [hiddenId, hiddenSave]);
 
+// Someone who left a crop growing Under the Skin.
+const diggerId = `db-digger-${Date.now()}`;
+const deepCrop = { ...growing, seed: 'vein' };
+const diggerSave = saveToken({
+  profileId: diggerId, name: 'Digger', avatar: 'pimples', xp: 7000, currency: 100, collection: { pimples: 1 }, shinies: {},
+  inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
+}, null, null, ['5,5', { candles: 0, slots: Array.from({ length: 9 }, (_, i) => (i === 4 ? deepCrop : null)) }]);
+await sql.query('INSERT INTO saves (profile_id, token, saved_at) VALUES ($1, $2, now())', [diggerId, diggerSave]);
+
 // ---- server B: the same database after a restart
 const b = await startServer(2591);
 await sleep(300);
@@ -164,6 +173,18 @@ const settled = Object.entries(watcher.state.plots).find(([, plot]) => plot.owne
 check('a held plot from before a landmark comes back next to it', settled && settled[1].away && !isReservedPlot(settled[0]), settled?.[0]);
 check('the statue is of the biggest collector in the database', watcher.state.statue?.name === 'Settler' && watcher.state.statue.album === 20, JSON.stringify(watcher.state.statue));
 check('coming back with an old save after a restart gets the newest one', back.me.currency === spent, `${back.me.currency} vs ${spent}`);
+const diver = await join(2591, {
+  profile: saveToken({
+    profileId: `db-diver-${Date.now()}`, name: 'Diver', avatar: 'pimples', xp: 7000, currency: 100, collection: { pimples: 1 }, shinies: {},
+    inventory: { boil: 0 }, quests: [], daily: { last: today, streak: 1 }, dailyQuest: null, stats: {}, titles: [], title: null,
+  }, null, null),
+});
+diver.room.send('move', { x: LANDMARKS.navel.x, y: LANDMARKS.navel.y + 120 });
+await sleep(1500);
+diver.room.send('travel', { to: 'deep' });
+await sleep(800);
+check('a plot left growing Under the Skin is back down there after a restart', diver.state.layer === 'deep' && diver.state.plots['5,5']?.away === true && diver.state.plots['5,5'].ownerName === 'Digger', JSON.stringify(Object.keys(diver.state.plots ?? {})));
+check("...and not up on the skin", !watcher.state.plots['5,5']);
 check('and their plot', back.state.plots['4,4']?.ownerId === back.room.sessionId);
 const status = await (await fetch('http://localhost:2591/admin/data', { headers: { Authorization: 'Bearer test-admin-key' } })).json();
 check('the admin page shows the database and how many saves it holds', status.database?.on === true && status.database.saves >= 2, JSON.stringify(status.database));
@@ -181,6 +202,7 @@ check('so do strikes: the next one is the third, and bans', rudeBack.flagged[0]?
 check('flagged lines from before the restart are on the admin page', ['you absolute fag', 'kys', 'send nudes'].every((t) => status.moderation?.flags.some((f) => f.text === t)));
 await back.room.leave(true);
 await watcher.room.leave(true);
+await diver.room.leave(true);
 b.kill('SIGTERM');
 await b.exited;
 

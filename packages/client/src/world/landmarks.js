@@ -1,6 +1,6 @@
 import { CHARACTERS, LANDMARKS } from '@hptm/shared';
 import { textResolution } from '../display.js';
-import { DEPTH, EVENT_TINT, FONT, NIGHT_TINT, inLight } from './layout.js';
+import { DEPTH, EVENT_TINT, FONT, NIGHT_TINT, inLight, track } from './layout.js';
 
 // The world's landmarks, on plots nobody can farm (LANDMARKS in @hptm/shared):
 // the Navel in the middle, a giant Eye that watches whoever's nearest and
@@ -38,6 +38,7 @@ function boneTexture(scene, characterId) {
 }
 
 export function createLandmarks(scene) {
+  const stopTracking = track(scene);
   const navelAt = LANDMARKS.navel;
   const navel = scene.add.image(navelAt.x, navelAt.y, 'world:navel').setTint(NIGHT_TINT).setDepth(DEPTH.decor + 2);
   navel.setScale(NAVEL_SIZE / navel.width);
@@ -72,8 +73,13 @@ export function createLandmarks(scene) {
   let navelHeaveUntil = 0;
 
   const near = (x, y, at, w, h) => Math.abs(x - at.x) < w && Math.abs(y - at.y) < h;
+  const made = stopTracking();
 
   return {
+    destroy() {
+      for (const object of made) object.destroy();
+    },
+
     // `subject`: the statue's { name, avatar, album, color }, or null while nobody's earned it.
     setStatue(subject, myPid) {
       const key = subject ? `${subject.pid}|${subject.name}|${subject.avatar}|${subject.album}|${subject.color}|${subject.pid === myPid}` : 'none';

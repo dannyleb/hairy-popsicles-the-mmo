@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { PLOT_PX, WORLD_HEIGHT_PLOTS, WORLD_WIDTH_PLOTS } from '@hptm/shared';
 
 export const WORLD_W = WORLD_WIDTH_PLOTS * PLOT_PX;
@@ -56,4 +57,17 @@ export function drawBar(g, x, top, k, color) {
   g.clear();
   g.fillStyle(0x1a0a0d, 0.85).fillRoundedRect(x - BAR_W / 2 - 2, top - BAR_H - 2, BAR_W + 4, BAR_H + 4, 5);
   g.fillStyle(color, 1).fillRoundedRect(x - BAR_W / 2, top - BAR_H, Math.max(2, BAR_W * k), BAR_H, 4);
+}
+
+// Everything added to the scene from now until the returned function is
+// called, which returns it all: a layer of the world (its ground, its
+// landmarks) is built at once, and goes all at once when you leave it.
+export function track(scene) {
+  const made = [];
+  const note = (object) => made.push(object);
+  scene.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, note);
+  return () => {
+    scene.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, note);
+    return made;
+  };
 }

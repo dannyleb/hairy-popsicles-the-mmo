@@ -103,6 +103,12 @@
   border-radius: 8px;
 }
 
+/* Past the top level: Crust, a crusty amber. */
+.hud-level.crust {
+  color: #2a1408;
+  background: #e0a35c;
+}
+
 .hud-xp {
   width: 100%;
   min-width: 92px;
@@ -1240,6 +1246,14 @@
 
 .reveal.level {
   --rarity: #e8b04a;
+}
+
+.reveal.crust {
+  --rarity: #e0a35c;
+}
+
+.reveal.crust .reveal-level {
+  color: #e0a35c;
 }
 
 .reveal-level {

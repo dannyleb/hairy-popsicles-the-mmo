@@ -42,6 +42,8 @@ const game = new Phaser.Game({
 });
 
 window.addEventListener('resize', () => applyRenderScale(game));
+// For the browser checks only (built with VITE_EXPOSE_GAME=1): the game, to drive and inspect.
+if (import.meta.env.VITE_EXPOSE_GAME) window.__game = game;
 
 // A phone short of memory can take the graphics context from a tab in the
 // background. When it gives it back, Phaser rebuilds every texture from its

@@ -11,11 +11,13 @@ import { settingToggles } from './toggles.js';
 import './menu.css';
 
 const NAME_KEY = 'hptm:name';
-const VERSION = 'v0.14';
+const VERSION = 'v0.15';
 
 const PANELS = {
   'How to play': HOW_TO_PLAY,
   "What's new": [
+    'Under the Skin: from level 15, tap the Navel to climb down into a whole second world of raw flesh, fat, gut and marrow, with the Heart beating away. Claim a second plot down there. Crops grow slower but pay double XP, and Legendaries come up rooted: a neighbor can loosen yours (and get paid), or it works loose by itself.',
+    'Levels go to 25 now, earned mostly Under the Skin: more holes down there, Marrow Seeds at 20, faster crops at 22 to 25. Past 25, XP grows Crust: a rank with no top, each layer adding a little to every harvest.',
     "Chat safety: hateful, sexual or abusive messages aren't sent and count as strikes, with a warning. Three strikes and you're banned. Swearing is just bleeped.",
     'Drag the ground to look around: the view stays put while you tap about, and comes back to you when you walk somewhere (or tap Back to me).',
     "Who's around, right here on this screen (and in the world: Who's here, then Who's been by): who's on now and how long since they did anything, and who's been by in the last 3 days. Pals first. Appear offline (Settings) keeps you off it.",

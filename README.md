@@ -19,6 +19,11 @@ once. Free in your phone's browser. No install, no sign-up.
     <td align="center"><img src="docs/screenshots/album.jpg" width="250" alt="The album: every character grown, silhouettes for the rest"><br><sub>Collect all 25</sub></td>
     <td align="center"><img src="docs/screenshots/night.jpg" width="250" alt="The giant Eye at night, watching the nearest player"><br><sub>Night falls. The Eye watches.</sub></td>
   </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/under-the-skin.jpg" width="250" alt="Under the Skin: the Knot, where the Navel comes out underneath, with daylight falling down it"><br><sub>At level 15, climb down the Navel</sub></td>
+    <td align="center"><img src="docs/screenshots/heart.jpg" width="250" alt="The giant beating Heart, Under the Skin"><br><sub>Under the Skin, the Heart beats</sub></td>
+    <td align="center"><img src="docs/screenshots/gut.jpg" width="250" alt="Coils of gut lying in raw muscle, in the Gut"><br><sub>Farm the Gut, the Fat, the Marrow</sub></td>
+  </tr>
 </table>
 
 ## What it is
@@ -56,6 +61,12 @@ Seeds cost scraps: **Pimple** (5) grows mostly Commons, **Pus** (15, level 3)
 leans Uncommon, **Bone** (40, level 6) leans Rare, and the **Boil Seed**,
 earned at events and in daily rewards, only grows Rares and Legendaries.
 
+At **level 15**, tap the Navel and climb down: **Under the Skin** is a second
+world of raw flesh, fat, gut and marrow, with a giant Heart beating away.
+You get a second plot down there with its own seeds (**Vein** and
+**Marrow**). Crops grow slower but pay double XP, and Legendaries come up
+rooted: a neighbor has to help loosen them, or wait for them to work loose.
+
 ## What's in it
 
 **Collecting**
@@ -86,7 +97,8 @@ earned at events and in daily rewards, only grows Rares and Legendaries.
   Or appear offline, in Settings.
 
 **Progress**
-- Levels 1 to 15: more holes, better seeds, faster crops.
+- Levels 1 to 25: more holes, better seeds, faster crops. Levels 16 to 25 are
+  earned mostly Under the Skin. Past 25, XP grows **Crust**: a rank with no top.
 - Three quests at a time plus a bigger daily one; 21 titles to earn and wear.
 - A shop (fertilizer, candles for your plot, name colors), a 7-day gift streak,
   and limited seasons like the Rotting Season, with its own currency (teeth).

@@ -43,7 +43,8 @@ export function createRain(room, scale) {
     });
   }
 
-  const active = () => Object.values(room.players).filter((p) => !p.away);
+  // (Pus Rain falls on the skin, near whoever's up there.)
+  const active = () => Object.values(room.players).filter((p) => !p.away && p.layer !== 'deep');
 
   function lintLeft() {
     let n = 0;
