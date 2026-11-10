@@ -40,8 +40,8 @@ CONEHEAD (guilty): ...finders keepers.
 ## Make it
 
 ```
-npm run short -- shorts/scripts/the-lost-eye.txt          # voices + a preview (stills), and the cost of the video
-npm run short -- shorts/scripts/the-lost-eye.txt --yes    # the real thing: makes the video shots (costs fal credit)
+npm run short -- shorts/scripts/the-lost-eye.txt          # voices (a few cents) + a preview (stills), and the cost of the video
+npm run short -- shorts/scripts/the-lost-eye.txt --yes    # the real thing: makes the video shots (about $1.50-2 for 30 s)
 ```
 
 The result is in `shorts/out/<name>/`: `<name>.mp4`, plus `<name>.srt` if you
@@ -54,19 +54,33 @@ want to upload captions separately. Until every shot has video, it's
   remakes its voice.
 - **Testing without spending anything?** `--offline` uses silent placeholder
   voices and stills.
-- **Which voices can you use?** `npm run short -- --voices` lists the ones on
-  your ElevenLabs account.
 
 ## Cast and voices
 
-`cast.json` has everyone from the game, each with:
-- `voice`: an ElevenLabs voice name.
-- `look`: a description the video model reads.
-- `lipsync: false`: for anyone without a mouth (Roast, Head Bloom). They move
+Each character in `cast.json` has its own designed voice:
+- `brief`: the voice, described. Odd, abrasive, wet, wheezing: whatever fits
+  the face. Design it (or design it again) with:
+  ```
+  npm run short -- --design conehead,bigeye     # or --design all
+  ```
+  That makes a voice from the brief, saves it in `voices.json`, and puts an
+  audition in `shorts/out/voices/audition.mp3`. Don't like it? Change the
+  brief and design again. Each design is a cent or two. A character with no
+  voice yet gets one designed the first time a script needs it.
+- `manner`: how they always talk (`"manic, too cheerful"`), used on every
+  line without its own note. A note in the script replaces it for that line.
+- `fx`: what's done to the voice afterwards, stacked in order:
+  - pitch and size: `deep`, `deeper`, `high`, `tiny`
+  - wobble: `warble`, `tremble`, `gurgle`
+  - texture: `wet`, `crunch`, `rasp`, `whisper`, `static`
+  - space: `choir`, `echo`, `uncanny`
+- `voiceOf`: share another character's voice (the snoots do).
+- `look`: what they are, for the video model.
+- `lipsync: false`: anyone without a mouth (Roast, Head Bloom); they move
   while the voice plays over.
 
-Design a voice in ElevenLabs (Voice Design), then put its name in the
-character's `voice`.
+Change a character's `fx` or `manner` and run the script again: only their
+lines are remade. `--revoice 3` re-says line 3 (every take differs a little).
 
 Better pictures make better video: drop a full-size render at
 `shorts/characters/<id>.png` (for example `shorts/characters/conehead.png`)
@@ -74,24 +88,31 @@ and it's used instead of the game's 768px one.
 
 ## Services and keys
 
-- **ElevenLabs** makes the voices: eleven_v3, which acts on the notes, or the
-  voice changer for your own takes.
-- **fal.ai** makes the video. Talking shots use Kling AI Avatar v2 (about
-  $0.056 a second). Action shots use Kling v3 (about $0.084 a second, $0.42
-  for 5 s). A 30-second short is around $1.50 to $2.
-- Models and prices are in `kit.json`; change the model there to try another.
+Everything runs on **fal.ai**, from one balance:
+- **Voices:** designed and spoken by ElevenLabs v3 on fal, at $0.10 per
+  1,000 characters. fal's page says commercial use is included.
+- **Talking shots:** Kling AI Avatar v2, about $0.056 a second.
+- **Action shots:** Kling v3, about $0.084 a second ($0.42 for 5 s).
+- **Your own takes:** ElevenLabs' voice changer on fal.
+
+A 30-second short is around $1.50 to $2. Models and prices are in
+`kit.json`; change the model there to try another.
+
+(`voice.provider: "elevenlabs"` in `kit.json` uses your own ElevenLabs
+account and the stock voices named in `cast.json` instead. Stock voices only:
+designing voices through ElevenLabs' own API needs a paid plan.
+`npm run short -- --voices` lists them.)
 
 Keys:
 - **In a Claude cloud session** (the "Hairy Popsicles" environment) they're
   saved on the environment and added on the way out. Nothing to do.
 - **On your own computer**, make `shorts/.env` (it's never committed):
   ```
-  ELEVENLABS_API_KEY=...
   FAL_KEY=...
+  ELEVENLABS_API_KEY=...     # only for provider "elevenlabs"
   ```
 - Needs Node 22+ and ffmpeg.
 
 fal is pay as you go: add credit at fal.ai/dashboard/billing. If it runs out,
-the kit stops and charges nothing. ElevenLabs' free plan is 10,000 characters
-a month and, as far as we know, doesn't allow commercial use, so check their
-terms before posting shorts that promote the game.
+the kit stops and charges nothing more. A failed or cut-off run picks up
+where it stopped instead of paying again.

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 // The two services: ElevenLabs for voices, fal for video. Keys come from
@@ -56,7 +56,7 @@ export async function speak({ text, direction, voiceId, model, format, settings,
     body: JSON.stringify(body),
   });
   if (!res.ok) throw await elevenError(res, 'text to speech');
-  writeFileSync(outFile, Buffer.from(await res.arrayBuffer()));
+  writeFileSync(outFile, Buffer.from(await res.arrayBuffer()));  // (a raw file: make.mjs treats it into the cache)
 }
 
 // A recorded take, turned into the character's voice (speech to speech).
@@ -103,6 +103,56 @@ function falError(model, res, body) {
   return new Error(`fal ${model} failed: ${res.status} ${detail}`);
 }
 
+// Runs `model` on `input` through fal's queue (for quick jobs: voices) and
+// returns what it made.
+export async function falRun(model, input) {
+  const { res, body } = await falJson(`${FAL_QUEUE}/${model}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  });
+  if (!res.ok || !body.request_id) throw falError(model, res, body);
+  const started = Date.now();
+  for (;;) {
+    const status = await falJson(body.status_url);
+    if (status.body.status === 'COMPLETED') break;
+    if (Date.now() - started > 5 * 60_000) throw new Error(`fal ${model} took too long.`);
+    await sleep(1000);
+  }
+  const result = await falJson(body.response_url);
+  if (!result.res.ok || result.body.detail) throw falError(model, result.res, result.body);
+  return result.body;
+}
+
+// Downloads in full, then moves into place (see whole() in media.mjs).
+export async function download(url, outFile) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Couldn't download from ${new URL(url).host} (${res.status}); run again to retry.`);
+  const temp = path.join(path.dirname(outFile), `.part-${path.basename(outFile)}`);
+  writeFileSync(temp, Buffer.from(await res.arrayBuffer()));
+  renameSync(temp, outFile);
+}
+
+// ---------- voices on fal (ElevenLabs v3, billed by fal) ----------
+
+// A new voice from a written brief. Returns the saved voice's id and a
+// sample of it saying `sample` (100+ characters works best).
+export async function falDesignVoice({ model, brief, sample, name }) {
+  const body = await falRun(model, { prompt: brief, text: sample, auto_generate_text: false, voice_name: name });
+  const preview = body.previews?.find((p) => p.generated_voice_id === body.voice_id) ?? body.previews?.[0];
+  if (!body.voice_id || !preview) throw new Error(`fal's voice designer didn't return a voice for ${name}.`);
+  return { voiceId: body.voice_id, sampleUrl: preview.audio.url };
+}
+
+export async function falSpeak({ model, text, voiceId, stability, outFile }) {
+  const body = await falRun(model, { text, voice: voiceId, stability });
+  await download(body.audio.url, outFile);
+}
+
+export async function falChangeVoice({ model, inFile, voiceId, outFile }) {
+  const type = /\.wav$/i.test(inFile) ? 'audio/wav' : /\.m4a$/i.test(inFile) ? 'audio/mp4' : 'audio/mpeg';
+  const body = await falRun(model, { audio_url: dataUri(inFile, type), voice: voiceId, remove_background_noise: true });
+  await download(body.audio.url, outFile);
+}
+
 // Runs `model` on `input` through fal's queue and saves the video it makes to
 // `outFile`. The job is noted in `outFile`.pending.json as soon as it's
 // submitted, so if this run stops (or the connection drops), the next one
@@ -132,9 +182,7 @@ export async function falVideo({ model, input, outFile, onStatus = () => {} }) {
     rmSync(pending, { force: true });  // a failed job is done with: the next run starts a new one
     throw falError(model, res, body);
   }
-  const video = await fetch(body.video.url);
-  if (!video.ok) throw new Error(`Couldn't download the finished clip from ${new URL(body.video.url).host} (${video.status}); run again to retry.`);
-  writeFileSync(outFile, Buffer.from(await video.arrayBuffer()));
+  await download(body.video.url, outFile);
   rmSync(pending, { force: true });
   return body;
 }

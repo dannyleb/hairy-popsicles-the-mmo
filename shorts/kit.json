@@ -1,13 +1,48 @@
 {
   "_": "How shorts look and which services make them. Prices are fal's, per second of video, as of Nov 2026: check fal.ai/models if they change.",
   "format": "vertical",
-  "sizes": { "vertical": [1080, 1920], "wide": [1920, 1080] },
+  "sizes": {
+    "vertical": [
+      1080,
+      1920
+    ],
+    "wide": [
+      1920,
+      1080
+    ]
+  },
   "fps": 30,
   "background": "surface",
   "style": "grotesque, wet, glossy 3D creature render, like a gross stop-motion puppet; dark candlelit atmosphere; cinematic",
-  "framing": { "talking": { "height": 0.6, "bottom": 0.8 }, "action": { "height": 0.52, "bottom": 0.78 } },
-  "voice": { "model": "eleven_v3", "changerModel": "eleven_multilingual_sts_v2", "format": "mp3_44100_128" },
-  "talking": { "model": "fal-ai/kling-video/ai-avatar/v2/standard", "pricePerSecond": 0.0562, "minSeconds": 2 },
+  "framing": {
+    "talking": {
+      "height": 0.6,
+      "bottom": 0.8
+    },
+    "action": {
+      "height": 0.52,
+      "bottom": 0.78
+    }
+  },
+  "voice": {
+    "_": "provider fal: voices designed from each character's brief (ElevenLabs v3 on fal, $0.10 per 1000 characters, commercial use included). provider elevenlabs: the stock voices named in cast.json, through your own ElevenLabs account.",
+    "provider": "fal",
+    "tts": "fal-ai/elevenlabs/tts/eleven-v3",
+    "design": "fal-ai/elevenlabs/text-to-voice/design/eleven-v3",
+    "changer": "fal-ai/elevenlabs/voice-changer",
+    "stability": 0,
+    "pricePer1000": 0.1,
+    "elevenlabs": {
+      "model": "eleven_v3",
+      "changerModel": "eleven_multilingual_sts_v2",
+      "format": "mp3_44100_128"
+    }
+  },
+  "talking": {
+    "model": "fal-ai/kling-video/ai-avatar/v2/standard",
+    "pricePerSecond": 0.0562,
+    "minSeconds": 2
+  },
   "action": {
     "model": "fal-ai/kling-video/v3/standard/image-to-video",
     "pricePerSecond": 0.084,
@@ -15,6 +50,12 @@
     "negative": "blur, distortion, low quality, extra limbs, text, watermark, human hands"
   },
   "captions": "on",
-  "music": { "volume": 0.18 },
-  "endcard": { "title": "Hairy Popsicles", "line": "Play free at hairypopsicles.com/the-mmo", "seconds": 3 }
+  "music": {
+    "volume": 0.18
+  },
+  "endcard": {
+    "title": "Hairy Popsicles",
+    "line": "Play free at hairypopsicles.com/the-mmo",
+    "seconds": 3
+  }
 }

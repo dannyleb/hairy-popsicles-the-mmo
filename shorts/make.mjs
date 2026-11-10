@@ -6,19 +6,23 @@
 //   npm run short -- shorts/scripts/lost-eye.txt --yes --redo 3,5    new takes of shots 3 and 5
 //   npm run short -- shorts/scripts/lost-eye.txt --revoice 2         say line 2 again
 //   npm run short -- shorts/scripts/lost-eye.txt --offline           no services at all (placeholder voices)
-//   npm run short -- --voices                                        the ElevenLabs voices on your account
+//   npm run short -- --design conehead,redeye     design those characters' voices from their briefs (or "all")
+//   npm run short -- --voices                     the stock ElevenLabs voices on your account
 //
 // Everything made is kept (shorts/out/.cache), keyed by what went into it,
 // so running again only makes what changed: edit one line and only that
 // line's voice and shot are made again.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
-import { duration, ffmpeg, finish, fitClip, hasSound, hash, hashFile, join, startFrame, stillClip } from './lib/media.mjs';
-import { parseScript } from './lib/script.mjs';
-import { changeVoice, dataUri, falVideo, findVoice, listVoices, loadKeys, speak } from './lib/services.mjs';
+import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
+import { applyFx, duration, ffmpeg, finish, fitClip, hasSound, hash, hashFile, join, startFrame, stillClip } from './lib/media.mjs';
+import { findCharacter, parseScript } from './lib/script.mjs';
+import {
+  audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
+} from './lib/services.mjs';
 
 // Behind an HTTPS proxy (a Claude cloud session, some offices), Node's fetch
 // only uses it when started with NODE_USE_ENV_PROXY=1 (Node 22.21+): so start again with it.
@@ -36,17 +40,20 @@ const WORDS_PER_SECOND = 2.6;  // for placeholder voices (--offline)
 
 const kit = JSON.parse(readFileSync(path.join(HERE, 'kit.json'), 'utf8'));
 const cast = JSON.parse(readFileSync(path.join(HERE, 'cast.json'), 'utf8'));
+const VOICES_FILE = path.join(HERE, 'voices.json');
+const designed = existsSync(VOICES_FILE) ? JSON.parse(readFileSync(VOICES_FILE, 'utf8')) : {};
 const say = (...parts) => console.log(...parts);
 const money = (n) => `$${n.toFixed(2)}`;
 
 function args(argv) {
-  const opts = { script: null, yes: false, offline: false, voices: false, redo: new Set(), revoice: new Set() };
+  const opts = { script: null, yes: false, offline: false, voices: false, design: null, redo: new Set(), revoice: new Set() };
   const shots = (v) => new Set(String(v ?? '').split(',').map(Number).filter((n) => n > 0));
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--yes' || a === '-y') opts.yes = true;
     else if (a === '--offline') opts.offline = true;
     else if (a === '--voices') opts.voices = true;
+    else if (a === '--design') opts.design = String(argv[++i] ?? '');
     else if (a === '--redo') opts.redo = shots(argv[++i]);
     else if (a === '--revoice') opts.revoice = shots(argv[++i]);
     else if (!a.startsWith('-')) opts.script = a;
@@ -89,6 +96,55 @@ async function pool(items, size, work) {
   }));
 }
 
+// ---------- designed voices ----------
+
+// Whose voice a character speaks in (the snoots share one).
+const voiceOwner = (id) => cast[id].voiceOf ?? id;
+
+// What a new voice says while it's being designed: the character's own lines
+// from the game, topped up to the 100+ characters the designer likes.
+function sampleFor(id) {
+  const lines = CHARACTER_BY_ID[id]?.lines ?? [];
+  let text = lines.join(' ');
+  const filler = ["Come closer. Closer. Do you want to see what's growing out of me? It's fine. It's normal. Everyone has one.", 'Hello. Yes, you. Have you been looking at me this whole time?'];
+  for (const more of filler) if (text.length < 120) text = `${text} ${more}`.trim();
+  return text;
+}
+
+// Designs `id`'s voice from its brief and saves it in voices.json. Returns
+// the sample it said, with the character's effects on, for auditioning.
+async function designVoice(id, outDir) {
+  const { name, brief, fx = [] } = cast[id];
+  if (!brief) throw new Error(`${name} has no voice brief in cast.json to design from.`);
+  say(`Designing ${name}'s voice...`);
+  const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${name}` });
+  designed[id] = { voiceId, brief, designed: new Date().toISOString().slice(0, 10) };
+  writeFileSync(VOICES_FILE, `${JSON.stringify(designed, null, 2)}\n`);
+  mkdirSync(outDir, { recursive: true });
+  const raw = path.join(outDir, `${id}-raw.mp3`);
+  const sample = path.join(outDir, `${id}.mp3`);
+  await download(sampleUrl, raw);
+  applyFx(raw, sample, fx);
+  rmSync(raw, { force: true });
+  return sample;
+}
+
+async function designVoices(which) {
+  const ids = which === 'all'
+    ? Object.keys(cast).filter((id) => id !== '_' && !cast[id].voiceOf)
+    : which.split(',').map((w) => findCharacter(w, cast) ?? (() => { throw new Error(`Nobody called "${w}" in the cast.`); })()).map(voiceOwner);
+  const outDir = path.join(HERE, 'out', 'voices');
+  const samples = [];
+  for (const id of [...new Set(ids)]) samples.push(await designVoice(id, outDir));
+  // All of them in one file, a second apart, to listen through.
+  const reel = path.join(outDir, 'audition.mp3');
+  const inputs = samples.flatMap((f) => ['-i', f]);
+  const graph = `${samples.map((_, i) => `[${i}:a]aresample=44100,apad=pad_dur=1[a${i}]`).join(';')};${samples.map((_, i) => `[a${i}]`).join('')}concat=n=${samples.length}:v=0:a=1[x]`;
+  ffmpeg([...inputs, '-filter_complex', graph, '-map', '[x]', '-c:a', 'libmp3lame', '-q:a', '3', reel]);
+  say(`\nAudition: ${path.relative(ROOT, reel)}  (${[...new Set(ids)].map((id) => cast[id].name).join(', ')}, in that order)`);
+  say('Not right? Edit the brief (or fx) in shorts/cast.json and design it again.');
+}
+
 async function main() {
   const opts = args(process.argv.slice(2));
   loadKeys(HERE);
@@ -96,6 +152,7 @@ async function main() {
     for (const v of await listVoices()) say(`${v.name.padEnd(48)} ${v.category ?? ''}`);
     return;
   }
+  if (opts.design) return designVoices(opts.design);
   if (!opts.script) throw new Error('Which script? npm run short -- shorts/scripts/<name>.txt');
   const scriptFile = locate(opts.script);
   if (!scriptFile) throw new Error(`No script at ${opts.script}.`);
@@ -116,8 +173,9 @@ async function main() {
   const cached = (name) => path.join(CACHE, name);
 
   // ---- voices
-  let voices = [];
-  if (!opts.offline && shots.some((s) => s.kind === 'talk')) voices = await listVoices();
+  const provider = opts.offline ? 'offline' : kit.voice.provider;
+  const stock = provider === 'elevenlabs' && shots.some((s) => s.kind === 'talk') ? await listVoices() : [];
+  let voiceChars = 0;
   say(`\n${settings.title ?? slug}: ${shots.length} shots, ${format}${opts.offline ? ' (offline)' : ''}\n`);
   for (const shot of shots) {
     shot.character = shot.who === 'scene' ? null : cast[shot.who];
@@ -133,29 +191,48 @@ async function main() {
       shot.seconds = shot.notes.seconds ?? kit.action.seconds;
       continue;
     }
-    const direction = shot.notes.direction.join(', ');
+    // How it's said: the line's own notes, or else how this character always talks.
+    const c = shot.character;
+    const direction = shot.notes.direction.join(', ') || c.manner || '';
     const take = shot.notes.take && locate(shot.notes.take);
     if (shot.notes.take && !take) throw new Error(`${shot.label}: the take ${shot.notes.take} isn't there (put recordings in shorts/takes/).`);
-    const voice = opts.offline ? { id: 'offline' } : findVoice(voices, shot.character.voice ?? '');
-    if (!voice) throw new Error(`${shot.character.name}'s voice "${shot.character.voice}" isn't on your ElevenLabs account. Pick one from: npm run short -- --voices`);
-    const settingsV = shot.character.voiceSettings ?? null;
-    const voiceKey = hash({ text: shot.text, direction, tags: direction ? 2 : 0, voice: voice.id, model: take ? kit.voice.changerModel : kit.voice.model, take: take && hashFile(take), settingsV, offline: opts.offline });
+    let voiceId = 'offline';
+    if (provider === 'fal') {
+      const owner = voiceOwner(shot.who);
+      if (!designed[owner]) await designVoice(owner, path.join(HERE, 'out', 'voices'));
+      voiceId = designed[owner].voiceId;
+    } else if (provider === 'elevenlabs') {
+      voiceId = findVoice(stock, c.voice ?? '')?.id;
+      if (!voiceId) throw new Error(`${c.name}'s voice "${c.voice}" isn't on your ElevenLabs account. Pick one from: npm run short -- --voices`);
+    }
+    const stability = c.stability ?? kit.voice.stability;
+    const fx = c.fx ?? [];
+    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3 });
     shot.audio = cached(`voice-${voiceKey}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(shot.audio, { force: true });
     if (!existsSync(shot.audio)) {
-      if (opts.offline) {
+      const raw = `${shot.audio}.raw.mp3`;
+      if (provider === 'offline') {
         const seconds = Math.max(1.2, shot.text.split(/\s+/).length / WORDS_PER_SECOND);
-        ffmpeg(['-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', seconds.toFixed(2), '-c:a', 'libmp3lame', shot.audio]);
+        ffmpeg(['-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', seconds.toFixed(2), '-c:a', 'libmp3lame', raw]);
       } else if (take) {
-        say(`${shot.label}: turning your take into ${shot.character.name}'s voice...`);
-        await changeVoice({ inFile: take, voiceId: voice.id, model: kit.voice.changerModel, format: kit.voice.format, settings: settingsV, outFile: shot.audio });
+        say(`${shot.label}: turning your take into ${c.name}'s voice...`);
+        if (provider === 'fal') await falChangeVoice({ model: kit.voice.changer, inFile: take, voiceId, outFile: raw });
+        else await changeVoice({ inFile: take, voiceId, model: kit.voice.elevenlabs.changerModel, format: kit.voice.elevenlabs.format, outFile: raw });
       } else {
-        say(`${shot.label}: ${shot.character.name} says "${shot.text}"${direction ? ` (${direction})` : ''}`);
-        await speak({ text: shot.text, direction, voiceId: voice.id, model: kit.voice.model, format: kit.voice.format, settings: settingsV, outFile: shot.audio });
+        say(`${shot.label}: ${c.name} says "${shot.text}"${direction ? ` (${direction})` : ''}`);
+        const text = direction ? `${audioTags(direction)} ${shot.text}` : shot.text;
+        voiceChars += text.length;
+        if (provider === 'fal') await falSpeak({ model: kit.voice.tts, text, voiceId, stability, outFile: raw });
+        else await speak({ text: shot.text, direction, voiceId, model: kit.voice.elevenlabs.model, format: kit.voice.elevenlabs.format, outFile: raw });
       }
+      if (provider === 'offline') renameSync(raw, shot.audio);  // (silence: nothing to treat)
+      else applyFx(raw, shot.audio, fx);
+      rmSync(raw, { force: true });
     }
     shot.seconds = Math.max(duration(shot.audio) + TAIL, kit.talking.minSeconds);
   }
+  if (voiceChars && provider === 'fal') say(`(voices: ${voiceChars} characters, about ${money((voiceChars / 1000) * kit.voice.pricePer1000)})`);
 
   // ---- what each shot's video is, and what's still to make
   const style = kit.style;
