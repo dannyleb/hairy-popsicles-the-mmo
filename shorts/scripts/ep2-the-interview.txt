@@ -1,6 +1,6 @@
 # Hairy Popsicles, episode 2. Sweats needs this job. Droopy needs a nap.
 title: The Interview
-background: surface
+scene: A dreary little office made of flesh: a cheap desk and a damp swivel chair, beige walls covered in pores and stretch marks, a flickering fluorescent light, a water cooler full of cloudy yellow liquid, a framed picture of a toenail on the wall
 
 > DROOPY (2s, still, push)
 DROOPY (exhausted, slurring): Right. So... Sweats.

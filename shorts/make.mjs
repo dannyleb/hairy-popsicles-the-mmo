@@ -23,6 +23,7 @@ import {
   KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, join, layer, onKey, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { pose, posePath } from './lib/poses.mjs';
+import { scene, scenePath } from './lib/scenes.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -232,9 +233,20 @@ async function main() {
   if (ambienceName && ambienceName !== 'none' && !ambience) throw new Error(`The ambience "${ambienceName}" isn't one of ${Object.keys(kit.ambience.beds).join(', ')}.`);
   const drawing = opts.yes && !opts.offline;  // poses are drawn (and paid for) only for the real thing
 
-  // The still background every shot sits on.
-  const plate = cached(`plate-${hash({ background: background && hashFile(background), size })}.jpg`);
-  if (!existsSync(plate)) startFrame({ character: null, background, size, outFile: plate });
+  // The still background every shot sits on: the episode's own painted scene
+  // (made with --yes; the preview stands in the plain background meanwhile).
+  let backdrop = background;
+  let painted = false;
+  let sceneToPaint = false;
+  if (settings.scene) {
+    const where = { here: HERE, slug, description: settings.scene, format, settings: kit.scene };
+    if (existsSync(scenePath(where))) backdrop = scenePath(where);
+    else if (drawing) backdrop = await scene({ ...where, size, say });
+    else sceneToPaint = true;
+    painted = backdrop !== background;
+  }
+  const plate = cached(`plate-${hash({ background: backdrop && hashFile(backdrop), painted, size })}.jpg`);
+  if (!existsSync(plate)) startFrame({ character: null, background: backdrop, scene: painted, size, outFile: plate });
 
   // Who stands where: with two or more in the skit, the first to appear stands
   // on the left facing right, the next on the right facing left, and so on.
@@ -362,7 +374,7 @@ async function main() {
   }
   const made = (s) => s.notes.still || s.notes.off || existsSync(s.video);
   const toMake = shots.filter((s) => !made(s));
-  const poseCost = posesToDraw * kit.edit.price;
+  const poseCost = posesToDraw * kit.edit.price + (sceneToPaint ? kit.scene.price : 0);
   const cost = toMake.reduce((sum, s) => sum + s.price, 0);
   say('');
   for (const s of shots) {
@@ -435,7 +447,7 @@ async function main() {
   const ass = path.join(out, 'captions.ass');
   writeFileSync(ass, captionsAss({ size, lines: captions !== 'off' ? lines : [], names: captions === 'names', show: kit.show, title: settings.title, endcard }));
   writeFileSync(path.join(out, `${slug}.srt`), captionsSrt(lines));
-  const allMade = shots.every(made) && !posesToDraw;
+  const allMade = shots.every(made) && !posesToDraw && !sceneToPaint;
   const final = path.join(out, `${slug}${allMade ? '' : '-preview'}.mp4`);
   finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, ambience, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
@@ -445,7 +457,7 @@ async function main() {
   else if (failed.length) say(`${failed.length} shot${failed.length > 1 ? 's' : ''} failed (${failed.map((s) => s.label).join(', ')}): they're stills for now. Run again with --yes to retry them.`);
   const left = shots.filter((s) => !made(s));
   if ((left.length || posesToDraw) && !opts.yes) {
-    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`].filter(Boolean);
+    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`, sceneToPaint && 'the scene'].filter(Boolean);
     say(`To make the ${parts.join(' and ')} (about ${money(left.reduce((sum, s) => sum + s.price, 0) + poseCost)} on fal), run it again with --yes.`);
   }
 }

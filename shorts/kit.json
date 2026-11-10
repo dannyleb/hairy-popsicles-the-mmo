@@ -14,6 +14,12 @@
   },
   "fps": 30,
   "background": "surface",
+  "scene": {
+    "_": "Each episode's environment, painted from its script's scene: line (lib/scenes.mjs) and kept in shorts/backgrounds/.",
+    "model": "fal-ai/nano-banana-pro",
+    "price": 0.15,
+    "style": "Photoreal 3D render of an empty set in a grotesque body-horror world where everything is made of skin, flesh, teeth, hair and goo: wet, glossy, organic surfaces, cinematic lighting, shallow depth of field, moody and a little dark, eye-level view. No people, no creatures, no faces, no text or lettering anywhere. Keep the middle of the picture fairly plain and uncluttered, where characters will be placed."
+  },
   "style": "grotesque, wet, glossy 3D creature render; exaggerated, twitchy, abrasive cartoon acting with big expressions.",
   "voice": {
     "_": "provider fal: voices designed from each character's brief (ElevenLabs v3 on fal, $0.10 per 1000 characters, commercial use included). provider elevenlabs: the stock voices named in cast.json, through your own ElevenLabs account.",

@@ -58,8 +58,14 @@ CONEHEAD (guilty): ...finders keepers.
   sheet to check them.
 - Settings at the top, all optional:
   - `title:` (shown over the opening)
+  - `scene:` the episode's own environment, described ("a dreary little
+    office made of flesh, a framed picture of a toenail on the wall"). It's
+    painted once in the show's style (nano-banana-pro, about $0.15) and kept
+    in `shorts/backgrounds/`. Change the words and it paints a new one. The
+    video shots don't need remaking: the scene is only the still background.
   - `format: vertical | wide`
-  - `background: surface | deep | black | path/to/picture.png`
+  - `background: surface | deep | black | path/to/picture.png` (when there's
+    no scene: the game's ground)
   - `music: creepy-box | creepy-theme | music-box | theme | none`, or a file
     in `shorts/music/`. The default is `creepy-box`. The game's Suno tracks,
     slowed and detuned for the creepy ones. Music drops under the voices and

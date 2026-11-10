@@ -1,6 +1,6 @@
 # Hairy Popsicles, episode 5. Red Eye hasn't slept since he was drawn.
 title: Four Sheep
-background: black
+scene: A dark bedroom at three in the morning, seen from the pillow: a lumpy bed with stained sheets, wallpaper of peeling skin, a thin strip of blue moonlight through the curtains, and at the far end of the bed the faint dark silhouette of a sheep standing perfectly still
 facing: front
 ambience: hum
 

@@ -37,10 +37,13 @@ export const hashFile = (file) => hash(readFileSync(file));
 // A shot's first frame: the character standing on the background, with a
 // soft shadow. `background` is an image (covering the frame, blurred and
 // darkened so the character stands out) or null for plain dark.
-export function startFrame({ character, background, size: [W, H], height, bottom, outFile }) {
+// A texture (the game's ground) is blurred and darkened hard so it reads as a
+// backdrop; a painted `scene` only a little (some depth of field), to keep it a place.
+export function startFrame({ character, background, scene = false, size: [W, H], height, bottom, outFile }) {
   const inputs = background ? ['-i', background] : ['-f', 'lavfi', '-i', `color=c=0x0e0608:s=${W}x${H}`];
+  const treat = scene ? 'gblur=sigma=1.6,eq=brightness=-0.05:saturation=0.95,vignette=PI/5' : 'gblur=sigma=4,eq=brightness=-0.1:saturation=0.85,vignette=PI/4';
   const bg = background
-    ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},gblur=sigma=4,eq=brightness=-0.1:saturation=0.85,vignette=PI/4[bg]`
+    ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},${treat}[bg]`
     : '[0:v]vignette=PI/4[bg]';
   if (!character) {
     whole(outFile, (temp) => ffmpeg([...inputs, '-filter_complex', `${bg};[bg]format=yuvj420p`, '-frames:v', '1', '-q:v', '3', '-f', 'image2', temp]));

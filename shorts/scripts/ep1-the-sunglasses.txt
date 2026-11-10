@@ -1,6 +1,6 @@
 # Hairy Popsicles, episode 1. Conehead has made Big Eye a present. Big Eye doesn't want it.
 title: The Sunglasses
-background: surface
+scene: A blazing hot afternoon on a vast plain of sunburnt, peeling skin stretching to the horizon, a harsh white sun glaring in a sickly yellow sky, heat shimmer, a few long hairs standing up like dead trees, blisters and moles dotting the ground like boulders
 
 > BIG EYE (2s, still, push)
 CONEHEAD (off, softly): Big Eye... I made you something.

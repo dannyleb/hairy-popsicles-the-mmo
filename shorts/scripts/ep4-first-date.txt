@@ -1,6 +1,6 @@
 # Hairy Popsicles, episode 4. Pimples and Melter, a first date, under the skin.
 title: First Date
-background: deep
+scene: A romantic restaurant deep inside a body: red fleshy cavern walls threaded with pulsing veins, a small table with a white tablecloth stained red, a single candle and two wine glasses of dark red liquid, warm intimate candlelight
 ambience: gut
 
 PIMPLES (nervous, voice cracking): I've, um... never been this deep before.

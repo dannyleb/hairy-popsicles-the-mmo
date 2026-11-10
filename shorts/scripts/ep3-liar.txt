@@ -1,6 +1,6 @@
 # Hairy Popsicles, episode 3. Shiv's nose grows when he lies. Snoot's brain is right there.
 title: Liar
-background: surface
+scene: A pretentious velvet parlour: deep crimson walls of wrinkled skin, a chandelier made of teeth, gilded frames holding oil paintings of noses, a fireplace oozing something thick, dim candlelight
 
 SNOOT (snooty, congested): Shiv. You've noticed.
 SHIV (sly): Noticed what.
