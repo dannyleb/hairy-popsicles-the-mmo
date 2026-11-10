@@ -8,7 +8,7 @@ room: small
 ORVILLE (exhausted, slurring): Right. So... Dennis.
 DENNIS (panicked, too fast): Yes. Sorry. That's me. Sorry. Hello.
 ORVILLE (exhausted): It says here... bowling alley...
-DENNIS (hysterical, too fast, giggling nervously): Six years. Loved it. The balls just kept... slipping out. Into other lanes. Into a birthday party.
+DENNIS (hysterical, too fast, giggling nervously): Six years. The balls kept... slipping out. Into a birthday party.
 > ORVILLE (2s, still, close)
 ORVILLE (exhausted): ...mm.
 DENNIS (whispering, panicked): Was the birthday party relevant?
