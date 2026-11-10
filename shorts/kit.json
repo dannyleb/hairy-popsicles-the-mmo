@@ -51,6 +51,11 @@
     "model": "fal-ai/nano-banana-pro/edit",
     "price": 0.15
   },
+  "props": {
+    "_": "Props (prop: in a script), drawn once each and kept in shorts/props/.",
+    "model": "fal-ai/nano-banana-pro",
+    "style": "Photoreal 3D render, grotesque, wet and glossy, organic and crusty, cinematic lighting, like a gross stop-motion puppet prop."
+  },
   "captions": "off",
   "music": {
     "_": "Music under every episode (a script's music: picks another, or none). Each track is the game's Suno music given a treatment once: the creepy ones are slowed, detuned, darkened and drowned in echo. It drops under the voices and swells in the pauses.",

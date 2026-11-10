@@ -167,8 +167,8 @@ export const KEYS = { green: { hex: '0x00FF00', css: 'pure green (#00FF00)', des
 // cx (centre, px), bottom (px), width, height (the box, px) }.
 export function layer({ chars, size: [W, H], outFile }) {
   const inputs = ['-f', 'lavfi', '-i', `color=c=black@0.0:s=${W}x${H},format=rgba`, ...chars.flatMap((c) => ['-i', c.image])];
-  const steps = [];
-  let last = '[0:v]';
+  const steps = ['[0:v]null[l]'];  // (an empty layer when there's no one in it)
+  let last = '[l]';
   chars.forEach((c, i) => {
     steps.push(`[${i + 1}:v]format=rgba,scale=${Math.round(c.width)}:${Math.round(c.height)}:force_original_aspect_ratio=decrease[c${i}]`);
     steps.push(`${last}[c${i}]overlay=x=${Math.round(c.cx)}-w/2:y=${Math.round(c.bottom)}-h:format=auto[l${i}]`);

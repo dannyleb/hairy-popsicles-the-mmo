@@ -22,7 +22,7 @@ import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
   KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, join, layer, onKey, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
-import { pose, posePath } from './lib/poses.mjs';
+import { pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
@@ -252,21 +252,43 @@ async function main() {
   // on the left facing right, the next on the right facing left, and so on.
   // Alone (or with "facing: front"), they face the camera in the middle.
   const order = [...new Set(shots.flatMap((s) => s.cast))];
-  // Said off screen: heard over whoever was on screen last (or is next), not the talker.
+  // What's in the picture: who's in the shot, with what. Said off screen, a
+  // line is heard over whoever (or whatever) was on screen last, or is next.
   for (const [i, shot] of shots.entries()) {
     shot.visual = shot.cast;
+    shot.look = { prop: shot.prop ?? null, with: shot.notes.with, wearing: shot.notes.wearing };
     if (!shot.notes.off) continue;
-    const others = (s) => !s.notes.off && s.cast.length && !(s.cast.length === 1 && s.cast[0] === shot.who);
+    const others = (s) => !s.notes.off && (s.prop || (s.cast.length && !(s.cast.length === 1 && s.cast[0] === shot.who)));
     const near = [...shots.slice(0, i)].reverse().find(others) ?? shots.slice(i + 1).find(others);
-    shot.visual = near ? near.cast : shot.cast;
+    if (near) {
+      shot.visual = near.cast;
+      shot.look = { prop: near.prop ?? null, with: near.notes.with, wearing: near.notes.wearing };
+    }
   }
+  // Props and characters wearing them: drawn once (with --yes; the preview
+  // leaves the prop out meanwhile, and shows the character without it).
+  const undrawn = new Set();  // props and wearing pictures the preview did without
+  const propFile = async (name) => {
+    const where = { here: HERE, name, description: settings.props[name], style: kit.props.style, model: kit.props.model, say };
+    if (existsSync(propPath(where))) return propPath(where);
+    if (drawing) return propImage(where);
+    undrawn.add(propPath(where));
+    return null;
+  };
+  const wornBy = async (id, facing, picture, prop) => {
+    const where = { here: HERE, id, facing, picture, prop, description: settings.props[prop], key: keyFor([id]), model: kit.edit.model, say };
+    if (existsSync(wearingPath(where))) return wearingPath(where);
+    if (drawing) return wearing(where);
+    undrawn.add(wearingPath(where));
+    return picture;
+  };
   const together = order.length > 1 && settings.facing !== 'front';
   const sideOf = Object.fromEntries(order.map((id, i) => [id, together ? (i % 2 ? 'right' : 'left') : 'front']));
   let posesToDraw = 0;
   say(`\n${settings.title ?? slug}: ${shots.length} shots, ${format}${opts.offline ? ' (offline)' : ''}\n`);
   for (const shot of shots) {
     shot.character = shot.who === 'scene' ? null : cast[shot.who];
-    shot.label = `#${shots.indexOf(shot) + 1} ${shot.cast.map((id) => cast[id].name).join(' & ') || 'Scene'}`;
+    shot.label = `#${shots.indexOf(shot) + 1} ${shot.cast.map((id) => cast[id].name).join(' & ') || (shot.prop ? `The ${shot.prop}` : 'Scene')}`;
     const pair = shot.visual.length === 2;
     const sides = pair ? ['left', 'right'] : shot.visual.map((id) => shot.notes.side ?? sideOf[id]);
     const chars = [];
@@ -280,7 +302,18 @@ async function main() {
         else if (drawing) image = await pose({ here: HERE, id, facing, picture, key: keyFor([id]), model: kit.edit.model, say });
         else posesToDraw++;  // (the preview makes do with the picture as it is)
       }
+      if (shot.look.wearing) image = await wornBy(id, facing, image, shot.look.wearing);
       chars.push({ image, ...place(size, sides[i], pair) });
+    }
+    const [W2, H2] = size;
+    if (shot.look.prop) {
+      const image = await propFile(shot.look.prop);
+      if (image) chars.push({ image, cx: W2 / 2, bottom: H2 * 0.68, width: W2 * 0.8, height: H2 * 0.38 });
+    }
+    if (shot.look.with) {
+      const image = await propFile(shot.look.with);
+      const by = chars[0];
+      if (image) chars.push({ image, cx: pair || !by ? W2 / 2 : by.cx, bottom: H2 * (pair ? 0.8 : 0.93), width: W2 * 0.38, height: H2 * 0.13 });
     }
     shot.key = keyFor(shot.visual);
     // A held picture (a beat, or a line said off screen) creeps in unless told otherwise.
@@ -349,7 +382,9 @@ async function main() {
       shot.price = 0;
       continue;
     }
-    const looks = shot.cast.map((id) => cast[id].look);
+    const looks = shot.cast.map((id) => cast[id].look + (shot.look.wearing ? `, wearing ${settings.props[shot.look.wearing]}` : ''));
+    if (shot.look.prop) looks.push(settings.props[shot.look.prop]);
+    if (shot.look.with) looks.push(`with ${settings.props[shot.look.with]} in front of them`);
     const look = looks.join(' and ') || 'the scene';
     const direction = shot.notes.direction.join(', ');
     const flat = `The plain flat ${KEYS[shot.key].css} background stays perfectly flat and still; the camera does not move.`;
@@ -363,7 +398,7 @@ async function main() {
       // An action shot, or someone with no mouth to sync talking over one.
       shot.model = kit.action.model;
       const doing = shot.kind === 'talk' ? `talking, moving as it speaks${direction ? `, ${direction}` : ''}` : `${shot.text}${direction ? `, ${direction}` : ''}`;
-      shot.prompt = `${shot.cast.length ? `${look}: ` : ''}${doing}. ${kit.style} ${flat}`;
+      shot.prompt = `${looks.length ? `${look}: ` : ''}${doing}. ${kit.style} ${flat}`;
       shot.billed = Math.min(15, Math.max(3, Math.ceil(shot.seconds)));
       shot.price = shot.billed * kit.action.pricePerSecond * (shot.notes.sound ? 1.5 : 1);
     }
@@ -374,7 +409,8 @@ async function main() {
   }
   const made = (s) => s.notes.still || s.notes.off || existsSync(s.video);
   const toMake = shots.filter((s) => !made(s));
-  const poseCost = posesToDraw * kit.edit.price + (sceneToPaint ? kit.scene.price : 0);
+  const propsToDraw = undrawn.size;
+  const poseCost = (posesToDraw + propsToDraw) * kit.edit.price + (sceneToPaint ? kit.scene.price : 0);
   const cost = toMake.reduce((sum, s) => sum + s.price, 0);
   say('');
   for (const s of shots) {
@@ -447,7 +483,7 @@ async function main() {
   const ass = path.join(out, 'captions.ass');
   writeFileSync(ass, captionsAss({ size, lines: captions !== 'off' ? lines : [], names: captions === 'names', show: kit.show, title: settings.title, endcard }));
   writeFileSync(path.join(out, `${slug}.srt`), captionsSrt(lines));
-  const allMade = shots.every(made) && !posesToDraw && !sceneToPaint;
+  const allMade = shots.every(made) && !posesToDraw && !propsToDraw && !sceneToPaint;
   const final = path.join(out, `${slug}${allMade ? '' : '-preview'}.mp4`);
   finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, ambience, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
@@ -456,8 +492,8 @@ async function main() {
   if (failed.length && broke) say('No video shots were made: top up fal, then run this again with --yes (the voices are already made).');
   else if (failed.length) say(`${failed.length} shot${failed.length > 1 ? 's' : ''} failed (${failed.map((s) => s.label).join(', ')}): they're stills for now. Run again with --yes to retry them.`);
   const left = shots.filter((s) => !made(s));
-  if ((left.length || posesToDraw) && !opts.yes) {
-    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`, sceneToPaint && 'the scene'].filter(Boolean);
+  if ((left.length || posesToDraw || propsToDraw || sceneToPaint) && !opts.yes) {
+    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`, propsToDraw && 'the props', sceneToPaint && 'the scene'].filter(Boolean);
     say(`To make the ${parts.join(' and ')} (about ${money(left.reduce((sum, s) => sum + s.price, 0) + poseCost)} on fal), run it again with --yes.`);
   }
 }

@@ -50,6 +50,17 @@ check('a line said off screen', offscreen.shots[0].notes.off && offscreen.shots[
 check('...but not an action', offscreen.errors.length === 1, offscreen.errors.join('; '));
 const wrong = parseScript('BIG EYE & CONEHEAD: hi\n> A & B & C: x\nBIG EYE (still): hi', cast);
 check('two talking at once, unknowns in a pair, and still talking lines are caught', wrong.errors.length === 3, wrong.errors.join(' / '));
+const props = parseScript(`
+prop: Scab Sunglasses = crusty little sunglasses made of scabs
+> BIG EYE & CONEHEAD (3s, with: scab sunglasses): they stare at them
+> SCAB SUNGLASSES (2s, push): they glisten
+BIG EYE (quietly, wearing: Scab Sunglasses): ...they're warm.
+`, cast);
+check('props: defined at the top, by name', props.settings.props['scab sunglasses'] === 'crusty little sunglasses made of scabs' && props.errors.length === 0, props.errors.join('; '));
+check('props: held in a shot, worn, and shown on their own', props.shots[0].notes.with === 'scab sunglasses' && props.shots[2].notes.wearing === 'scab sunglasses' && props.shots[2].notes.direction.join() === 'quietly'
+  && props.shots[1].prop === 'scab sunglasses' && props.shots[1].who === 'scene' && props.shots[1].cast.length === 0 && props.shots[1].notes.camera.join() === 'push');
+const noProp = parseScript('BIG EYE (wearing: a hat): hi\nprop: = nothing', cast);
+check('props: an undefined or half-written prop is caught', noProp.errors.length === 2, noProp.errors.join(' / '));
 for (const file of ['ep1-the-sunglasses', 'ep2-the-interview', 'ep3-liar', 'ep4-first-date', 'ep5-four-sheep']) {
   const episode = parseScript(readFileSync(new URL(`../shorts/scripts/${file}.txt`, import.meta.url), 'utf8'), cast);
   check(`${file} reads cleanly`, episode.errors.length === 0 && episode.shots.length > 5, episode.errors.join('; '));

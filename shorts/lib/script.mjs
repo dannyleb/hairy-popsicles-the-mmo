@@ -8,6 +8,8 @@
 //   > BIG EYE & CONEHEAD (3s): stare at each other     two of them, facing each other
 //   > RED EYE (2s, still)                              a silent beat: no video made, free
 //   > SCENE: the Navel gurgles                         just the background
+//   prop: scab sunglasses = a crude little pair of sunglasses made of scabs
+//   > SCAB SUNGLASSES (2s): glisten wetly              a prop on its own, close up
 //
 // Notes in brackets, comma-separated:
 //   a length ("3s"), for > shots
@@ -18,6 +20,8 @@
 //   "still": a held frame instead of video (beats, reactions; free)
 //   "off": said off screen, heard over whoever was on screen last (their
 //     reaction, held; free)
+//   "with: <prop>": the prop is in the shot too, in front of them
+//   "wearing: <prop>": they're wearing it (a version of their picture with it on)
 //   "front", "left", "right": face the camera, or stand on that side
 //   anything else: direction for how it's said and acted
 
@@ -36,13 +40,15 @@ export function findCharacter(written, cast) {
 }
 
 function readNotes(text) {
-  const notes = { seconds: null, take: null, sound: false, still: false, off: false, camera: [], side: null, direction: [] };
+  const notes = { seconds: null, take: null, sound: false, still: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
   for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
     const word = part.toLowerCase();
     const seconds = part.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
     const take = part.match(/^take\s*[:=]?\s*(.+)$/i);
+    const prop = part.match(/^(with|wearing)\s*:\s*(.+)$/i);
     if (seconds) notes.seconds = Number(seconds[1]);
     else if (take) notes.take = take[1].trim();
+    else if (prop) notes[prop[1].toLowerCase()] = prop[2].trim().toLowerCase();
     else if (/^(sound|sfx)$/.test(word)) notes.sound = true;
     else if (word === 'still') notes.still = true;
     else if (word === 'off' || word === 'o.s.' || word === 'offscreen') notes.off = true;
@@ -55,7 +61,7 @@ function readNotes(text) {
 
 // { settings, shots: [{ n, line, kind: 'talk'|'action', who, text, notes }], errors }
 export function parseScript(source, cast) {
-  const settings = {};
+  const settings = { props: {} };
   const shots = [];
   const errors = [];
   const names = Object.entries(cast).filter(([id]) => id !== '_').map(([, c]) => c.name.toUpperCase());
@@ -73,8 +79,20 @@ export function parseScript(source, cast) {
     }
     const [, who, noteText = '', words] = m;
     const text = words.trim();
+    if (!action && !noteText && who.trim().toLowerCase() === 'prop') {
+      const [name, description] = text.split('=').map((t) => t.trim());
+      if (!name || !description) errors.push(`line ${n}: a prop is "prop: its name = what it looks like".`);
+      else settings.props[name.toLowerCase()] = description;
+      return;
+    }
     if (!action && !noteText && SETTINGS.includes(who.trim().toLowerCase())) {
       settings[who.trim().toLowerCase()] = text;
+      return;
+    }
+    // A prop on its own, close up.
+    if (action && settings.props[who.trim().toLowerCase()]) {
+      const notes = readNotes(noteText);
+      shots.push({ n, line, kind: 'action', who: 'scene', cast: [], prop: who.trim().toLowerCase(), text, notes });
       return;
     }
     const scene = action && normal(who) === 'scene';
@@ -101,6 +119,9 @@ export function parseScript(source, cast) {
     if (!action && notes.seconds) errors.push(`line ${n}: a talking line is as long as it takes to say; lengths are for > action shots.`);
     if (!action && notes.still) errors.push(`line ${n}: "still" is for > shots (a talking line moves its mouth; "off" plays it over someone else).`);
     if (action && notes.off) errors.push(`line ${n}: "off" is for talking lines (said off screen).`);
+    for (const used of [notes.with, notes.wearing].filter(Boolean)) {
+      if (!settings.props[used]) errors.push(`line ${n}: no prop called "${used}": define it at the top, "prop: ${used} = what it looks like".`);
+    }
     shots.push({ n, line, kind: action ? 'action' : 'talk', who: scene ? 'scene' : ids[0], cast: ids, text, notes });
   });
   if (!shots.length && !errors.length) errors.push('There are no shots in this script yet.');

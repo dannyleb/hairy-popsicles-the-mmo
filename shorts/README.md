@@ -43,6 +43,16 @@ CONEHEAD (guilty): ...finders keepers.
 - `NAME (off): words`: said off screen, heard over whoever was on screen last
   (their reaction, held). Free.
 - `> SCENE: what happens`: just the background, no character.
+- **Props.** Define one at the top, `prop: scab sunglasses = a crude little
+  pair of sunglasses made of dried scabs, one dark lens`, then:
+  - `> SCAB SUNGLASSES (3s, push): they glisten wetly`: the prop on its own,
+    an insert shot.
+  - `with: scab sunglasses` in a shot's brackets: it's on the ground in front
+    of them (between them in a two-shot).
+  - `wearing: scab sunglasses`: everyone in the shot has it on.
+  Each prop, and each character wearing one, is drawn once (about $0.15)
+  and kept in `shorts/props/` and `shorts/characters/poses/`. A line said
+  off screen shows the same prop as the shot it's said over.
 - **Camera notes** (in the brackets, on any shot) move the character only:
   - `close`: extreme close-up
   - `punch`: snaps in
@@ -134,7 +144,8 @@ Everything runs on **fal.ai**, from one balance:
   1,000 characters. fal's page says commercial use is included.
 - **Talking shots:** Kling AI Avatar v2, about $0.056 a second.
 - **Action shots:** Kling v3, about $0.084 a second ($0.42 for 5 s).
-- **Turned poses:** nano-banana-pro edit, $0.15 each, once per character and side.
+- **Turned poses, props, characters wearing props:** nano-banana-pro, $0.15
+  each, drawn once.
 - **Your own takes:** ElevenLabs' voice changer on fal.
 
 An episode of 30 to 40 seconds is around $2. Models and prices are in
