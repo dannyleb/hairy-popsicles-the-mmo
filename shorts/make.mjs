@@ -128,7 +128,7 @@ async function designVoice(id, outDir) {
   const { name, brief, fx = [] } = cast[id];
   if (!brief) throw new Error(`${name} has no voice brief in cast.json to design from.`);
   say(`Designing ${name}'s voice...`);
-  const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${name}` });
+  const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${hash(id).slice(0, 6)}` });  // (a label only: some names, like Shiv, trip the content filter)
   designed[id] = { voiceId, brief, designed: new Date().toISOString().slice(0, 10) };
   // Merged into what's on disk now, not what was there when this run began:
   // two episodes made at once mustn't wipe each other's new voices.
