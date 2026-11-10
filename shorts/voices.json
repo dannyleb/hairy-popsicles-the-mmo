@@ -19,5 +19,25 @@
     "voiceId": "xd4By8zUj8nKJdOPJJA9",
     "brief": "An extremely slow, sagging, monotone old voice whose pitch droops at the end of every phrase, long exhausted sighs, words slurring and dripping downward like melting wax, as if falling asleep mid-word.",
     "designed": "2026-11-10"
+  },
+  "sweats": {
+    "voiceId": "8F29gnQFJsmJ4aK8BWu3",
+    "brief": "A breathless, clammy, panicking voice, panting and gulping between words, talking too fast then stalling, wet nervous swallows, always on the edge of hyperventilating.",
+    "designed": "2026-11-10"
+  },
+  "snoot": {
+    "voiceId": "pjO0pMcK6FmuReSKeC8C",
+    "brief": "A deeply nasal, honking, congested voice, every word blown out through a long dripping nose, snorting and sniffing, slow and pretentious.",
+    "designed": "2026-11-10"
+  },
+  "screamer": {
+    "voiceId": "4qwaWLMHLC6afew8Lv6L",
+    "brief": "A shrill, hoarse, ear-splitting voice that cannot stop screaming, raw and shredded from yelling, words coming out as shrieks and ragged gasps. Jarring and abrasive.",
+    "designed": "2026-11-10"
+  },
+  "shiv": {
+    "voiceId": "sibMMM06TmzE2bmf0k0U",
+    "brief": "A thin, wheedling, nasal voice, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
+    "designed": "2026-11-10"
   }
 }

@@ -50,7 +50,7 @@
   },
   "shiv": {
     "name": "Shiv", "voice": "Eric",
-    "brief": "A thin, wheedling, nasal voice of a sneaky liar, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
+    "brief": "A thin, wheedling, nasal voice, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
     "manner": "sly, nasal", "fx": ["high"],
     "look": "a skinny wrinkled creature with a long fleshy nose and bulging eyes"
   },
