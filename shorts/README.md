@@ -40,6 +40,8 @@ CONEHEAD (guilty): ...finders keepers.
   other.
 - `> NAME (1.5s, still)`: a silent beat, a reaction or an awkward pause.
   Their picture held, no video made, free. Good with `push` or `close`.
+- `NAME (off): words`: said off screen, heard over whoever was on screen last
+  (their reaction, held). Free.
 - `> SCENE: what happens`: just the background, no character.
 - **Camera notes** (in the brackets, on any shot) move the character only:
   - `close`: extreme close-up
@@ -58,11 +60,17 @@ CONEHEAD (guilty): ...finders keepers.
   - `title:` (shown over the opening)
   - `format: vertical | wide`
   - `background: surface | deep | black | path/to/picture.png`
-  - `music: music/song.mp3` (plays quietly under everything)
+  - `music: creepy-box | creepy-theme | music-box | theme | none`, or a file
+    in `shorts/music/`. The default is `creepy-box`. The game's Suno tracks,
+    slowed and detuned for the creepy ones. Music drops under the voices and
+    swells back in the pauses.
+  - `ambience: wind | hum | gut | none` (a bed under everything; wind by default)
   - `captions: on | names | off` (off unless you say)
   - `facing: front` (everyone faces the camera)
   - `endcard: off` (skips the hairypopsicles.com card)
 - Lines starting with `#` are notes to yourself.
+
+How to write them (the show's voice, rhythm, beats): see `WRITING.md`.
 
 ## Make it
 

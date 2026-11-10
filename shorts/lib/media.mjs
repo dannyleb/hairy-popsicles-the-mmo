@@ -90,19 +90,41 @@ export function join(clips, listFile, outFile) {
 // The finished short: captions (and title, end card) burned in from an .ass
 // file, music under everything, and the sound brought to the loudness the
 // apps expect.
-export function finish({ joined, ass, fontsDir, music, musicVolume, total, outFile }) {
+export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, ambience, total, outFile }) {
   const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   const subs = ass ? `subtitles='${esc(ass)}':fontsdir='${esc(fontsDir)}'` : 'null';
-  const inputs = ['-i', joined, ...(music ? ['-stream_loop', '-1', '-i', music] : [])];
-  const fadeAt = Math.max(0, total - 1.5).toFixed(2);
-  const audio = music
-    ? `[1:a]aresample=48000,volume=${musicVolume},afade=t=in:d=0.5,afade=t=out:st=${fadeAt}:d=1.5[m];[0:a][m]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]`
-    : '[0:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]';
+  const fadeAt = Math.max(0, total - 1.8).toFixed(2);
+  const inputs = ['-i', joined];
+  const beds = [];  // what plays under the voices: [label, filter chain]
+  if (music) {
+    inputs.push('-stream_loop', '-1', '-i', music);
+    beds.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]aresample=48000,volume=${musicVolume},afade=t=in:d=1.2,afade=t=out:st=${fadeAt}:d=1.8`);
+  }
+  if (ambience) {
+    inputs.push('-f', 'lavfi', '-i', ambience);
+    beds.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1.5,afade=t=out:st=${fadeAt}:d=1.8`);
+  }
+  let audio;
+  if (beds.length) {
+    // The music and ambience drop under the voices and swell back in the
+    // pauses (ducked by the dialogue).
+    const bed = beds.length === 2 ? `${beds[0]}[b0];${beds[1]}[b1];[b0][b1]amix=inputs=2:normalize=0[bed]` : `${beds[0]}[bed]`;
+    audio = `[0:a]asplit[d][sc];${bed};[bed][sc]sidechaincompress=threshold=0.015:ratio=7:attack=25:release=450:makeup=1[ducked];`
+      + '[d][ducked]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]';
+  } else {
+    audio = '[0:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]';
+  }
   ffmpeg([
     ...inputs, '-filter_complex', `[0:v]${subs}[v];${audio}`, '-map', '[v]', '-map', '[a]',
     '-t', total.toFixed(3), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p',
     ...AUDIO, '-movflags', '+faststart', outFile,
   ]);
+}
+
+// A music track given a treatment once (kit.json music.tracks: slowed,
+// detuned and drowned in echo for the creepy versions), kept as a file.
+export function treatMusic({ inFile, fx, outFile }) {
+  whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', fx ? `${fx},loudnorm=I=-20:TP=-2` : 'loudnorm=I=-20:TP=-2', '-ar', '48000', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
 }
 
 // Things done to a voice after it's made, stacked in the order given

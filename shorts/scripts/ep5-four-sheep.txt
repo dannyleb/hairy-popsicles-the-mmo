@@ -2,14 +2,17 @@
 title: Four Sheep
 background: black
 facing: front
+ambience: hum
 
-RED EYE (whispering, unblinking, push): Haven't slept since I was drawn.
-RED EYE (flat): Doctor says count sheep. So I count sheep.
 > RED EYE (2s, still, push)
-RED EYE (whispering): One sheep. Two sheep. Three sheep with my mother's face.
-RED EYE (twitching, whispering, close): Four sheep. Four sheep is standing at the end of my bed.
+RED EYE (whispering, unblinking): Haven't slept. Not since they drew me.
+RED EYE (flat): Doctor says count sheep. So... I count them.
+> RED EYE (1.5s, still, push)
+RED EYE (whispering): One sheep. Two sheep. Three sheep has my mum's face. That's fine. That's fine.
+RED EYE (whispering, close): Four sheep doesn't jump the fence.
+RED EYE (whispering, close, push): Four sheep just stands at the end of the bed. Breathing.
 > RED EYE (2s, still, close, push)
-RED EYE (barely audible): ...four sheep. I can see you.
+RED EYE (politely, barely audible): ...hello, four sheep.
 SCREAMER (screaming, close, punch, shake): AAAAAAAAAAAAAAH!
 > RED EYE (1.5s, still, close)
-RED EYE (flat): ...goodnight, four sheep.
+RED EYE (flat): ...same time tomorrow, then.

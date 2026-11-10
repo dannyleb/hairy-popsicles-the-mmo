@@ -16,10 +16,12 @@
 //   camera, on the character only (the background stays still):
 //     "close" (extreme close-up), "shake", "punch" (snaps in), "push" (creeps in)
 //   "still": a held frame instead of video (beats, reactions; free)
+//   "off": said off screen, heard over whoever was on screen last (their
+//     reaction, held; free)
 //   "front", "left", "right": face the camera, or stand on that side
 //   anything else: direction for how it's said and acted
 
-export const SETTINGS = ['title', 'format', 'music', 'background', 'captions', 'endcard', 'facing'];
+export const SETTINGS = ['title', 'format', 'music', 'ambience', 'background', 'captions', 'endcard', 'facing'];
 export const CAMERA = ['close', 'shake', 'punch', 'push'];
 const normal = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -34,7 +36,7 @@ export function findCharacter(written, cast) {
 }
 
 function readNotes(text) {
-  const notes = { seconds: null, take: null, sound: false, still: false, camera: [], side: null, direction: [] };
+  const notes = { seconds: null, take: null, sound: false, still: false, off: false, camera: [], side: null, direction: [] };
   for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
     const word = part.toLowerCase();
     const seconds = part.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
@@ -43,6 +45,7 @@ function readNotes(text) {
     else if (take) notes.take = take[1].trim();
     else if (/^(sound|sfx)$/.test(word)) notes.sound = true;
     else if (word === 'still') notes.still = true;
+    else if (word === 'off' || word === 'o.s.' || word === 'offscreen') notes.off = true;
     else if (CAMERA.includes(word)) notes.camera.push(word);
     else if (['front', 'left', 'right'].includes(word)) notes.side = word;
     else notes.direction.push(part);
@@ -96,7 +99,8 @@ export function parseScript(source, cast) {
       return;
     }
     if (!action && notes.seconds) errors.push(`line ${n}: a talking line is as long as it takes to say; lengths are for > action shots.`);
-    if (!action && notes.still) errors.push(`line ${n}: "still" is for > shots (a talking line moves its mouth).`);
+    if (!action && notes.still) errors.push(`line ${n}: "still" is for > shots (a talking line moves its mouth; "off" plays it over someone else).`);
+    if (action && notes.off) errors.push(`line ${n}: "off" is for talking lines (said off screen).`);
     shots.push({ n, line, kind: action ? 'action' : 'talk', who: scene ? 'scene' : ids[0], cast: ids, text, notes });
   });
   if (!shots.length && !errors.length) errors.push('There are no shots in this script yet.');

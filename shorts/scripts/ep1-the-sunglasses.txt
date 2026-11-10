@@ -1,17 +1,19 @@
-# Hairy Popsicles, episode 1. Big Eye's eye won't close. Conehead tries to help.
+# Hairy Popsicles, episode 1. Conehead has made Big Eye a present. Big Eye doesn't want it.
 title: The Sunglasses
 background: surface
 
-> BIG EYE & CONEHEAD (3s): Conehead bounces up to Big Eye, grinning, hiding something behind his back
-CONEHEAD (manic, too cheerful): Big Eye! Big Eye! I got you a present!
-BIG EYE (suspicious): ...what is it.
-CONEHEAD (giggling): Sunglasses! For your eye!
-> BIG EYE (1.5s, still, push)
-BIG EYE (flat): Which eye.
-> CONEHEAD (1.2s, still, close)
-CONEHEAD (whispering, giggling): ...the small one.
-BIG EYE (screaming, punch, shake): THE BIG ONE IS THE ONE THAT HURTS, CONEHEAD!
-CONEHEAD (sing-song): Then close it!
-BIG EYE (quiet, defeated): It doesn't close. It hasn't closed since nineteen ninety-four.
+> BIG EYE (2s, still, push)
+CONEHEAD (off, softly): Big Eye... I made you something.
+BIG EYE (flat): No.
+> BIG EYE & CONEHEAD (3s): Conehead slowly leans in much too close to Big Eye, grinning, holding out a tiny lumpy pair of sunglasses
+CONEHEAD (softly, pleased): Sunglasses. For your eye. I made them out of my old scabs. Took me all summer.
+BIG EYE (flat): ...there's one lens.
+CONEHEAD (gently): Well... you've only got the one... nice... side.
+BIG EYE (low, dangerous, push): Say "nice side" again.
+CONEHEAD (whispering, delighted): Nice side—
+BIG EYE (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
+> CONEHEAD (1.5s, still, push)
+CONEHEAD (softly, close): ...put them on, Big Eye.
 > BIG EYE (2s, still, close, push)
-CONEHEAD (whispering, close): ...I'll get you a hat.
+BIG EYE (quietly, surprised): ...they're warm.
+CONEHEAD (off, whispering): That's me.

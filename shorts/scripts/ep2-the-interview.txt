@@ -2,13 +2,20 @@
 title: The Interview
 background: surface
 
-DROOPY (exhausted, slurring): So... Sweats. Tell me... about yourself.
-SWEATS (panicked, punch): Hi! Yes! I'm a people person! I'm moist! Motivated. I'm motivated.
-DROOPY (exhausted): Says here you left your last job because of... a puddle.
-SWEATS (panicked): It wasn't a puddle. It was a pool. They put a lifeguard on me.
 > DROOPY (2s, still, push)
-DROOPY (exhausted): Any... weaknesses.
-SWEATS (sobbing, close, shake): I'm standing in my own shoes, Droopy. I'm standing IN them.
+DROOPY (exhausted, slurring): Right. So... Sweats.
+SWEATS (panicked, too fast): Yes. Sorry. That's me. Sorry. Hello.
+DROOPY (exhausted): It says here... bowling alley...
+SWEATS (nervous, too fast): Six years. Loved it. The balls just kept... slipping out. Into other lanes. Into a birthday party.
+> DROOPY (2s, still, close)
+DROOPY (exhausted): ...mm.
+SWEATS (off, whispering): Was the birthday party relevant?
+DROOPY (slurring, push): Where do you see yourself... in five...
+> DROOPY (3s): his eyelids slowly sag shut and his whole face droops lower and lower
+SWEATS (whispering): ...Droopy?
+SWEATS (panicked, shake): Is he- I can't touch him, I'll leave a mark—
+DROOPY (startled awake, punch): ...years.
+SWEATS (sobbing, close): A towel. In five years I'd like to be a towel.
 > SWEATS (3s): sweat pours down his face in thick blue streams, dripping off his chin
-DROOPY (exhausted): ...we'll be in touch.
-SWEATS (whispering, close): Please don't touch me. It's slippery.
+DROOPY (exhausted): ...you start Monday.
+SWEATS (off, whispering): Sorry about your chair.

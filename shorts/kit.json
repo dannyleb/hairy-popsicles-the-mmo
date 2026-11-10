@@ -47,7 +47,34 @@
   },
   "captions": "off",
   "music": {
-    "volume": 0.18
+    "_": "Music under every episode (a script's music: picks another, or none). Each track is the game's Suno music given a treatment once: the creepy ones are slowed, detuned, darkened and drowned in echo. It drops under the voices and swells in the pauses.",
+    "default": "creepy-box",
+    "volume": 0.55,
+    "tracks": {
+      "creepy-box": {
+        "file": "packages/client/public/audio/music-box.mp3",
+        "fx": "rubberband=tempo=0.78:pitch=0.79,lowpass=f=2600,aecho=0.8:0.6:350|700|1100:0.35|0.22|0.12"
+      },
+      "creepy-theme": {
+        "file": "packages/client/public/audio/theme.mp3",
+        "fx": "rubberband=tempo=0.7:pitch=0.74,lowpass=f=2200,aecho=0.8:0.6:400|800|1300:0.3|0.2|0.1"
+      },
+      "music-box": {
+        "file": "packages/client/public/audio/music-box.mp3"
+      },
+      "theme": {
+        "file": "packages/client/public/audio/theme.mp3"
+      }
+    }
+  },
+  "ambience": {
+    "_": "A bed of sound under everything, so silences aren't dead air (a script's ambience: picks another, or none).",
+    "default": "wind",
+    "beds": {
+      "wind": "anoisesrc=color=brown:amplitude=0.5:seed=7,lowpass=f=420,highpass=f=35,tremolo=f=0.13:d=0.7,volume=0.35",
+      "hum": "sine=f=55:sample_rate=48000,volume=0.06,tremolo=f=0.4:d=0.4",
+      "gut": "anoisesrc=color=brown:amplitude=0.6:seed=3,lowpass=f=180,tremolo=f=0.9:d=0.8,volume=0.45"
+    }
   },
   "endcard": {
     "title": "Hairy Popsicles",

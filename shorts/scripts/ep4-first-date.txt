@@ -1,15 +1,20 @@
 # Hairy Popsicles, episode 4. Pimples and Melter, a first date, under the skin.
 title: First Date
 background: deep
+ambience: gut
 
-PIMPLES (nervous, voice cracking): You look... really nice tonight, Melter.
-MELTER (melting, sad): Thank you. I did my face this morning. Most of it's still here.
+PIMPLES (nervous, voice cracking): I've, um... never been this deep before.
+MELTER (melting, sad): It's quieter down here. Nobody looks at you.
+> PIMPLES (1.5s, still, push)
+PIMPLES (nervous): You look really... your face is very...
+MELTER (flat): Lower than when you picked me up. I know.
 > MELTER (3s): her face slowly slides downward, one eye drooping lower and lower
-PIMPLES (nervous): Is it warm in here, or...
-MELTER (flat): It's me. I'm the warm.
-PIMPLES (voice cracking, push): I have to tell you something. I'm... ripe.
-MELTER (horrified, whispering, close): ...don't.
-PIMPLES (screaming, punch, shake): IT'S HAPPENING!
+PIMPLES (nervous, push): No— it's good! It's like a candle. A candle with a face.
+> MELTER (2s, still, close)
+MELTER (softly, moved): ...nobody's ever called me a candle.
+PIMPLES (voice cracking, close): Melter. I've been holding something in all night—
+MELTER (whispering): Don't.
+PIMPLES (screaming, punch, shake): I CAN'T HOLD IT—
 > PIMPLES (2s, shake): a big pimple on his cheek bursts with a wet splatter
 > MELTER (2s, still, close, push)
-MELTER (moved, tearful): ...that's the nicest thing anyone's ever done for me.
+MELTER (softly, tearful): ...is that for me?

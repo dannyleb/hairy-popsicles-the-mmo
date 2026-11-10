@@ -45,6 +45,9 @@ check('two in a shot', show.shots[0].cast.join() === 'bigeye,conehead' && show.s
 check('a silent beat needs no words', show.shots[1].notes.still && show.shots[1].text === '' && show.shots[1].notes.camera.join() === 'close,push', show.errors.join('; '));
 check('camera and side notes come out of the direction', show.shots[2].notes.direction.join() === 'screaming' && show.shots[2].notes.camera.join() === 'punch' && show.shots[2].notes.side === 'left');
 check('facing is a setting', show.settings.facing === 'front');
+const offscreen = parseScript('CONEHEAD (off, softly): I made you something.\n> CONEHEAD (off): x', cast);
+check('a line said off screen', offscreen.shots[0].notes.off && offscreen.shots[0].notes.direction.join() === 'softly');
+check('...but not an action', offscreen.errors.length === 1, offscreen.errors.join('; '));
 const wrong = parseScript('BIG EYE & CONEHEAD: hi\n> A & B & C: x\nBIG EYE (still): hi', cast);
 check('two talking at once, unknowns in a pair, and still talking lines are caught', wrong.errors.length === 3, wrong.errors.join(' / '));
 for (const file of ['ep1-the-sunglasses', 'ep2-the-interview', 'ep3-liar', 'ep4-first-date', 'ep5-four-sheep']) {
