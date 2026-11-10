@@ -114,6 +114,8 @@ packages/
     src/ui/       HTML overlays: loading, menu, HUD, chat, album, sheets, reveals, minimap, coach
     src/audio/    procedural sound effects (and vibration), music
 site/       the hub at hairypopsicles.com (plain HTML and CSS; the game's art and fonts)
+shorts/     the shorts kit: a script in, an animated short out (ElevenLabs voices, fal video);
+            see shorts/README.md
 tools/      site.mjs (puts the hub and the game together for Pages), load/ (the load
             test), the art scripts
 tests/      server test suites and their runner
@@ -166,7 +168,8 @@ who's here and idle, who's been by, nothing private, the limit), `database`
 (Postgres saves, restarts, the database being down, who's been by after one;
 strikes and bans after one), `moderation` (chat strikes, the ban, network
 bans, pardons), `titles`, `gifts`, `hardening` (masked swearing, rate limits)
-and `filter` (what counts as hate, sexual talk, harassment or swearing).
+`filter` (what counts as hate, sexual talk, harassment or swearing) and
+`shorts` (the shorts kit's script reader and captions).
 GitHub Actions runs them on every push and pull request
 (`.github/workflows/test.yml`).
 

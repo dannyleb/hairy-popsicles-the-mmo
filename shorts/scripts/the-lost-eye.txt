@@ -1,0 +1,16 @@
+# A short is a list of shots, one per line, top to bottom.
+#   NAME: what they say                     a talking shot (lip-synced)
+#   NAME (whispering): what they say        with a note on how to say it
+#   > NAME (3s): what happens               a shot with no talking, about 3 seconds
+# Names are anyone in shorts/cast.json. Lines starting with # are notes to yourself.
+
+title: The Lost Eye
+background: surface
+
+BIG EYE: Has anyone seen my other eye? It was right here a second ago.
+> RED EYE (3s): slowly turns to stare into the camera, both huge yellow eyes twitching
+RED EYE (whispering): Don't look at me. These are mine.
+CONEHEAD: I'm smiling! Can't you tell I'm smiling?
+BIG EYE (suspicious): Conehead. Why is your smile... blinking?
+> CONEHEAD (4s): grins wider and wider until a slimy eyeball rolls out of its mouth
+CONEHEAD (guilty, mouth full): ...finders keepers.

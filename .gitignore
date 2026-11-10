@@ -9,3 +9,5 @@ dist-ssr/
 __pycache__/
 tools/load/out/
 _site/
+shorts/out/
+shorts/.env
