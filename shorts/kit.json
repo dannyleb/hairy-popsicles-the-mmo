@@ -87,6 +87,18 @@
       "gut": "anoisesrc=color=brown:amplitude=0.6:seed=3,lowpass=f=180,tremolo=f=0.9:d=0.8,volume=0.45"
     }
   },
+  "vhs": {
+    "_": "Bursts of VHS static (picture and sound), every few seconds and only between lines. A script's vhs: off turns them off.",
+    "every": [
+      4,
+      9
+    ],
+    "length": [
+      0.15,
+      0.45
+    ],
+    "volume": 0.32
+  },
   "endcard": {
     "title": "Hairy Popsicles",
     "line": "hairypopsicles.com",

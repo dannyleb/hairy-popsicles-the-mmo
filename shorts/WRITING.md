@@ -38,8 +38,8 @@ The Big Lez Show are in there too.
   line ending in `—` is cut off: the next line comes straight in. A line
   ending in `...` lingers.
 - **Threes with a turn.** One sheep, two sheep, three sheep has my mum's face.
-- **End on a button.** A small, quiet, wrong last line, ideally said over
-  someone else's face (`off`). Not a punchline; a door left open.
+- **End on a button.** A small, quiet, wrong last line, then someone else's
+  face taking it in (a beat). Not a punchline; a door left open.
 
 ## On the page
 
@@ -48,8 +48,11 @@ The Big Lez Show are in there too.
   (`manner` in `cast.json`).
 - Give silences room: `> NAME (1.5s, still)` is a free beat, and the music
   swells into it. Most episodes want two or three.
-- Put lines over reactions: `NAME (off): ...` plays the line over whoever
-  was on screen. A reaction is often funnier than the face saying it.
+- **Whoever talks is on screen.** A viewer has to see who's speaking, so
+  every line is said on camera. For a reaction, put a beat on the other face
+  right after the line: `> NAME (1.5s, still)`. A reaction is often funnier
+  than the face saying it. `off` is only for a voice that isn't in the scene
+  (a phone, a narrator, someone through a wall).
 - Keep every line short. If a line has a comma in the middle, it can
   probably be two lines, or a line and a beat.
 - 8 to 12 lines is about 40 seconds.

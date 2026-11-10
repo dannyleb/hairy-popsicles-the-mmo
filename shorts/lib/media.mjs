@@ -93,9 +93,10 @@ export function join(clips, listFile, outFile) {
 // The finished short: captions (and title, end card) burned in from an .ass
 // file, music under everything, and the sound brought to the loudness the
 // apps expect.
-export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, ambience, total, outFile }) {
+export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, ambience, vhs, size: [W, H] = [1080, 1920], total, outFile }) {
   const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   const subs = ass ? `subtitles='${esc(ass)}':fontsdir='${esc(fontsDir)}'` : 'null';
+  const glitch = vhs?.bursts.length ? staticBursts(vhs.bursts) : null;
   const fadeAt = Math.max(0, total - 1.8).toFixed(2);
   const inputs = ['-i', joined];
   const beds = [];  // what plays under the voices: [label, filter chain]
@@ -107,21 +108,50 @@ export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, ambien
     inputs.push('-f', 'lavfi', '-i', ambience);
     beds.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1.5,afade=t=out:st=${fadeAt}:d=1.8`);
   }
+  let video = `[0:v]${subs}[v]`;
+  let hiss = '';  // the static's sound, mixed in with everything else
+  if (glitch) {
+    inputs.push('-f', 'lavfi', '-i', `color=c=black:s=${W}x${Math.round(H * 0.035)}:r=30`);
+    const band = inputs.filter((x) => x === '-i').length - 1;
+    inputs.push('-f', 'lavfi', '-i', 'anoisesrc=color=white:amplitude=0.7:sample_rate=48000', '-f', 'lavfi', '-i', "aevalsrc='0.25*sgn(sin(2*PI*119*t))+0.12*sgn(sin(2*PI*61*t))':s=48000");
+    const [noise, buzz] = [band + 1, band + 2];
+    video = `[0:v]${subs},${glitch.picture}[g];`
+      // the tracking band: bright streaks of noise rolling down the picture
+      + `[${band}:v]noise=alls=100:allf=t+u,avgblur=sizeX=28:sizeY=1,eq=contrast=2.2:brightness=0.15,format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='min(255,1.8*r(X,Y))'[bandraw];`
+      + `[g][bandraw]overlay=x=0:y='mod(t*1700,main_h)-overlay_h':enable='${glitch.on}':eval=frame:shortest=0[v]`;
+    hiss = `[${noise}:a]highpass=f=900,lowpass=f=7500,acrusher=bits=6:mix=0.5[n];[${buzz}:a]lowpass=f=1800[z];`
+      + `[n][z]amix=inputs=2:normalize=0,volume='if(${glitch.on},${vhs.volume ?? 0.3},0)':eval=frame,aformat=channel_layouts=stereo[hiss];`;
+  }
   let audio;
   if (beds.length) {
     // The music and ambience drop under the voices and swell back in the
     // pauses (ducked by the dialogue).
     const bed = beds.length === 2 ? `${beds[0]}[b0];${beds[1]}[b1];[b0][b1]amix=inputs=2:normalize=0[bed]` : `${beds[0]}[bed]`;
     audio = `[0:a]asplit[d][sc];${bed};[bed][sc]sidechaincompress=threshold=0.015:ratio=7:attack=25:release=450:makeup=1[ducked];`
-      + '[d][ducked]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]';
+      + `[d][ducked]${hiss ? '[hiss]' : ''}amix=inputs=${hiss ? 3 : 2}:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]`;
   } else {
-    audio = '[0:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]';
+    audio = hiss ? '[0:a][hiss]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]' : '[0:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]';
   }
   ffmpeg([
-    ...inputs, '-filter_complex', `[0:v]${subs}[v];${audio}`, '-map', '[v]', '-map', '[a]',
+    ...inputs, '-filter_complex', `${video};${hiss}${audio}`, '-map', '[v]', '-map', '[a]',
     '-t', total.toFixed(3), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p',
     ...AUDIO, '-movflags', '+faststart', outFile,
   ]);
+}
+
+// VHS static over the picture during each burst ([start, end] seconds):
+// grain, the colours sliding apart, a flicker and a rolling tracking band.
+function staticBursts(bursts) {
+  const on = bursts.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join('+');
+  const wobble = '(14*sin(Y*0.045+T*70)+5*sin(Y*0.37+T*17))';  // lines sliding sideways
+  const picture = [
+    `geq=lum='lum(X+${wobble},Y)':cb='cb(X+${wobble}/2,Y)':cr='cr(X+${wobble}/2,Y)':enable='${on}'`,
+    `noise=alls=80:allf=t+u:enable='${on}'`,
+    `rgbashift=rh=-14:bh=12:gv=3:edge=wrap:enable='${on}'`,
+    `eq=brightness=0.07:contrast=1.25:saturation=0.6:enable='${on}'`,
+    `boxblur=luma_radius=2:luma_power=1:chroma_radius=10:enable='${on}'`,
+  ].join(',');
+  return { on, picture };
 }
 
 // A music track given a treatment once (kit.json music.tracks: slowed,
@@ -186,11 +216,14 @@ export function onKey({ layerFile, key, size: [W, H], outFile }) {
   ]));
 }
 
-// The finished shot: the still background, the character layer over it with
-// its shadow (keyed out of a video, or a still layer), moved by the camera
-// notes (on the character only, the background stays put), `seconds` long.
-// `focus`: [x, y] the camera moves about (the face).
-export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], audio, keepSound, seconds, size: [W, H], fps, outFile }) {
+// The finished shot: the still background, the character layer over it
+// (keyed out of a video, or a still layer) with its shadow on the floor,
+// moved by the camera notes (on the character only, the background stays
+// put), `seconds` long. `focus`: [x, y] the camera moves about (the face).
+// `base`: how far down the frame they touch the floor (null: no shadow).
+// The shadow is their own outline flattened onto the floor at `base`, so it
+// follows every move they make, and moves with them under the camera notes.
+export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
   const D = seconds.toFixed(3);
   const zoom = [
     camera.includes('close') ? '1.7' : '1',
@@ -207,15 +240,26 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
   const motion = moved ? '' : `,scale=w='trunc(${W}*${zoom}/2)*2':h='trunc(${H}*${zoom}/2)*2':eval=frame`;
   const x = moved ? '0' : `'${fx}-${fx}*${zoom}${dx}'`;
   const y = moved ? '0' : `'${fy}-${fy}*${zoom}${dy}'`;
-  const xs = moved ? '14' : `'${fx}-${fx}*${zoom}${dx}+14'`;
-  const ys = moved ? '22' : `'${fy}-${fy}*${zoom}${dy}+22'`;
-  const graph = [
-    `[0:v]fps=${fps},scale=${W}:${H},setsar=1,format=rgba[bg]`,
-    `${source}${motion},split[fg][s]`,
-    '[s]colorchannelmixer=rr=0:gg=0:bb=0:aa=0.5,gblur=sigma=16[sh]',
-    `[bg][sh]overlay=x=${xs}:y=${ys}:eval=frame[b2]`,
-    `[b2][fg]overlay=x=${x}:y=${y}:eval=frame,format=yuv420p[v]`,
-  ];
+  // A shadow: the outline squashed to `flat` of its height, laid on the floor
+  // with its bottom `drop` below where they touch it.
+  const flatten = (label, flat, drop, alpha, blur) => {
+    const h = Math.max(2, Math.round(H * flat));
+    const top = Math.max(0, Math.min(H - h, Math.round(base * (1 - flat) + H * drop)));
+    return `[${label}]colorchannelmixer=rr=0:gg=0:bb=0:aa=${alpha},scale=${W}:${h},pad=${W}:${H}:0:${top}:color=black@0,gblur=sigma=${blur}`;
+  };
+  const graph = [`[0:v]fps=${fps},scale=${W}:${H},setsar=1,format=rgba[bg]`];
+  if (base == null) {
+    graph.push(`${source}[actor]`);
+  } else {
+    graph.push(
+      `${source},split=3[fg][s1][s2]`,
+      `${flatten('s1', 0.07, 0, 0.72, 6)}[core]`,   // dark, right under them
+      `${flatten('s2', 0.13, 0.012, 0.3, 26)}[soft]`,    // a faint spread round it
+      '[soft][core]overlay=format=auto[shadow]',
+      '[shadow][fg]overlay=format=auto[actor]',
+    );
+  }
+  graph.push(`[actor]format=rgba${motion}[moved]`, `[bg][moved]overlay=x=${x}:y=${y}:eval=frame,format=yuv420p[v]`);
   const inputs = ['-loop', '1', '-framerate', String(fps), '-i', plate, ...(video ? ['-i', video] : ['-loop', '1', '-framerate', String(fps), '-i', still])];
   let a;
   if (keepSound) {
@@ -229,6 +273,12 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
   }
   ffmpeg([...inputs, '-filter_complex', `${graph.join(';')};${a}`, '-map', '[v]', '-map', '[a]', '-t', D,
     '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', outFile]);
+}
+
+// An image's [width, height].
+export function imageSize(file) {
+  const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  return probe.stdout.trim().split(',').map(Number);
 }
 
 // The bounding box of what isn't transparent in an image: [x, y, w, h].

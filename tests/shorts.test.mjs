@@ -62,6 +62,7 @@ check('props: held in a shot, worn, and shown on their own', props.shots[0].note
   && props.shots[1].prop === 'scab sunglasses' && props.shots[1].who === 'scene' && props.shots[1].cast.length === 0 && props.shots[1].notes.camera.join() === 'push');
 const noProp = parseScript('GREG (wearing: a hat): hi\nprop: = nothing', cast);
 check('props: an undefined or half-written prop is caught', noProp.errors.length === 2, noProp.errors.join(' / '));
+check('vhs: off turns the static off for one script', parseScript('vhs: off\nGREG: hi', cast).settings.vhs === 'off');
 for (const file of ['ep1-the-sunglasses', 'ep2-the-interview', 'ep3-liar', 'ep4-first-date', 'ep5-four-sheep']) {
   const episode = parseScript(readFileSync(new URL(`../shorts/scripts/${file}.txt`, import.meta.url), 'utf8'), cast);
   check(`${file} reads cleanly`, episode.errors.length === 0 && episode.shots.length > 5, episode.errors.join('; '));

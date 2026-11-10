@@ -1,15 +1,15 @@
 # Hairy Popsicles, episode 1. Doolie has made Greg a present. Greg doesn't want it.
 title: The Sunglasses
 prop: scab sunglasses = a crude, lumpy little pair of sunglasses made of dried, crusty brown and dark red scabs pressed together, with only one small dark lens; the other side is just an empty crusty ring with no lens
-scene: A blazing hot afternoon on a vast plain of sunburnt, peeling skin stretching to the horizon, a harsh white sun glaring in a sickly yellow sky, heat shimmer, a few long hairs standing up like dead trees, blisters and moles dotting the ground like boulders
+scene: A cramped, sweltering little room on a scorching afternoon: the back wall close behind and the floor are a cracked, peeling, pinkish-red surface like a bad sunburn, the floor filling the lower half of the picture with a few dark moles and little blisters dotted on it, a couple of long coarse hairs sprouting from the corners, a small square window high on the back wall glowing with blinding white sunlight, heat haze in the air, warm, soft, even light from the front
 
 > GREG (2s, still, push)
-DOOLIE (off, softly): Greg... I made you something.
+DOOLIE (softly): Greg... I made you something.
 GREG (flat): No.
 > GREG & DOOLIE (3s, with: scab sunglasses): Doolie slowly leans in much too close to Greg, grinning, the little scab sunglasses sitting on the ground between them
 DOOLIE (softly, pleased): Sunglasses. For your eye.
 > SCAB SUNGLASSES (3s, push): the crusty scab sunglasses glisten wetly in the heat, a bead of ooze slowly dripping off the frame
-DOOLIE (off, softly, pleased): I made them out of my old scabs. Took me all summer.
+DOOLIE (softly, pleased): I made them out of my old scabs. Took me all summer.
 GREG (flat): ...there's one lens.
 DOOLIE (gently): Well... you've only got the one... nice... side.
 GREG (low, dangerous, push): Say "nice side" again.
@@ -19,4 +19,5 @@ GREG (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
 DOOLIE (softly, close): ...put them on, Greg.
 > GREG (2s, still, close, push, wearing: scab sunglasses)
 GREG (quietly, surprised, wearing: scab sunglasses): ...they're warm.
-DOOLIE (off, whispering): That's me.
+DOOLIE (whispering): That's me.
+> GREG (1.5s, still, close, push, wearing: scab sunglasses)

@@ -25,7 +25,7 @@
 //   "front", "left", "right": face the camera, or stand on that side
 //   anything else: direction for how it's said and acted
 
-export const SETTINGS = ['title', 'format', 'scene', 'music', 'ambience', 'background', 'captions', 'endcard', 'facing'];
+export const SETTINGS = ['title', 'format', 'scene', 'music', 'ambience', 'background', 'captions', 'endcard', 'facing', 'vhs'];
 export const CAMERA = ['close', 'shake', 'punch', 'push'];
 const normal = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 

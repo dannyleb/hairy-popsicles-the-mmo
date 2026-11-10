@@ -11,7 +11,10 @@ Vertical (9:16) by default. Episodes are in `shorts/scripts/ep*.txt`.
 
 How a shot is made: each character is animated on a flat green screen, keyed
 out, and laid over a still background. So the background never warps, and
-the camera moves (shake, punch, close) happen to the character alone.
+the camera moves (shake, punch, close) happen to the character alone. Their
+shadow is their own outline laid flat on the floor where they stand, so it
+moves with them. Write scenes with a floor across the lower part of the
+picture (rooms work best: the light matches the characters).
 
 ## Write a script
 
@@ -42,7 +45,8 @@ DOOLIE (guilty): ...finders keepers.
 - `> NAME (1.5s, still)`: a silent beat, a reaction or an awkward pause.
   Their picture held, no video made, free. Good with `push` or `close`.
 - `NAME (off): words`: said off screen, heard over whoever was on screen last
-  (their reaction, held). Free.
+  (their face, held). Free. Only for a voice that isn't in the scene (a
+  phone, a narrator): a viewer needs to see who's talking.
 - `> SCENE: what happens`: just the background, no character.
 - **Props.** Define one at the top, `prop: scab sunglasses = a crude little
   pair of sunglasses made of dried scabs, one dark lens`, then:
@@ -82,6 +86,8 @@ DOOLIE (guilty): ...finders keepers.
     slowed and detuned for the creepy ones. Music drops under the voices and
     swells back in the pauses.
   - `ambience: wind | hum | gut | none` (a bed under everything; wind by default)
+  - `vhs: off` (no bursts of VHS static; they're on by default, every few
+    seconds in the gaps between lines, picture and sound)
   - `captions: on | names | off` (off unless you say)
   - `facing: front` (everyone faces the camera)
   - `endcard: off` (skips the hairypopsicles.com card)

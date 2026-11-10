@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
-  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, join, layer, onKey, startFrame, stillClip, treatMusic,
+  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
@@ -168,6 +168,37 @@ function place([W, H], side, pair) {
     ? { cx: W * cx, bottom: H * 0.82, width: W * 0.86, height: H * 0.58 }
     : { cx: W * (side === 'left' ? 0.4 : side === 'right' ? 0.6 : 0.5), bottom: H * 0.96, width: W * 0.6, height: H * 0.85 };
 }
+// VHS static every so often (kit.vhs.every seconds apart, give or take),
+// each burst kit.vhs.length long, only in the quiet stretches between lines,
+// and the same every time the episode is made.
+function staticBursts(quiet, { every: [lo, hi], length: [short, long], after = 1.5 }, seed) {
+  let n = parseInt(hash(seed).slice(0, 8), 16);
+  const random = () => ((n = (n * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const bursts = [];
+  let next = after + random() * (hi - lo);
+  for (const [from, to] of quiet) {
+    if (to < next) continue;
+    const start = Math.max(from, next);
+    const end = Math.min(to, start + short + random() * (long - short));
+    if (end - start < 0.1) continue;
+    bursts.push([start, end]);
+    next = end + lo + random() * (hi - lo);
+  }
+  return bursts;
+}
+
+// Where a picture laid out at `c` touches the floor: its bottom, less any
+// empty space at the bottom of the picture.
+const floors = new Map();
+function floorOf(c) {
+  if (!floors.has(c.image)) {
+    const [iw, ih] = imageSize(c.image);
+    const [, y, , h] = opaqueBox(c.image);
+    floors.set(c.image, { iw, ih, gap: ih - y - h });
+  }
+  const { iw, ih, gap } = floors.get(c.image);
+  return c.bottom - gap * Math.min(c.width / iw, c.height / ih);
+}
 const facingFor = (side) => (side === 'left' ? 'right' : side === 'right' ? 'left' : 'front');
 const keyFor = (ids) => (ids.some((id) => cast[id].key === 'blue') ? 'blue' : 'green');
 
@@ -284,7 +315,7 @@ async function main() {
   };
   const together = order.length > 1 && settings.facing !== 'front';
   const sideOf = Object.fromEntries(order.map((id, i) => [id, together ? (i % 2 ? 'right' : 'left') : 'front']));
-  let posesToDraw = 0;
+  const posesUndrawn = new Set();  // turned pictures the preview did without
   say(`\n${settings.title ?? slug}: ${shots.length} shots, ${format}${opts.offline ? ' (offline)' : ''}\n`);
   for (const shot of shots) {
     shot.character = shot.who === 'scene' ? null : cast[shot.who];
@@ -300,7 +331,7 @@ async function main() {
       if (facing !== 'front') {
         if (existsSync(posePath(HERE, id, facing))) image = posePath(HERE, id, facing);
         else if (drawing) image = await pose({ here: HERE, id, facing, picture, key: keyFor([id]), model: kit.edit.model, say });
-        else posesToDraw++;  // (the preview makes do with the picture as it is)
+        else posesUndrawn.add(posePath(HERE, id, facing));  // (the preview makes do with the picture as it is)
       }
       if (shot.look.wearing) image = await wornBy(id, facing, image, shot.look.wearing);
       chars.push({ image, ...place(size, sides[i], pair) });
@@ -310,6 +341,8 @@ async function main() {
       const image = await propFile(shot.look.prop);
       if (image) chars.push({ image, cx: W2 / 2, bottom: H2 * 0.68, width: W2 * 0.8, height: H2 * 0.38 });
     }
+    // (a prop held out in front is nearer the camera, so their shadow is what counts)
+    shot.base = chars.length ? Math.max(...chars.map(floorOf)) : null;
     if (shot.look.with) {
       const image = await propFile(shot.look.with);
       const by = chars[0];
@@ -410,6 +443,7 @@ async function main() {
   const made = (s) => s.notes.still || s.notes.off || existsSync(s.video);
   const toMake = shots.filter((s) => !made(s));
   const propsToDraw = undrawn.size;
+  const posesToDraw = posesUndrawn.size;
   const poseCost = (posesToDraw + propsToDraw) * kit.edit.price + (sceneToPaint ? kit.scene.price : 0);
   const cost = toMake.reduce((sum, s) => sum + s.price, 0);
   say('');
@@ -455,16 +489,20 @@ async function main() {
   // ---- the cut: each shot over the still background, video where it's made
   const clips = [];
   const lines = [];
+  const quiet = [];
   let t = 0;
   for (const shot of shots) {
     const clip = path.join(out, `clip-${String(shots.indexOf(shot) + 1).padStart(2, '0')}.mp4`);
     const video = !shot.notes.still && !shot.notes.off && existsSync(shot.video) ? shot.video : null;
     const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
     composite({
-      plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus,
+      plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus, base: shot.base,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
     const length = duration(clip);
+    // Where nobody's talking, static can cut in without drowning a word.
+    const quietFrom = shot.kind === 'talk' ? duration(shot.audio) : shot.notes.sound ? length : 0;
+    if (length - quietFrom > 0.12) quiet.push([t + quietFrom + 0.03, t + length]);
     if (shot.kind === 'talk') lines.push({ start: t + 0.05, end: t + length - 0.1, who: shot.character.name, text: shot.text.replace(/\[[^\]]*\]\s*/g, '') });
     clips.push(clip);
     t += length;
@@ -474,6 +512,7 @@ async function main() {
     const card = path.join(out, 'clip-end.mp4');
     stillClip({ frame: plate, audio: null, seconds: kit.endcard.seconds, size, fps, outFile: card });
     endcard = { start: t, end: t + kit.endcard.seconds, title: kit.endcard.title, line: kit.endcard.line };
+    quiet.push([t, t + 0.6]);
     clips.push(card);
     t += duration(card);
   }
@@ -485,7 +524,9 @@ async function main() {
   writeFileSync(path.join(out, `${slug}.srt`), captionsSrt(lines));
   const allMade = shots.every(made) && !posesToDraw && !propsToDraw && !sceneToPaint;
   const final = path.join(out, `${slug}${allMade ? '' : '-preview'}.mp4`);
-  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, ambience, total: t, outFile: final });
+  const vhs = (settings.vhs ?? 'on') !== 'off' && kit.vhs ? { bursts: staticBursts(quiet, kit.vhs, slug), volume: kit.vhs.volume } : null;
+  if (vhs) say(`(static: ${vhs.bursts.map(([a, b]) => `${a.toFixed(1)}s`).join(", ")})`);
+  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, ambience, vhs, size, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
 
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);
