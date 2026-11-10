@@ -14,5 +14,10 @@
     "voiceId": "tv6dipPnkT1kIVrQawmE",
     "brief": "A dry, cracked, sleep-deprived whisper, raspy and flat and eerily calm, as if staring without blinking, with long unnerving pauses and a twitch catching in the throat.",
     "designed": "2026-11-10"
+  },
+  "droopy": {
+    "voiceId": "xd4By8zUj8nKJdOPJJA9",
+    "brief": "An extremely slow, sagging, monotone old voice whose pitch droops at the end of every phrase, long exhausted sighs, words slurring and dripping downward like melting wax, as if falling asleep mid-word.",
+    "designed": "2026-11-10"
   }
 }

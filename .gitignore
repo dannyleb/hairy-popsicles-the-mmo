@@ -11,3 +11,9 @@ tools/load/out/
 _site/
 shorts/out/
 shorts/.env
+# the shorts kit's in-progress files (renamed into place when finished)
+shorts/**/*.source.png
+shorts/**/*.drawn.png
+shorts/**/*.raw
+shorts/**/*.raw.jpg
+shorts/**/*.raw.mp3
