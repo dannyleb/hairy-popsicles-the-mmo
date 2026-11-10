@@ -1,20 +1,20 @@
-# Hairy Popsicles, episode 4. Pimples and Melter, a first date, under the skin.
+# Hairy Popsicles, episode 4. Brayden and Duane, a first date, under the skin.
 title: First Date
 scene: A romantic restaurant deep inside a body: red fleshy cavern walls threaded with pulsing veins, a small table with a white tablecloth stained red, a single candle and two wine glasses of dark red liquid, warm intimate candlelight
 ambience: gut
 
-PIMPLES (nervous, voice cracking): I've, um... never been this deep before.
-MELTER (melting, sad): It's quieter down here. Nobody looks at you.
-> PIMPLES (1.5s, still, push)
-PIMPLES (nervous): You look really... your face is very...
-MELTER (flat): Lower than when you picked me up. I know.
-> MELTER (3s): her face slowly slides downward, one eye drooping lower and lower
-PIMPLES (nervous, push): No— it's good! It's like a candle. A candle with a face.
-> MELTER (2s, still, close)
-MELTER (softly, moved): ...nobody's ever called me a candle.
-PIMPLES (voice cracking, close): Melter. I've been holding something in all night—
-MELTER (whispering): Don't.
-PIMPLES (screaming, punch, shake): I CAN'T HOLD IT—
-> PIMPLES (2s, shake): a big pimple on his cheek bursts with a wet splatter
-> MELTER (2s, still, close, push)
-MELTER (softly, tearful): ...is that for me?
+BRAYDEN (nervous, voice cracking): I've, um... never been this deep before.
+DUANE (melting, sad): It's quieter down here. Nobody looks at you.
+> BRAYDEN (1.5s, still, push)
+BRAYDEN (nervous): You look really... your face is very...
+DUANE (flat): Lower than when you picked me up. I know.
+> DUANE (3s): her face slowly slides downward, one eye drooping lower and lower
+BRAYDEN (nervous, push): No— it's good! It's like a candle. A candle with a face.
+> DUANE (2s, still, close)
+DUANE (softly, moved): ...nobody's ever called me a candle.
+BRAYDEN (voice cracking, close): Duane. I've been holding something in all night—
+DUANE (whispering): Don't.
+BRAYDEN (screaming, punch, shake): I CAN'T HOLD IT—
+> BRAYDEN (2s, shake): a big pimple on his cheek bursts with a wet splatter
+> DUANE (2s, still, close, push)
+DUANE (softly, tearful): ...is that for me?

@@ -7,10 +7,10 @@
 title: The Lost Eye
 background: surface
 
-BIG EYE: Has anyone seen my other eye? It was right here a second ago.
-> RED EYE (3s): slowly turns to stare into the camera, both huge yellow eyes twitching
-RED EYE (whispering): Don't look at me. These are mine.
-CONEHEAD: I'm smiling! Can't you tell I'm smiling?
-BIG EYE (suspicious): Conehead. Why is your smile... blinking?
-> CONEHEAD (4s): grins wider and wider until a slimy eyeball rolls out of its mouth
-CONEHEAD (guilty, mouth full): ...finders keepers.
+GREG: Has anyone seen my other eye? It was right here a second ago.
+> NERM (3s): slowly turns to stare into the camera, both huge yellow eyes twitching
+NERM (whispering): Don't look at me. These are mine.
+DOOLIE: I'm smiling! Can't you tell I'm smiling?
+GREG (suspicious): Doolie. Why is your smile... blinking?
+> DOOLIE (4s): grins wider and wider until a slimy eyeball rolls out of its mouth
+DOOLIE (guilty, mouth full): ...finders keepers.

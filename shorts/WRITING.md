@@ -27,12 +27,12 @@ The Big Lez Show are in there too.
 - **Nobody answers the question.** People talk past each other, each chasing
   their own fixation. The answer, if it comes, comes three lines later
   ("...years.").
-- **Under the line.** Conehead is lonely; he never says so, he gives a gift.
-  Melter is moved; she says "is that for me?" about a pimple.
-- **Rhythm per character.** Big Eye: short, flat, one word if he can. Conehead:
-  soft, sing-song, too close. Droopy: trails off... Sweats: too fast, sorry,
-  sorry, oversharing. Snoot: slow, pompous, demanding. Shiv: short evasions.
-  Pimples: fragments that crack. Melter: deadpan poetry. Red Eye: a flat
+- **Under the line.** Doolie is lonely; he never says so, he gives a gift.
+  Duane is moved; she says "is that for me?" about a pimple.
+- **Rhythm per character.** Greg: short, flat, one word if he can. Doolie:
+  soft, sing-song, too close. Orville: trails off... Dennis: too fast, sorry,
+  sorry, oversharing. Hork: slow, pompous, demanding. Shiv: short evasions.
+  Brayden: fragments that crack. Duane: deadpan poetry. Nerm: a flat
   whisper, to himself.
 - **Fragments and cut-offs.** People stop, restart, interrupt themselves. A
   line ending in `—` is cut off: the next line comes straight in. A line

@@ -21,14 +21,15 @@ One shot per line, in `shorts/scripts/<name>.txt`:
 title: The Lost Eye
 background: surface
 
-BIG EYE: Has anyone seen my other eye?
-RED EYE (whispering): Don't look at me. These are mine.
-> CONEHEAD (4s): grins wider and wider until an eyeball rolls out of its mouth
-CONEHEAD (guilty): ...finders keepers.
+GREG: Has anyone seen my other eye?
+NERM (whispering): Don't look at me. These are mine.
+> DOOLIE (4s): grins wider and wider until an eyeball rolls out of its mouth
+DOOLIE (guilty): ...finders keepers.
 ```
 
 - `NAME: words`: someone talking, lip-synced. Anyone in `cast.json`
-  (`RED EYE`, `redeye` and `Red Eye` all work).
+  (`NERM`, `Nerm` and `nerm` all work, and so does their id in `cast.json`,
+  like `redeye`).
 - `NAME (note): words`: a note on how it's said and acted (`whispering`,
   `angry`, `laughing`). Several, comma-separated.
 - `NAME (take: takes/line3.m4a): words`: use your own recording of the line,
@@ -127,7 +128,7 @@ Each character in `cast.json` has its own designed voice:
   - space: `choir`, `echo`, `uncanny`
 - `voiceOf`: share another character's voice (the snoots do).
 - `look`: what they are, for the video model.
-- `lipsync: false`: anyone without a mouth (Roast, Head Bloom); they move
+- `lipsync: false`: anyone without a mouth (Glorp, The Aunties); they move
   while the voice plays over.
 
 Change a character's `fx` or `manner` and run the script again: only their

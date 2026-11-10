@@ -1,22 +1,22 @@
-# Hairy Popsicles, episode 1. Conehead has made Big Eye a present. Big Eye doesn't want it.
+# Hairy Popsicles, episode 1. Doolie has made Greg a present. Greg doesn't want it.
 title: The Sunglasses
 prop: scab sunglasses = a crude, lumpy little pair of sunglasses made of dried, crusty brown and dark red scabs pressed together, with only one small dark lens; the other side is just an empty crusty ring with no lens
 scene: A blazing hot afternoon on a vast plain of sunburnt, peeling skin stretching to the horizon, a harsh white sun glaring in a sickly yellow sky, heat shimmer, a few long hairs standing up like dead trees, blisters and moles dotting the ground like boulders
 
-> BIG EYE (2s, still, push)
-CONEHEAD (off, softly): Big Eye... I made you something.
-BIG EYE (flat): No.
-> BIG EYE & CONEHEAD (3s, with: scab sunglasses): Conehead slowly leans in much too close to Big Eye, grinning, the little scab sunglasses sitting on the ground between them
-CONEHEAD (softly, pleased): Sunglasses. For your eye.
+> GREG (2s, still, push)
+DOOLIE (off, softly): Greg... I made you something.
+GREG (flat): No.
+> GREG & DOOLIE (3s, with: scab sunglasses): Doolie slowly leans in much too close to Greg, grinning, the little scab sunglasses sitting on the ground between them
+DOOLIE (softly, pleased): Sunglasses. For your eye.
 > SCAB SUNGLASSES (3s, push): the crusty scab sunglasses glisten wetly in the heat, a bead of ooze slowly dripping off the frame
-CONEHEAD (off, softly, pleased): I made them out of my old scabs. Took me all summer.
-BIG EYE (flat): ...there's one lens.
-CONEHEAD (gently): Well... you've only got the one... nice... side.
-BIG EYE (low, dangerous, push): Say "nice side" again.
-CONEHEAD (whispering, delighted): Nice side—
-BIG EYE (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
-> CONEHEAD (1.5s, still, push)
-CONEHEAD (softly, close): ...put them on, Big Eye.
-> BIG EYE (2s, still, close, push, wearing: scab sunglasses)
-BIG EYE (quietly, surprised, wearing: scab sunglasses): ...they're warm.
-CONEHEAD (off, whispering): That's me.
+DOOLIE (off, softly, pleased): I made them out of my old scabs. Took me all summer.
+GREG (flat): ...there's one lens.
+DOOLIE (gently): Well... you've only got the one... nice... side.
+GREG (low, dangerous, push): Say "nice side" again.
+DOOLIE (whispering, delighted): Nice side—
+GREG (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
+> DOOLIE (1.5s, still, push)
+DOOLIE (softly, close): ...put them on, Greg.
+> GREG (2s, still, close, push, wearing: scab sunglasses)
+GREG (quietly, surprised, wearing: scab sunglasses): ...they're warm.
+DOOLIE (off, whispering): That's me.

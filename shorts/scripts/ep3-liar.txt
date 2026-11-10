@@ -1,19 +1,19 @@
-# Hairy Popsicles, episode 3. Shiv's nose grows when he lies. Snoot's brain is right there.
+# Hairy Popsicles, episode 3. Shiv's nose grows when he lies. Hork's brain is right there.
 title: Liar
 scene: A pretentious velvet parlour: deep crimson walls of wrinkled skin, a chandelier made of teeth, gilded frames holding oil paintings of noses, a fireplace oozing something thick, dim candlelight
 
-SNOOT (snooty, congested): Shiv. You've noticed.
+HORK (snooty, congested): Shiv. You've noticed.
 SHIV (sly): Noticed what.
-SNOOT (snooty, slow): The ring, Shiv. In the nose. It came off a bull.
+HORK (snooty, slow): The ring, Shiv. In the nose. It came off a bull.
 SHIV (too smooth): Oh. Yeah. It's... nice.
 > SHIV (2s): his long fleshy nose twitches and grows a little longer
-SNOOT (snooty, push): Most faces can't carry it. You need the... architecture.
+HORK (snooty, push): Most faces can't carry it. You need the... architecture.
 SHIV (strained): Mm-hm. Really. Suits you.
 > SHIV (2s, push): his nose stretches out even longer, quivering and wet
-SNOOT (snooty): Say it slower.
+HORK (snooty): Say it slower.
 SHIV (strained, close): It's the most beautiful thing I've ever—
-> SNOOT & SHIV (3s, shake): Shiv's long nose shoots across the gap and jabs straight into Snoot's exposed brain
-> SNOOT (1.5s, still, close)
-SNOOT (calmly, congested): ...Shiv. You're in my brain.
+> HORK & SHIV (3s, shake): Shiv's long nose shoots across the gap and jabs straight into Hork's exposed brain
+> HORK (1.5s, still, close)
+HORK (calmly, congested): ...Shiv. You're in my brain.
 SHIV (softly, sly): I know. It's nice in here.
 > SHIV (2s): his nose grows even longer

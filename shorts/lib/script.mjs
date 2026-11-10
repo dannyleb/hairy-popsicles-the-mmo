@@ -1,15 +1,15 @@
 // A short, as written: settings at the top, then one shot per line.
 //
 //   title: The Lost Eye
-//   CONEHEAD: Has anyone seen my other eye?            someone talking
-//   REDEYE (whispering): It's behind you.              ...with a note on how
-//   CONEHEAD (take: takes/scream.m4a): AAAAH!          ...in your own voice, recorded
-//   > CONEHEAD (3s): spins round, sweat flying off     something happening, no talking
-//   > BIG EYE & CONEHEAD (3s): stare at each other     two of them, facing each other
-//   > RED EYE (2s, still)                              a silent beat: no video made, free
-//   > SCENE: the Navel gurgles                         just the background
+//   DOOLIE: Has anyone seen my other eye?          someone talking
+//   NERM (whispering): It's behind you.            ...with a note on how
+//   DOOLIE (take: takes/scream.m4a): AAAAH!        ...in your own voice, recorded
+//   > DOOLIE (3s): spins round, sweat flying off   something happening, no talking
+//   > GREG & DOOLIE (3s): stare at each other      two of them, facing each other
+//   > NERM (2s, still)                             a silent beat: no video made, free
+//   > SCENE: the Navel gurgles                     just the background
 //   prop: scab sunglasses = a crude little pair of sunglasses made of scabs
-//   > SCAB SUNGLASSES (2s): glisten wetly              a prop on its own, close up
+//   > SCAB SUNGLASSES (2s): glisten wetly          a prop on its own, close up
 //
 // Notes in brackets, comma-separated:
 //   a length ("3s"), for > shots
@@ -29,7 +29,7 @@ export const SETTINGS = ['title', 'format', 'scene', 'music', 'ambience', 'backg
 export const CAMERA = ['close', 'shake', 'punch', 'push'];
 const normal = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// The cast id for a name as written ("RED EYE", "redeye", "Spoon Nana"), or null.
+// The cast id for a name as written ("NERM", "redeye", "Spoon Nana"), or null.
 export function findCharacter(written, cast) {
   const want = normal(written);
   for (const [id, c] of Object.entries(cast)) {
@@ -71,7 +71,7 @@ export function parseScript(source, cast) {
     if (!line || line.startsWith('#') || line.startsWith('//')) return;
     const action = line.startsWith('>');
     const body = action ? line.slice(1).trim() : line;
-    // (A > shot can end at its notes: "> RED EYE (2s, still)".)
+    // (A > shot can end at its notes: "> NERM (2s, still)".)
     const m = body.match(/^([^:()]+?)\s*(?:\(([^)]*)\))?\s*:\s*(.*)$/) ?? (action ? body.match(/^([^:()]+?)\s*\(([^)]*)\)\s*()$/) : null);
     if (!m) {
       errors.push(`line ${n}: "${line}" isn't a shot. Write NAME: what they say, or > NAME: what happens.`);
