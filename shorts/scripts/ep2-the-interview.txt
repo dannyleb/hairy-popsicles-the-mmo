@@ -8,10 +8,10 @@ room: small
 ORVILLE (exhausted, slurring): Right. So... Dennis.
 DENNIS (panicked, too fast): Yes. Sorry. That's me. Sorry. Hello.
 ORVILLE (exhausted): It says here... bowling alley...
-DENNIS (nervous, too fast): Six years. Loved it. The balls just kept... slipping out. Into other lanes. Into a birthday party.
+DENNIS (hysterical, too fast, giggling nervously): Six years. Loved it. The balls just kept... slipping out. Into other lanes. Into a birthday party.
 > ORVILLE (2s, still, close)
 ORVILLE (exhausted): ...mm.
-DENNIS (whispering): Was the birthday party relevant?
+DENNIS (whispering, panicked): Was the birthday party relevant?
 ORVILLE (slurring, push): Where do you see yourself... in five...
 > ORVILLE (3s): his eyelids slowly sag shut and his whole face droops lower and lower
 DENNIS (whispering): ...Orville?
@@ -20,5 +20,5 @@ ORVILLE (startled awake, punch): ...years.
 DENNIS (sobbing, close): A towel. In five years I'd like to be a towel.
 > DENNIS (3s): sweat pours down his face in thick blue streams, dripping off his chin
 ORVILLE (exhausted): ...you start Monday.
-DENNIS (whispering): Sorry about your chair.
+DENNIS (whispering, ashamed): Sorry about your chair.
 > ORVILLE (1.5s, still, push)

@@ -7,10 +7,10 @@ room: cavern
 BRAYDEN (nervous, voice cracking): I've, um... never been this deep before.
 DUANE (melting, sad): It's quieter down here. Nobody looks at you.
 > BRAYDEN (1.5s, still, push)
-BRAYDEN (nervous): You look really... your face is very...
+BRAYDEN (nervous, too fast, voice cracking): You look really... your face is very...
 DUANE (flat): Lower than when you picked me up. I know.
 > DUANE (3s): her face slowly slides downward, one eye drooping lower and lower
-BRAYDEN (nervous, push): No— it's good! It's like a candle. A candle with a face.
+BRAYDEN (panicked, too fast, push): No— it's good! It's like a candle. A candle with a face.
 > DUANE (2s, still, close)
 DUANE (softly, moved): ...nobody's ever called me a candle.
 BRAYDEN (voice cracking, close): Duane. I've been holding something in all night—

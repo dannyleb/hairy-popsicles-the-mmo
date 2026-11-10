@@ -130,7 +130,10 @@ async function designVoice(id, outDir) {
   say(`Designing ${name}'s voice...`);
   const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${name}` });
   designed[id] = { voiceId, brief, designed: new Date().toISOString().slice(0, 10) };
-  writeFileSync(VOICES_FILE, `${JSON.stringify(designed, null, 2)}\n`);
+  // Merged into what's on disk now, not what was there when this run began:
+  // two episodes made at once mustn't wipe each other's new voices.
+  const saved = existsSync(VOICES_FILE) ? JSON.parse(readFileSync(VOICES_FILE, 'utf8')) : {};
+  writeFileSync(VOICES_FILE, `${JSON.stringify({ ...saved, [id]: designed[id] }, null, 2)}\n`);
   mkdirSync(outDir, { recursive: true });
   const raw = path.join(outDir, `${id}-raw.mp3`);
   const sample = path.join(outDir, `${id}.mp3`);

@@ -9,7 +9,7 @@ facing: front
 NERM (whispering, unblinking): Haven't slept. Not since they drew me.
 NERM (flat): Doctor says count sheep. So... I count them.
 > NERM (1.5s, still, push)
-NERM (whispering): One sheep. Two sheep. Three sheep has my mum's face. That's fine. That's fine.
+NERM (whispering, twitching, a manic little giggle): One sheep. Two sheep. Three sheep has my mum's face. That's fine. That's fine.
 NERM (whispering, close): Four sheep doesn't jump the fence.
 NERM (whispering, close, push): Four sheep just stands at the end of the bed. Breathing.
 > NERM (2s, still, close, push)
