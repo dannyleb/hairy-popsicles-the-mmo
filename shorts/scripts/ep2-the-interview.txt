@@ -1,6 +1,8 @@
 # Hairy Popsicles, episode 2. Dennis needs this job. Orville needs a nap.
 title: The Interview
 scene: A dreary little office made of flesh: a cheap desk and a damp swivel chair, beige walls covered in pores and stretch marks, a flickering fluorescent light, a water cooler full of cloudy yellow liquid, a framed picture of a toenail on the wall
+sounds: the hum of a dingy little office, a flickering fluorescent tube buzzing, a water cooler glugging and dripping, a damp chair creaking, a fly bumping against a window
+room: small
 
 > ORVILLE (2s, still, push)
 ORVILLE (exhausted, slurring): Right. So... Dennis.

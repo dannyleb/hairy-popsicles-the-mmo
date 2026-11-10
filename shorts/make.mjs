@@ -20,10 +20,11 @@ import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
-  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, onKey, opaqueBox, startFrame, stillClip, treatMusic,
+  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
+import { ROOMS, roomResponse, sound, soundPath } from './lib/sounds.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -42,7 +43,9 @@ const CACHE = path.join(HERE, 'out', '.cache');
 const CONCURRENT = 3;          // video shots made at once
 // Quiet after each line before the cut, by how it ends: cut off mid-word
 // ("—") goes straight on, trailing off ("...") lingers.
-const tailFor = (text) => (/(—|--)\s*$/.test(text) ? 0.02 : /(\.\.\.|…)\s*$/.test(text) ? 0.7 : 0.25);
+// The gap after a line: none if it's cut off, a long one if it trails away,
+// otherwise kit.pace.gap (short: the show doesn't wait around).
+const tailFor = (text) => (/(—|--)\s*$/.test(text) ? 0.02 : /(\.\.\.|…)\s*$/.test(text) ? 0.7 : kit.pace.gap);
 const WORDS_PER_SECOND = 2.6;  // for placeholder voices (--offline)
 
 const kit = JSON.parse(readFileSync(path.join(HERE, 'kit.json'), 'utf8'));
@@ -168,12 +171,21 @@ function place([W, H], side, pair) {
     ? { cx: W * cx, bottom: H * 0.82, width: W * 0.86, height: H * 0.58 }
     : { cx: W * (side === 'left' ? 0.4 : side === 'right' ? 0.6 : 0.5), bottom: H * 0.96, width: W * 0.6, height: H * 0.85 };
 }
+// Random numbers that come out the same every time for the same seed (so a
+// remade episode jolts and crackles in the same places).
+function seeded(seed) {
+  let n = parseInt(hash(seed).slice(0, 8), 16);
+  return () => ((n = (n * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+}
+
+// Yelled lines get the camera slamming in and shaking whether the script says so or not.
+const yelled = (shot) => shot.kind === 'talk' && (/scream|shout|yell|shriek/i.test(shot.notes.direction.join(' ')) || (/!/.test(shot.text) && shot.text.replace(/[^a-z]/gi, '').length > 3 && shot.text === shot.text.toUpperCase()));
+
 // VHS static every so often (kit.vhs.every seconds apart, give or take),
 // each burst kit.vhs.length long, only in the quiet stretches between lines,
 // and the same every time the episode is made.
 function staticBursts(quiet, { every: [lo, hi], length: [short, long], after = 1.5 }, seed) {
-  let n = parseInt(hash(seed).slice(0, 8), 16);
-  const random = () => ((n = (n * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const random = seeded(seed);
   const bursts = [];
   let next = after + random() * (hi - lo);
   for (const [from, to] of quiet) {
@@ -259,10 +271,22 @@ async function main() {
     music = cached(`music-${hash({ file: hashFile(file), fx: preset?.fx ?? null })}.mp3`);
     if (!existsSync(music)) treatMusic({ inFile: file, fx: preset?.fx, outFile: music });
   }
-  const ambienceName = settings.ambience ?? kit.ambience.default;
+  // The episode's own environment (its sounds: line), made once for a few cents;
+  // the made-up ambience beds are for scripts without one.
+  let sounds = null;
+  if (settings.sounds) {
+    const where = { here: HERE, name: slug, description: settings.sounds, seconds: kit.sounds.seconds, loop: true, settings: kit.sounds, say };
+    const file = existsSync(soundPath(where)) ? soundPath(where) : opts.offline ? null : await sound(where);
+    if (file) sounds = { file: level({ inFile: file, loudness: kit.sounds.loudness, outFile: cached(`sounds-${hash({ file: hashFile(file), loudness: kit.sounds.loudness })}.mp3`) }), volume: 1 };
+  }
+  const ambienceName = settings.ambience ?? (settings.sounds ? 'none' : kit.ambience.default);
   const ambience = ambienceName && ambienceName !== 'none' ? kit.ambience.beds[ambienceName] : null;
   if (ambienceName && ambienceName !== 'none' && !ambience) throw new Error(`The ambience "${ambienceName}" isn't one of ${Object.keys(kit.ambience.beds).join(', ')}.`);
   const drawing = opts.yes && !opts.offline;  // poses are drawn (and paid for) only for the real thing
+  const roomName = settings.room ?? kit.room;
+  const room = roomName && roomName !== 'none' ? { response: roomResponse({ room: roomName, outFile: cached(`room-${roomName}-${hash(ROOMS[roomName] ?? roomName)}.wav`) }), level: ROOMS[roomName].level } : null;
+  const frantic = (settings.energy ?? kit.energy.default) === 'frantic';
+  const random = seeded(`${slug}-camera`);
 
   // The still background every shot sits on: the episode's own painted scene
   // (made with --yes; the preview stands in the plain background meanwhile).
@@ -358,6 +382,10 @@ async function main() {
     shot.startKey = hash({ layerKey, key: shot.key });
     const lead = chars[0];
     shot.focus = lead ? [pair ? W / 2 : lead.cx, lead.bottom - lead.height * 0.55] : [W / 2, H / 2];
+    // The voice comes from where they stand (off screen: from their side).
+    const from = shot.notes.off ? { left: 0.15, right: 0.85 }[sideOf[shot.who]] ?? 0.5 : lead ? lead.cx / W : 0.5;
+    shot.pan = Math.max(-0.6, Math.min(0.6, (from - 0.5) * 1.3));
+    if (yelled(shot)) for (const move of ['punch', 'shake']) if (!shot.notes.camera.includes(move)) shot.notes.camera.push(move);
     if (shot.kind !== 'talk') shot.seconds = shot.notes.seconds ?? (shot.notes.still ? 1.5 : kit.action.seconds);
   }
 
@@ -409,6 +437,19 @@ async function main() {
   }
   if (voiceChars && provider === 'fal') say(`(voices: ${voiceChars} characters, about ${money((voiceChars / 1000) * kit.voice.pricePer1000)})`);
 
+  // The frenzy (energy: frantic): the camera never quite holds still, and
+  // snaps in at random while anyone's moving. Silent beats only tremble: the
+  // stillness is the joke.
+  if (frantic) {
+    const { jitter, jolts: { every: [lo, hi], size: [small, big] } } = kit.energy;
+    for (const shot of shots) {
+      shot.jitter = shot.notes.still ? jitter / 2 : jitter;
+      shot.jolts = [];
+      if (shot.notes.still || shot.notes.camera.includes('close')) continue;
+      for (let at = 0.25 + random() * lo; at < shot.seconds - 0.2; at += lo + random() * (hi - lo)) shot.jolts.push([at, small + random() * (big - small)]);
+    }
+  }
+
   // ---- what each shot's video is, and what's still to make
   for (const shot of shots) {
     if (shot.notes.still || shot.notes.off) {
@@ -435,7 +476,7 @@ async function main() {
       shot.billed = Math.min(15, Math.max(3, Math.ceil(shot.seconds)));
       shot.price = shot.billed * kit.action.pricePerSecond * (shot.notes.sound ? 1.5 : 1);
     }
-    shot.videoKey = hash({ model: shot.model, start: shot.startKey, audio: lipsync ? hashFile(shot.audio) : null, prompt: shot.prompt, billed: shot.billed, sound: shot.notes.sound });
+    shot.videoKey = hash({ model: shot.model, start: shot.startKey, audio: lipsync ? hashFile(shot.audio) : null, prompt: shot.prompt, billed: lipsync ? null : shot.billed, sound: shot.notes.sound });
     shot.video = cached(`shot-${shot.videoKey}.mp4`);
     if (opts.redo.has(shots.indexOf(shot) + 1)) rmSync(shot.video, { force: true });
     shot.lipsync = lipsync;
@@ -490,6 +531,7 @@ async function main() {
   const clips = [];
   const lines = [];
   const quiet = [];
+  const hits = [];
   let t = 0;
   for (const shot of shots) {
     const clip = path.join(out, `clip-${String(shots.indexOf(shot) + 1).padStart(2, '0')}.mp4`);
@@ -497,8 +539,13 @@ async function main() {
     const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
     composite({
       plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus, base: shot.base,
+      jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
+    // A sound hit for every slam, shake and snap to a close-up.
+    for (const [move, name, early] of [['punch', 'hit', 0], ['shake', 'rattle', 0.02], ['close', 'whoosh', 0.12]]) {
+      if (shot.notes.camera.includes(move) && kit.hits.sounds[name]) hits.push({ name, at: Math.max(0, t - early), volume: kit.hits.volume });
+    }
     const length = duration(clip);
     // Where nobody's talking, static can cut in without drowning a word.
     const quietFrom = shot.kind === 'talk' ? duration(shot.audio) : shot.notes.sound ? length : 0;
@@ -526,7 +573,16 @@ async function main() {
   const final = path.join(out, `${slug}${allMade ? '' : '-preview'}.mp4`);
   const vhs = (settings.vhs ?? 'on') !== 'off' && kit.vhs ? { bursts: staticBursts(quiet, kit.vhs, slug), volume: kit.vhs.volume } : null;
   if (vhs) say(`(static: ${vhs.bursts.map(([a, b]) => `${a.toFixed(1)}s`).join(", ")})`);
-  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, ambience, vhs, size, total: t, outFile: final });
+  // The hit sounds, made once each (a cent or so) and kept in shorts/sounds/.
+  const hitFiles = {};
+  for (const name of new Set(hits.map((h) => h.name))) {
+    const where = { here: HERE, name: `hit-${name}`, description: kit.hits.sounds[name], seconds: kit.hits.seconds, settings: kit.sounds, say };
+    hitFiles[name] = existsSync(soundPath(where)) ? soundPath(where) : opts.offline ? null : await sound(where);
+  }
+  for (const [name, file] of Object.entries(hitFiles)) if (file) hitFiles[name] = level({ inFile: file, loudness: kit.hits.loudness, outFile: cached(`hit-${hash({ file: hashFile(file), loudness: kit.hits.loudness })}.mp3`) });
+  const placed = hits.filter((h) => hitFiles[h.name]).map((h) => ({ ...h, file: hitFiles[h.name] }));
+  const musicUntil = kit.music.until === 'first line' && lines.length ? lines[0].start : null;
+  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
 
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);

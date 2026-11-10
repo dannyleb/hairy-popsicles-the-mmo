@@ -20,7 +20,11 @@
     "price": 0.15,
     "style": "Photoreal 3D render of an empty set in a grotesque body-horror world where everything is made of skin, flesh, teeth, hair and goo: wet, glossy, organic surfaces, cinematic lighting, shallow depth of field, moody and a little dark, eye-level view. No people, no creatures, no faces, no text or lettering anywhere. Keep the middle of the picture fairly plain and uncluttered, where characters will be placed."
   },
-  "style": "grotesque, wet, glossy 3D creature render; exaggerated, twitchy, abrasive cartoon acting with big expressions.",
+  "style": "grotesque, wet, glossy 3D creature render; unhinged, psychotic, frenetic cartoon acting: manic twitching, sudden jerky head movements, eyes darting and bulging, huge rubbery expressions snapping between extremes.",
+  "pace": {
+    "_": "The gap after each line, in seconds (lines ending in ... still linger, lines ending in \u2014 get none).",
+    "gap": 0.12
+  },
   "voice": {
     "_": "provider fal: voices designed from each character's brief (ElevenLabs v3 on fal, $0.10 per 1000 characters, commercial use included). provider elevenlabs: the stock voices named in cast.json, through your own ElevenLabs account.",
     "provider": "fal",
@@ -58,9 +62,9 @@
   },
   "captions": "off",
   "music": {
-    "_": "Music under every episode (a script's music: picks another, or none). Each track is the game's Suno music given a treatment once: the creepy ones are slowed, detuned, darkened and drowned in echo. It drops under the voices and swells in the pauses.",
+    "_": "Music under the title: it fades away as the first line is said (until: \"first line\"; anything else keeps it under the whole episode). Each track is the game's Suno music given a treatment once: the creepy ones are slowed, detuned, darkened and drowned in echo.",
     "default": "creepy-box",
-    "volume": 0.55,
+    "volume": 0.75,
     "tracks": {
       "creepy-box": {
         "file": "packages/client/public/audio/music-box.mp3",
@@ -76,7 +80,17 @@
       "theme": {
         "file": "packages/client/public/audio/theme.mp3"
       }
-    }
+    },
+    "until": "first line"
+  },
+  "room": "small",
+  "sounds": {
+    "_": "A script's sounds: line is made into a looping environment once (ElevenLabs sound effects on fal, $0.002 a second), kept in shorts/sounds/, and played at `loudness` (LUFS; the voices are about -16).",
+    "model": "fal-ai/elevenlabs/sound-effects/v2",
+    "pricePerSecond": 0.002,
+    "seconds": 20,
+    "influence": 0.5,
+    "loudness": -30
   },
   "ambience": {
     "_": "A bed of sound under everything, so silences aren't dead air (a script's ambience: picks another, or none).",
@@ -85,6 +99,32 @@
       "wind": "anoisesrc=color=brown:amplitude=0.5:seed=7,lowpass=f=420,highpass=f=35,tremolo=f=0.13:d=0.7,volume=0.35",
       "hum": "sine=f=55:sample_rate=48000,volume=0.06,tremolo=f=0.4:d=0.4",
       "gut": "anoisesrc=color=brown:amplitude=0.6:seed=3,lowpass=f=180,tremolo=f=0.9:d=0.8,volume=0.45"
+    }
+  },
+  "hits": {
+    "_": "Sound hits on the camera's punches, shakes and snaps to close-ups, made once each.",
+    "seconds": 1,
+    "volume": 1,
+    "sounds": {
+      "hit": "a single short wet fleshy slap impact, cartoon, punchy",
+      "rattle": "a short violent wet rattling shudder, like something fleshy being shaken hard, cartoon",
+      "whoosh": "a very fast short cartoon whoosh, a quick swish of air"
+    },
+    "loudness": -20
+  },
+  "energy": {
+    "_": "frantic: the camera trembles and snaps in at random (a script's energy: calm turns it off). jitter is pixels; jolts come every so many seconds and zoom in by so much.",
+    "default": "frantic",
+    "jitter": 5,
+    "jolts": {
+      "every": [
+        0.7,
+        1.6
+      ],
+      "size": [
+        0.035,
+        0.085
+      ]
     }
   },
   "vhs": {

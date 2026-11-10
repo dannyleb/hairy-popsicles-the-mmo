@@ -63,6 +63,8 @@ check('props: held in a shot, worn, and shown on their own', props.shots[0].note
 const noProp = parseScript('GREG (wearing: a hat): hi\nprop: = nothing', cast);
 check('props: an undefined or half-written prop is caught', noProp.errors.length === 2, noProp.errors.join(' / '));
 check('vhs: off turns the static off for one script', parseScript('vhs: off\nGREG: hi', cast).settings.vhs === 'off');
+const sound = parseScript('room: cavern\nsounds: drips, slime\nenergy: calm\nGREG: hi', cast).settings;
+check('room, sounds and energy are settings', sound.room === 'cavern' && sound.sounds === 'drips, slime' && sound.energy === 'calm', JSON.stringify(sound));
 for (const file of ['ep1-the-sunglasses', 'ep2-the-interview', 'ep3-liar', 'ep4-first-date', 'ep5-four-sheep']) {
   const episode = parseScript(readFileSync(new URL(`../shorts/scripts/${file}.txt`, import.meta.url), 'utf8'), cast);
   check(`${file} reads cleanly`, episode.errors.length === 0 && episode.shots.length > 5, episode.errors.join('; '));

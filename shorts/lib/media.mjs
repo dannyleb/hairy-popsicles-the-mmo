@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 // Everything done to pictures and sound, done with ffmpeg.
@@ -14,7 +14,7 @@ export function ffmpeg(args) {
 // Makes `outFile` under a temporary name and only then moves it into place,
 // so a run that fails halfway never leaves a broken file behind (in the
 // cache, a broken file would be used again as if it were fine).
-function whole(outFile, make) {
+export function whole(outFile, make) {
   const temp = path.join(path.dirname(outFile), `.part-${path.basename(outFile)}`);
   try {
     make(temp);
@@ -91,49 +91,90 @@ export function join(clips, listFile, outFile) {
 }
 
 // The finished short: captions (and title, end card) burned in from an .ass
-// file, music under everything, and the sound brought to the loudness the
-// apps expect.
-export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, ambience, vhs, size: [W, H] = [1080, 1920], total, outFile }) {
+// file; the voices in the room (`room`: { response, level }) with the sound
+// `hits` ([{ file, at, volume }]); the episode's `sounds` ({ file, volume })
+// and/or a made-up `ambience` under them; music under the title until
+// `musicUntil`; VHS static; the sound brought to the loudness the apps expect.
+export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicUntil = null, room = null, sounds = null, hits = [], ambience, vhs, size: [W, H] = [1080, 1920], total, outFile }) {
   const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   const subs = ass ? `subtitles='${esc(ass)}':fontsdir='${esc(fontsDir)}'` : 'null';
   const glitch = vhs?.bursts.length ? staticBursts(vhs.bursts) : null;
   const fadeAt = Math.max(0, total - 1.8).toFixed(2);
   const inputs = ['-i', joined];
-  const beds = [];  // what plays under the voices: [label, filter chain]
-  if (music) {
-    inputs.push('-stream_loop', '-1', '-i', music);
-    beds.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]aresample=48000,volume=${musicVolume},afade=t=in:d=1.2,afade=t=out:st=${fadeAt}:d=1.8`);
+  let count = 1;
+  const input = (...args) => {
+    inputs.push(...args);
+    return count++;
+  };
+  const graph = [];
+  const stereo = 'aresample=48000,aformat=channel_layouts=stereo';
+
+  // The voices (and the sound hits) ring in the scene's room: a little duller
+  // and squeezed together, then their echo off its walls.
+  graph.push(`[0:a]${stereo},asplit[voices][key]`, '[voices]highpass=f=80,lowpass=f=11000,acompressor=threshold=0.125:ratio=2.5:attack=8:release=150[dry0]');
+  let bus = '[dry0]';
+  if (hits.length) {
+    hits.forEach((h, i) => {
+      const k = input('-i', h.file);
+      const ms = Math.max(0, Math.round(h.at * 1000));
+      graph.push(`[${k}:a]${stereo},volume=${h.volume},adelay=${ms}|${ms}[hit${i}]`);
+    });
+    graph.push(`${bus}${hits.map((_, i) => `[hit${i}]`).join('')}amix=inputs=${hits.length + 1}:duration=first:normalize=0[withhits]`);
+    bus = '[withhits]';
+  }
+  if (room) {
+    const k = input('-i', room.response);
+    graph.push(`${bus}asplit[direct][send]`, `[send][${k}:a]afir=gtype=gn:irgain=1[echo0]`, `[echo0]volume=${room.level}[echo]`,
+      '[direct][echo]amix=inputs=2:duration=first:normalize=0[inroom]');
+    bus = '[inroom]';
+  }
+  const mix = [bus];
+
+  // The environment under everything: the episode's own sounds and/or a
+  // made-up bed, dipping a little under the voices but always there.
+  const beds = [];
+  if (sounds) {
+    const k = input('-stream_loop', '-1', '-i', sounds.file);
+    beds.push(`[${k}:a]${stereo},volume=${sounds.volume},afade=t=in:d=1.2,afade=t=out:st=${fadeAt}:d=1.8`);
   }
   if (ambience) {
-    inputs.push('-f', 'lavfi', '-i', ambience);
-    beds.push(`[${inputs.filter((x) => x === '-i').length - 1}:a]aresample=48000,aformat=channel_layouts=stereo,afade=t=in:d=1.5,afade=t=out:st=${fadeAt}:d=1.8`);
+    const k = input('-f', 'lavfi', '-i', ambience);
+    beds.push(`[${k}:a]${stereo},afade=t=in:d=1.5,afade=t=out:st=${fadeAt}:d=1.8`);
   }
+  if (beds.length) {
+    beds.forEach((b, i) => graph.push(`${b}[bed${i}]`));
+    graph.push(beds.length > 1 ? `${beds.map((_, i) => `[bed${i}]`).join('')}amix=inputs=${beds.length}:normalize=0[beds]` : '[bed0]anull[beds]');
+    graph.push('[beds][key]sidechaincompress=threshold=0.02:ratio=3:attack=40:release=600:makeup=1[under]');
+    mix.push('[under]');
+  } else {
+    graph.push('[key]anullsink');
+  }
+
+  // Music under the title only: it fades away as the first line is said
+  // (or, with no lines, plays to the end).
+  if (music) {
+    const k = input('-stream_loop', '-1', '-i', music);
+    const out = musicUntil != null ? `afade=t=out:st=${Math.max(0.5, musicUntil - 0.2).toFixed(2)}:d=1.8,atrim=0:${(musicUntil + 1.7).toFixed(2)}` : `afade=t=out:st=${fadeAt}:d=1.8`;
+    graph.push(`[${k}:a]${stereo},volume=${musicVolume},afade=t=in:d=0.6,${out}[music]`);
+    mix.push('[music]');
+  }
+
   let video = `[0:v]${subs}[v]`;
-  let hiss = '';  // the static's sound, mixed in with everything else
   if (glitch) {
-    inputs.push('-f', 'lavfi', '-i', `color=c=black:s=${W}x${Math.round(H * 0.035)}:r=30`);
-    const band = inputs.filter((x) => x === '-i').length - 1;
-    inputs.push('-f', 'lavfi', '-i', 'anoisesrc=color=white:amplitude=0.7:sample_rate=48000', '-f', 'lavfi', '-i', "aevalsrc='0.25*sgn(sin(2*PI*119*t))+0.12*sgn(sin(2*PI*61*t))':s=48000");
-    const [noise, buzz] = [band + 1, band + 2];
+    const band = input('-f', 'lavfi', '-i', `color=c=black:s=${W}x${Math.round(H * 0.035)}:r=30`);
+    const noise = input('-f', 'lavfi', '-i', 'anoisesrc=color=white:amplitude=0.7:sample_rate=48000');
+    const buzz = input('-f', 'lavfi', '-i', "aevalsrc='0.25*sgn(sin(2*PI*119*t))+0.12*sgn(sin(2*PI*61*t))':s=48000");
     video = `[0:v]${subs},${glitch.picture}[g];`
       // the tracking band: bright streaks of noise rolling down the picture
       + `[${band}:v]noise=alls=100:allf=t+u,avgblur=sizeX=28:sizeY=1,eq=contrast=2.2:brightness=0.15,format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='min(255,1.8*r(X,Y))'[bandraw];`
       + `[g][bandraw]overlay=x=0:y='mod(t*1700,main_h)-overlay_h':enable='${glitch.on}':eval=frame:shortest=0[v]`;
-    hiss = `[${noise}:a]highpass=f=900,lowpass=f=7500,acrusher=bits=6:mix=0.5[n];[${buzz}:a]lowpass=f=1800[z];`
-      + `[n][z]amix=inputs=2:normalize=0,volume='if(${glitch.on},${vhs.volume ?? 0.3},0)':eval=frame,aformat=channel_layouts=stereo[hiss];`;
+    graph.push(`[${noise}:a]highpass=f=900,lowpass=f=7500,acrusher=bits=6:mix=0.5[n]`, `[${buzz}:a]lowpass=f=1800[z]`,
+      `[n][z]amix=inputs=2:normalize=0,volume='if(${glitch.on},${vhs.volume ?? 0.3},0)':eval=frame,${stereo}[hiss]`);
+    mix.push('[hiss]');
   }
-  let audio;
-  if (beds.length) {
-    // The music and ambience drop under the voices and swell back in the
-    // pauses (ducked by the dialogue).
-    const bed = beds.length === 2 ? `${beds[0]}[b0];${beds[1]}[b1];[b0][b1]amix=inputs=2:normalize=0[bed]` : `${beds[0]}[bed]`;
-    audio = `[0:a]asplit[d][sc];${bed};[bed][sc]sidechaincompress=threshold=0.015:ratio=7:attack=25:release=450:makeup=1[ducked];`
-      + `[d][ducked]${hiss ? '[hiss]' : ''}amix=inputs=${hiss ? 3 : 2}:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]`;
-  } else {
-    audio = hiss ? '[0:a][hiss]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]' : '[0:a]loudnorm=I=-14:TP=-1.5:LRA=11[a]';
-  }
+  graph.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]`);
   ffmpeg([
-    ...inputs, '-filter_complex', `${video};${hiss}${audio}`, '-map', '[v]', '-map', '[a]',
+    ...inputs, '-filter_complex', `${video};${graph.join(';')}`, '-map', '[v]', '-map', '[a]',
     '-t', total.toFixed(3), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p',
     ...AUDIO, '-movflags', '+faststart', outFile,
   ]);
@@ -152,6 +193,14 @@ function staticBursts(bursts) {
     `boxblur=luma_radius=2:luma_power=1:chroma_radius=10:enable='${on}'`,
   ].join(',');
   return { on, picture };
+}
+
+// A sound brought to a set loudness (LUFS), kept as a file: sound effects
+// come out of the model at all sorts of levels.
+export function level({ inFile, loudness, outFile }) {
+  if (existsSync(outFile)) return outFile;
+  whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', `loudnorm=I=${loudness}:TP=-2:LRA=20`, '-ar', '48000', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
+  return outFile;
 }
 
 // A music track given a treatment once (kit.json music.tracks: slowed,
@@ -223,17 +272,26 @@ export function onKey({ layerFile, key, size: [W, H], outFile }) {
 // `base`: how far down the frame they touch the floor (null: no shadow).
 // The shadow is their own outline flattened onto the floor at `base`, so it
 // follows every move they make, and moves with them under the camera notes.
-export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
+//
+// The frenzy: `jitter` (pixels) keeps the camera trembling like it's
+// handheld by someone who hasn't slept, and `jolts` ([[seconds, size]])
+// snap it in and let it spring back. `pan` (-1 left to 1 right) puts the
+// voice where they stand.
+export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, jitter = 0, jolts = [], pan = 0, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
   const D = seconds.toFixed(3);
+  const spring = (at) => `exp(-(t-${at.toFixed(3)})/0.13)*gte(t,${at.toFixed(3)})`;
   const zoom = [
     camera.includes('close') ? '1.7' : '1',
     camera.includes('punch') ? '(1+0.22*min(t/0.12,1))' : '1',
     camera.includes('push') ? `(1+0.12*t/${D})` : '1',
+    jolts.length ? `(1+${jolts.map(([at, size]) => `${size.toFixed(3)}*${spring(at)}`).join('+')})` : '1',
   ].join('*');
   const shake = camera.includes('shake');
-  const dx = shake ? '+16*sin(t*53)+9*sin(t*31)' : '';
-  const dy = shake ? '+12*sin(t*47)+7*sin(t*23)' : '';
-  const moved = zoom === '1*1*1' && !shake;
+  const tremble = jitter ? `+${jitter}*(sin(t*9.1)+0.7*sin(t*23.3+1.1)+0.4*sin(t*41.7+2.3))` : '';
+  const kick = jolts.map(([at, size], i) => `${((i % 2 ? -1 : 1) * size * 260).toFixed(1)}*${spring(at)}`).join('+');
+  const dx = `${shake ? '+16*sin(t*53)+9*sin(t*31)' : ''}${tremble}${kick ? `+${kick}` : ''}`;
+  const dy = `${shake ? '+12*sin(t*47)+7*sin(t*23)' : ''}${jitter ? `+${jitter}*(0.8*sin(t*7.3+0.5)+0.6*sin(t*19.7))` : ''}`;
+  const moved = zoom === '1*1*1*1' && !dx && !dy;
   const source = video
     ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`
     : `[1:v]fps=${fps},format=rgba`;
@@ -266,7 +324,8 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
     a = '[1:a]aresample=48000,apad[a]';
   } else if (audio) {
     inputs.push('-i', audio);
-    a = '[2:a]aresample=48000,apad[a]';
+    const angle = ((Math.max(-1, Math.min(1, pan)) + 1) * Math.PI) / 4;  // equal loudness wherever they stand
+    a = `[2:a]aresample=48000,aformat=channel_layouts=mono,pan=stereo|c0=${Math.cos(angle).toFixed(3)}*c0|c1=${Math.sin(angle).toFixed(3)}*c0,apad[a]`;
   } else {
     inputs.push('-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo');
     a = '[2:a]anull[a]';

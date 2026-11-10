@@ -48,6 +48,12 @@ The Big Lez Show are in there too.
   (`manner` in `cast.json`).
 - Give silences room: `> NAME (1.5s, still)` is a free beat, and the music
   swells into it. Most episodes want two or three.
+- **Frantic, then dead still.** The show runs hot: lines come fast, people
+  talk over the end of each other (`—`), giggle, snap, squeal. Then it
+  stops dead for a beat, and the beat is where it gets creepy. Directions
+  can be extreme: `(whispering, giggling, too fast)`, `(snapping)`,
+  `(squealing, delighted)`. Yelled lines get the camera slamming in by
+  themselves.
 - **Whoever talks is on screen.** A viewer has to see who's speaking, so
   every line is said on camera. For a reaction, put a beat on the other face
   right after the line: `> NAME (1.5s, still)`. A reaction is often funnier

@@ -83,9 +83,21 @@ DOOLIE (guilty): ...finders keepers.
     no scene: the game's ground)
   - `music: creepy-box | creepy-theme | music-box | theme | none`, or a file
     in `shorts/music/`. The default is `creepy-box`. The game's Suno tracks,
-    slowed and detuned for the creepy ones. Music drops under the voices and
-    swells back in the pauses.
-  - `ambience: wind | hum | gut | none` (a bed under everything; wind by default)
+    slowed and detuned for the creepy ones. It plays under the title and
+    fades away as the first line is said.
+  - `sounds:` the episode's environment, described ("muggy room tone, slow
+    wet drips into a sticky puddle, a fly buzzing now and then"). Made once
+    into a 20-second loop (about $0.04) and kept in `shorts/sounds/`. It
+    plays under everything, dipping a little under the voices.
+  - `room: small | large | cavern | none`: the space the voices ring in
+    (small unless you say). Their echo off the walls is what puts them in
+    the scene instead of on top of it. Voices also come from where the
+    speaker stands, left or right.
+  - `ambience: wind | hum | gut | none` (a made-up bed, for a script with no
+    `sounds:`; wind by default)
+  - `energy: calm` (the camera holds still; by default it's `frantic`: it
+    trembles, snaps in at random, and every slam, shake and snap to a
+    close-up gets a sound hit)
   - `vhs: off` (no bursts of VHS static; they're on by default, every few
     seconds in the gaps between lines, picture and sound)
   - `captions: on | names | off` (off unless you say)
@@ -154,6 +166,8 @@ Everything runs on **fal.ai**, from one balance:
 - **Turned poses, props, characters wearing props:** nano-banana-pro, $0.15
   each, drawn once.
 - **Your own takes:** ElevenLabs' voice changer on fal.
+- **Environments and sound hits:** ElevenLabs sound effects on fal, $0.002 a
+  second (a few cents an episode, once).
 
 An episode of 30 to 40 seconds is around $2. Models and prices are in
 `kit.json`; change the model there to try another.

@@ -1,8 +1,9 @@
 # Hairy Popsicles, episode 5. Nerm hasn't slept since he was drawn.
 title: Four Sheep
 scene: A dark bedroom at three in the morning, seen from the pillow: a lumpy bed with stained sheets, wallpaper of peeling skin, a thin strip of blue moonlight through the curtains, and at the far end of the bed the faint dark silhouette of a sheep standing perfectly still
+sounds: a silent bedroom at three in the morning, a fridge humming faintly through the wall, a clock ticking, and very close, the slow heavy breathing of a large animal in the dark
+room: small
 facing: front
-ambience: hum
 
 > NERM (2s, still, push)
 NERM (whispering, unblinking): Haven't slept. Not since they drew me.

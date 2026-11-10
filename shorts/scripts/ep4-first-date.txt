@@ -1,7 +1,8 @@
 # Hairy Popsicles, episode 4. Brayden and Duane, a first date, under the skin.
 title: First Date
 scene: A romantic restaurant deep inside a body: red fleshy cavern walls threaded with pulsing veins, a small table with a white tablecloth stained red, a single candle and two wine glasses of dark red liquid, warm intimate candlelight
-ambience: gut
+sounds: deep inside a body, a slow heavy heartbeat thumping through the walls, wet gurgling and sloshing, slimy squelches, distant dripping in a fleshy cave
+room: cavern
 
 BRAYDEN (nervous, voice cracking): I've, um... never been this deep before.
 DUANE (melting, sad): It's quieter down here. Nobody looks at you.

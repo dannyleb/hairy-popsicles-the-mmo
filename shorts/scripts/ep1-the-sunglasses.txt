@@ -2,22 +2,24 @@
 title: The Sunglasses
 prop: scab sunglasses = a crude, lumpy little pair of sunglasses made of dried, crusty brown and dark red scabs pressed together, with only one small dark lens; the other side is just an empty crusty ring with no lens
 scene: A cramped, sweltering little room on a scorching afternoon: the back wall close behind and the floor are a cracked, peeling, pinkish-red surface like a bad sunburn, the floor filling the lower half of the picture with a few dark moles and little blisters dotted on it, a couple of long coarse hairs sprouting from the corners, a small square window high on the back wall glowing with blinding white sunlight, heat haze in the air, warm, soft, even light from the front
+sounds: muggy room tone of a cramped, sweltering little room on a hot afternoon, slow wet drips plopping into a sticky puddle, faint fleshy squelches and creaks, a fly buzzing now and then
+room: small
 
 > GREG (2s, still, push)
-DOOLIE (softly): Greg... I made you something.
-GREG (flat): No.
+DOOLIE (whispering, giggling, too fast): Greg... I made you something.
+GREG (snapping): No.
 > GREG & DOOLIE (3s, with: scab sunglasses): Doolie slowly leans in much too close to Greg, grinning, the little scab sunglasses sitting on the ground between them
-DOOLIE (softly, pleased): Sunglasses. For your eye.
+DOOLIE (manic, giggling): Sunglasses. For your eye.
 > SCAB SUNGLASSES (3s, push): the crusty scab sunglasses glisten wetly in the heat, a bead of ooze slowly dripping off the frame
-DOOLIE (softly, pleased): I made them out of my old scabs. Took me all summer.
+DOOLIE (breathless, too fast, giggling): I made them out of my old scabs. Took me all summer.
 GREG (flat): ...there's one lens.
-DOOLIE (gently): Well... you've only got the one... nice... side.
+DOOLIE (sing-song, creepy): Well... you've only got the one... nice... side.
 GREG (low, dangerous, push): Say "nice side" again.
-DOOLIE (whispering, delighted): Nice side—
+DOOLIE (squealing, delighted): Nice side—
 GREG (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
 > DOOLIE (1.5s, still, push)
-DOOLIE (softly, close): ...put them on, Greg.
+DOOLIE (whispering, manic, close): ...put them on, Greg.
 > GREG (2s, still, close, push, wearing: scab sunglasses)
 GREG (quietly, surprised, wearing: scab sunglasses): ...they're warm.
-DOOLIE (whispering): That's me.
+DOOLIE (whispering, giggling): That's me.
 > GREG (1.5s, still, close, push, wearing: scab sunglasses)
