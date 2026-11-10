@@ -233,8 +233,11 @@ export const FX = {
 export function applyFx(inFile, outFile, names = []) {
   const unknown = names.filter((n) => !FX[n]);
   if (unknown.length) throw new Error(`No voice effect called ${unknown.join(', ')}. There's: ${Object.keys(FX).join(', ')}.`);
-  // Every line at the same loudness, whatever was done to it.
-  const chain = [...names.map((n) => FX[n]), 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
+  // Every line at the same loudness, whatever was done to it. (vibrato can
+  // leave a few broken samples at the start, which poison the loudness
+  // measurement and crash the mp3 encoder: they're zeroed first.)
+  const clean = "aeval=exprs='if(isnan(val(ch))+isinf(val(ch)),0,val(ch))':c=same";
+  const chain = [...names.map((n) => FX[n]), clean, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
   whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', chain, '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
 }
 

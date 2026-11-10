@@ -2,7 +2,7 @@
   "_": "Who can be in a short. brief: the voice, described, for the voice designer (npm run short -- --design <id>). manner: how they always talk (voice tags added to every line). fx: what's done to the voice after (see FX in lib/media.mjs). voiceOf: share another character's voice. look: what they are, for the video model. lipsync: false for anyone without a mouth to sync. voice: an ElevenLabs stock voice, only used with voice.provider 'elevenlabs' in kit.json. image: a picture to use instead of the game's (or drop one in shorts/characters/<id>.png).",
   "pimples": {
     "name": "Brayden", "voice": "Liam",
-    "brief": "A twitchy, greasy adolescent voice that cracks between octaves mid-word, squeaky and wet, lips smacking, little pained hisses as if every word squeezes a pimple. Uncomfortable to listen to.",
+    "brief": "A twitchy, greasy young man's voice that cracks between octaves mid-word, squeaky and wet, lips smacking, little pained hisses as if every word squeezes a pimple. Uncomfortable to listen to.",
     "manner": "nervous, voice cracking", "fx": ["wet"],
     "look": "a bald pale head on a long neck, its face covered in red pimples, bloodshot eyes"
   },
