@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { ffmpeg, hash, hashFile, keyOut, KEYS } from './media.mjs';
 import { dataUri, download, falRun } from './services.mjs';
@@ -8,7 +8,9 @@ import { dataUri, download, falRun } from './services.mjs';
 // flat key colour that's keyed out, and kept in shorts/characters/poses/
 // (committed: they cost money to make). Facing the camera is their picture as it is.
 
-const prompt = (facing, key) => `Turn this creature's head into a three-quarter view, facing toward the ${facing} side of the picture, as if talking to someone standing just off to the ${facing}. Keep it exactly the same creature: same skin, wrinkles, eyes, teeth, colours, lighting and photoreal 3D render style; nothing added. Plain flat ${KEYS[key].css} background, no shadow, the whole creature in frame.`;
+// (Image models mix up left and right: the prompt says it several ways, and
+// a drawing that still comes out backwards is mirrored with --flip.)
+const prompt = (facing, key) => `Turn this creature's head into a three-quarter view so that its face and nose point toward the ${facing.toUpperCase()} EDGE of the image (the viewer's ${facing}), as if talking to someone standing just off the ${facing} edge of the picture. Keep it exactly the same creature: same skin, wrinkles, eyes, teeth, colours, lighting and photoreal 3D render style; nothing added. Plain flat ${KEYS[key].css} background, no shadow, the whole creature in frame.`;
 
 export function posePath(here, id, facing) {
   return path.join(here, 'characters', 'poses', `${id}-${facing}.webp`);
@@ -21,9 +23,11 @@ export async function pose({ here, id, facing, picture, key, model, say }) {
   if (existsSync(file)) return file;
   mkdirSync(path.dirname(file), { recursive: true });
   say(`Drawing ${id} facing ${facing}...`);
-  // The editor gets the picture with some room round it, on black.
+  // The editor gets the picture with some room round it, on the key colour
+  // (on black, it smeared dark streaks into the margins that didn't key out).
   const source = `${file}.source.png`;
-  ffmpeg(['-i', picture, '-vf', 'format=rgba,pad=iw+200:ih+200:100:100:color=0x00000000,format=rgb24', '-frames:v', '1', source]);
+  ffmpeg(['-i', picture, '-f', 'lavfi', '-i', `color=c=${KEYS[key].hex}:s=16x16`, '-filter_complex',
+    '[0:v]format=rgba,pad=iw+200:ih+200:100:100:color=0x00000000[p];[1:v][p]scale2ref[k][q];[k][q]overlay=format=auto,format=rgb24', '-frames:v', '1', source]);
   try {
     const body = await falRun(model, { prompt: prompt(facing, key), image_urls: [dataUri(source, 'image/png')] });
     const url = body.images?.[0]?.url;
@@ -36,6 +40,13 @@ export async function pose({ here, id, facing, picture, key, model, say }) {
     rmSync(source, { force: true });
   }
   return file;
+}
+
+// Mirrors a turned picture that came out facing the wrong way.
+export function flipPose(file) {
+  const flipped = `${file}.flipped.webp`;
+  ffmpeg(['-i', file, '-vf', 'hflip', '-c:v', 'libwebp', '-lossless', '1', flipped]);
+  renameSync(flipped, file);
 }
 
 // ---------- props ----------

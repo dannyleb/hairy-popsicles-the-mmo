@@ -39,5 +39,15 @@
     "voiceId": "sibMMM06TmzE2bmf0k0U",
     "brief": "A thin, wheedling, nasal voice, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
     "designed": "2026-11-10"
+  },
+  "pimples": {
+    "voiceId": "FhKrHjQ24dju3gEfplBF",
+    "brief": "A twitchy, greasy young man's voice that cracks between octaves mid-word, squeaky and wet, lips smacking, little pained hisses as if every word squeezes a pimple. Uncomfortable to listen to.",
+    "designed": "2026-11-10"
+  },
+  "melter": {
+    "voiceId": "mbqsautphaR05Zlr3H5o",
+    "brief": "A thick, sludgy, dripping voice whose words slide and melt into each other, syrupy and wet, bubbling now and then, sad and disgusting.",
+    "designed": "2026-11-10"
   }
 }

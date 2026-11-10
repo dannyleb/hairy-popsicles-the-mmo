@@ -22,7 +22,7 @@ import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
   KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
-import { pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
+import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
 import { ROOMS, roomResponse, sound, soundPath } from './lib/sounds.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
@@ -56,7 +56,7 @@ const say = (...parts) => console.log(...parts);
 const money = (n) => `$${n.toFixed(2)}`;
 
 function args(argv) {
-  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, redo: new Set(), revoice: new Set() };
+  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, flip: null, redo: new Set(), revoice: new Set() };
   const shots = (v) => new Set(String(v ?? '').split(',').map(Number).filter((n) => n > 0));
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -65,6 +65,7 @@ function args(argv) {
     else if (a === '--voices') opts.voices = true;
     else if (a === '--design') opts.design = String(argv[++i] ?? '');
     else if (a === '--pose') opts.pose = String(argv[++i] ?? '');
+    else if (a === '--flip') opts.flip = String(argv[++i] ?? '');
     else if (a === '--redo') opts.redo = shots(argv[++i]);
     else if (a === '--revoice') opts.revoice = shots(argv[++i]);
     else if (!a.startsWith('-')) opts.script = a;
@@ -247,6 +248,16 @@ async function main() {
   }
   if (opts.design) return designVoices(opts.design);
   if (opts.pose) return drawPoses(opts.pose);
+  if (opts.flip) {
+    // --flip snoot-right: mirror a turned picture that faces the wrong way.
+    for (const name of opts.flip.split(',')) {
+      const file = path.join(HERE, 'characters', 'poses', `${name.replace(/\.webp$/, '')}.webp`);
+      if (!existsSync(file)) throw new Error(`No turned picture called ${name} (they're in shorts/characters/poses/).`);
+      flipPose(file);
+      say(`Mirrored ${path.relative(ROOT, file)}. Shots with it in are remade next time (with --yes).`);
+    }
+    return;
+  }
   if (!opts.script) throw new Error('Which script? npm run short -- shorts/scripts/<name>.txt');
   const scriptFile = locate(opts.script);
   if (!scriptFile) throw new Error(`No script at ${opts.script}.`);

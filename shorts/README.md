@@ -70,7 +70,9 @@ DOOLIE (guilty): ...finders keepers.
   The turned pictures are drawn once per character and kept in
   `shorts/characters/poses/` (about $0.15 each).
   `npm run short -- --pose bigeye,conehead` draws them ahead of time, with a
-  sheet to check them.
+  sheet to check them. The image model sometimes turns a head the wrong way:
+  check, and mirror any that face away with
+  `npm run short -- --flip shiv-left` (free; the shots with it are remade).
 - Settings at the top, all optional:
   - `title:` (shown over the opening)
   - `scene:` the episode's own environment, described ("a dreary little
