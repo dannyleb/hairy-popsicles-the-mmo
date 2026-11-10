@@ -35,6 +35,23 @@ check('...each with its line number', bad.errors.every((e) => /^line \d+:/.test(
 
 check('notes go to the voice as separate tags', audioTags('guilty, mouth full') === '[guilty] [mouth full]');
 
+const show = parseScript(`
+facing: front
+> BIG EYE & CONEHEAD (3s, shake): stare at each other
+> RED EYE (2s, still, close, push)
+BIG EYE (screaming, punch, left): WHAT
+`, cast);
+check('two in a shot', show.shots[0].cast.join() === 'bigeye,conehead' && show.shots[0].notes.camera.join() === 'shake', JSON.stringify(show.shots[0]));
+check('a silent beat needs no words', show.shots[1].notes.still && show.shots[1].text === '' && show.shots[1].notes.camera.join() === 'close,push', show.errors.join('; '));
+check('camera and side notes come out of the direction', show.shots[2].notes.direction.join() === 'screaming' && show.shots[2].notes.camera.join() === 'punch' && show.shots[2].notes.side === 'left');
+check('facing is a setting', show.settings.facing === 'front');
+const wrong = parseScript('BIG EYE & CONEHEAD: hi\n> A & B & C: x\nBIG EYE (still): hi', cast);
+check('two talking at once, unknowns in a pair, and still talking lines are caught', wrong.errors.length === 3, wrong.errors.join(' / '));
+for (const file of ['ep1-the-sunglasses', 'ep2-the-interview', 'ep3-liar', 'ep4-first-date', 'ep5-four-sheep']) {
+  const episode = parseScript(readFileSync(new URL(`../shorts/scripts/${file}.txt`, import.meta.url), 'utf8'), cast);
+  check(`${file} reads cleanly`, episode.errors.length === 0 && episode.shots.length > 5, episode.errors.join('; '));
+}
+
 const lines = [{ start: 0.05, end: 2.4, who: 'Big Eye', text: 'Has anyone {seen} my eye?' }];
 const ass = captionsAss({ size: [1080, 1920], lines, names: true, title: 'T', endcard: { start: 10, end: 13, title: 'Hairy Popsicles', line: 'Play' } });
 check('captions: timed, braces stripped, name shown', ass.includes('0:00:00.05,0:00:02.40,Line') && ass.includes('Has anyone seen my eye?') && ass.includes('BIG EYE'));

@@ -1,0 +1,14 @@
+# Hairy Popsicles, episode 2. Sweats needs this job. Droopy needs a nap.
+title: The Interview
+background: surface
+
+DROOPY (exhausted, slurring): So... Sweats. Tell me... about yourself.
+SWEATS (panicked, punch): Hi! Yes! I'm a people person! I'm moist! Motivated. I'm motivated.
+DROOPY (exhausted): Says here you left your last job because of... a puddle.
+SWEATS (panicked): It wasn't a puddle. It was a pool. They put a lifeguard on me.
+> DROOPY (2s, still, push)
+DROOPY (exhausted): Any... weaknesses.
+SWEATS (sobbing, close, shake): I'm standing in my own shoes, Droopy. I'm standing IN them.
+> SWEATS (3s): sweat pours down his face in thick blue streams, dripping off his chin
+DROOPY (exhausted): ...we'll be in touch.
+SWEATS (whispering, close): Please don't touch me. It's slippery.

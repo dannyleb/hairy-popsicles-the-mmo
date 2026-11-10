@@ -7,6 +7,7 @@
 //   npm run short -- shorts/scripts/lost-eye.txt --revoice 2         say line 2 again
 //   npm run short -- shorts/scripts/lost-eye.txt --offline           no services at all (placeholder voices)
 //   npm run short -- --design conehead,redeye     design those characters' voices from their briefs (or "all")
+//   npm run short -- --pose conehead,redeye       draw them turned left and right (or "all")
 //   npm run short -- --voices                     the stock ElevenLabs voices on your account
 //
 // Everything made is kept (shorts/out/.cache), keyed by what went into it,
@@ -18,7 +19,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
-import { applyFx, duration, ffmpeg, finish, fitClip, hasSound, hash, hashFile, join, startFrame, stillClip } from './lib/media.mjs';
+import {
+  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, join, layer, onKey, startFrame, stillClip,
+} from './lib/media.mjs';
+import { pose, posePath } from './lib/poses.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -46,7 +50,7 @@ const say = (...parts) => console.log(...parts);
 const money = (n) => `$${n.toFixed(2)}`;
 
 function args(argv) {
-  const opts = { script: null, yes: false, offline: false, voices: false, design: null, redo: new Set(), revoice: new Set() };
+  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, redo: new Set(), revoice: new Set() };
   const shots = (v) => new Set(String(v ?? '').split(',').map(Number).filter((n) => n > 0));
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -54,6 +58,7 @@ function args(argv) {
     else if (a === '--offline') opts.offline = true;
     else if (a === '--voices') opts.voices = true;
     else if (a === '--design') opts.design = String(argv[++i] ?? '');
+    else if (a === '--pose') opts.pose = String(argv[++i] ?? '');
     else if (a === '--redo') opts.redo = shots(argv[++i]);
     else if (a === '--revoice') opts.revoice = shots(argv[++i]);
     else if (!a.startsWith('-')) opts.script = a;
@@ -145,6 +150,45 @@ async function designVoices(which) {
   say('Not right? Edit the brief (or fx) in shorts/cast.json and design it again.');
 }
 
+// Where a character stands and how big, by which side it's on and whether
+// it shares the shot: { cx, bottom, width, height } in px.
+function place([W, H], side, pair) {
+  const tall = H > W;
+  if (pair) {
+    const cx = side === 'right' ? 0.73 : side === 'left' ? 0.27 : 0.5;
+    return tall
+      ? { cx: W * cx, bottom: H * 0.74, width: W * 0.5, height: H * 0.36 }
+      : { cx: W * (side === 'right' ? 0.7 : 0.3), bottom: H * 0.92, width: W * 0.4, height: H * 0.7 };
+  }
+  const cx = side === 'left' ? 0.42 : side === 'right' ? 0.58 : 0.5;
+  return tall
+    ? { cx: W * cx, bottom: H * 0.82, width: W * 0.86, height: H * 0.58 }
+    : { cx: W * (side === 'left' ? 0.4 : side === 'right' ? 0.6 : 0.5), bottom: H * 0.96, width: W * 0.6, height: H * 0.85 };
+}
+const facingFor = (side) => (side === 'left' ? 'right' : side === 'right' ? 'left' : 'front');
+const keyFor = (ids) => (ids.some((id) => cast[id].key === 'blue') ? 'blue' : 'green');
+
+// Characters turned left and right (for the show), drawn now with a contact sheet to check them.
+async function drawPoses(which) {
+  const ids = which === 'all' ? Object.keys(cast).filter((id) => id !== '_') : which.split(',').map((w) => findCharacter(w, cast) ?? (() => { throw new Error(`Nobody called "${w}" in the cast.`); })());
+  const outDir = path.join(HERE, 'out', 'poses');
+  mkdirSync(outDir, { recursive: true });
+  const size = [1500, 560 * ids.length];
+  const chars = [];
+  for (const [row, id] of ids.entries()) {
+    for (const [col, facing] of ['left', 'front', 'right'].entries()) {
+      const image = await pose({ here: HERE, id, facing, picture: characterImage(id), key: keyFor([id]), model: kit.edit.model, say });
+      chars.push({ image, cx: 250 + col * 500, bottom: 540 + row * 560, width: 460, height: 520 });
+    }
+  }
+  const sheetLayer = path.join(outDir, 'sheet.png');
+  layer({ chars, size, outFile: sheetLayer });
+  const sheet = path.join(outDir, 'sheet.jpg');
+  ffmpeg(['-f', 'lavfi', '-i', `color=c=0x1e1014:s=${size[0]}x${size[1]}`, '-i', sheetLayer, '-filter_complex', '[0:v][1:v]overlay', '-frames:v', '1', '-q:v', '3', sheet]);
+  rmSync(sheetLayer, { force: true });
+  say(`\nPoses (facing left, the camera, right): ${path.relative(ROOT, sheet)}`);
+}
+
 async function main() {
   const opts = args(process.argv.slice(2));
   loadKeys(HERE);
@@ -153,6 +197,7 @@ async function main() {
     return;
   }
   if (opts.design) return designVoices(opts.design);
+  if (opts.pose) return drawPoses(opts.pose);
   if (!opts.script) throw new Error('Which script? npm run short -- shorts/scripts/<name>.txt');
   const scriptFile = locate(opts.script);
   if (!scriptFile) throw new Error(`No script at ${opts.script}.`);
@@ -166,31 +211,60 @@ async function main() {
   const format = settings.format ?? kit.format;
   const size = kit.sizes[format];
   if (!size) throw new Error(`format: ${format}? It's vertical or wide.`);
+  const [W, H] = size;
   const { fps } = kit;
   const background = backgroundImage(settings.background ?? kit.background);
   const music = settings.music && settings.music !== 'none' ? locate(settings.music) : null;
   if (settings.music && settings.music !== 'none' && !music) throw new Error(`The music (${settings.music}) isn't there. Put it in shorts/music/.`);
   const cached = (name) => path.join(CACHE, name);
+  const drawing = opts.yes && !opts.offline;  // poses are drawn (and paid for) only for the real thing
+
+  // The still background every shot sits on.
+  const plate = cached(`plate-${hash({ background: background && hashFile(background), size })}.jpg`);
+  if (!existsSync(plate)) startFrame({ character: null, background, size, outFile: plate });
+
+  // Who stands where: with two or more in the skit, the first to appear stands
+  // on the left facing right, the next on the right facing left, and so on.
+  // Alone (or with "facing: front"), they face the camera in the middle.
+  const order = [...new Set(shots.flatMap((s) => s.cast))];
+  const together = order.length > 1 && settings.facing !== 'front';
+  const sideOf = Object.fromEntries(order.map((id, i) => [id, together ? (i % 2 ? 'right' : 'left') : 'front']));
+  let posesToDraw = 0;
+  say(`\n${settings.title ?? slug}: ${shots.length} shots, ${format}${opts.offline ? ' (offline)' : ''}\n`);
+  for (const shot of shots) {
+    shot.character = shot.who === 'scene' ? null : cast[shot.who];
+    shot.label = `#${shots.indexOf(shot) + 1} ${shot.cast.map((id) => cast[id].name).join(' & ') || 'Scene'}`;
+    const pair = shot.cast.length === 2;
+    const sides = pair ? ['left', 'right'] : shot.cast.map((id) => shot.notes.side ?? sideOf[id]);
+    const chars = [];
+    for (const [i, id] of shot.cast.entries()) {
+      const facing = pair && shot.notes.side === 'front' ? 'front' : facingFor(sides[i]);
+      const picture = characterImage(id);
+      if (!existsSync(picture)) throw new Error(`No picture of ${cast[id].name} (${picture}).`);
+      let image = picture;
+      if (facing !== 'front') {
+        if (existsSync(posePath(HERE, id, facing))) image = posePath(HERE, id, facing);
+        else if (drawing) image = await pose({ here: HERE, id, facing, picture, key: keyFor([id]), model: kit.edit.model, say });
+        else posesToDraw++;  // (the preview makes do with the picture as it is)
+      }
+      chars.push({ image, ...place(size, sides[i], pair) });
+    }
+    shot.key = keyFor(shot.cast);
+    const layerKey = hash({ chars: chars.map((c) => ({ ...c, image: hashFile(c.image) })), size });
+    shot.layer = cached(`layer-${layerKey}.png`);
+    if (!existsSync(shot.layer)) layer({ chars, size, outFile: shot.layer });
+    shot.start = cached(`start-${hash({ layerKey, key: shot.key })}.jpg`);
+    shot.startKey = hash({ layerKey, key: shot.key });
+    const lead = chars[0];
+    shot.focus = lead ? [pair ? W / 2 : lead.cx, lead.bottom - lead.height * 0.55] : [W / 2, H / 2];
+    if (shot.kind !== 'talk') shot.seconds = shot.notes.seconds ?? (shot.notes.still ? 1.5 : kit.action.seconds);
+  }
 
   // ---- voices
   const provider = opts.offline ? 'offline' : kit.voice.provider;
   const stock = provider === 'elevenlabs' && shots.some((s) => s.kind === 'talk') ? await listVoices() : [];
   let voiceChars = 0;
-  say(`\n${settings.title ?? slug}: ${shots.length} shots, ${format}${opts.offline ? ' (offline)' : ''}\n`);
-  for (const shot of shots) {
-    shot.character = shot.who === 'scene' ? null : cast[shot.who];
-    shot.label = `#${shots.indexOf(shot) + 1} ${shot.character ? shot.character.name : 'Scene'}`;
-    const image = shot.character ? characterImage(shot.who) : null;
-    if (image && !existsSync(image)) throw new Error(`No picture of ${shot.character.name} (${image}).`);
-    const framing = kit.framing[shot.kind === 'talk' ? 'talking' : 'action'];
-    const frameKey = hash({ image: image && hashFile(image), background: background && hashFile(background), size, framing });
-    shot.frame = cached(`frame-${frameKey}.jpg`);
-    shot.frameKey = frameKey;
-    if (!existsSync(shot.frame)) startFrame({ character: image, background, size, ...framing, outFile: shot.frame });
-    if (shot.kind !== 'talk') {
-      shot.seconds = shot.notes.seconds ?? kit.action.seconds;
-      continue;
-    }
+  for (const shot of shots.filter((s) => s.kind === 'talk')) {
     // How it's said: the line's own notes, or else how this character always talks.
     const c = shot.character;
     const direction = shot.notes.direction.join(', ') || c.manner || '';
@@ -220,7 +294,7 @@ async function main() {
         if (provider === 'fal') await falChangeVoice({ model: kit.voice.changer, inFile: take, voiceId, outFile: raw });
         else await changeVoice({ inFile: take, voiceId, model: kit.voice.elevenlabs.changerModel, format: kit.voice.elevenlabs.format, outFile: raw });
       } else {
-        say(`${shot.label}: ${c.name} says "${shot.text}"${direction ? ` (${direction})` : ''}`);
+        say(`${shot.label}: "${shot.text}"${direction ? ` (${direction})` : ''}`);
         const text = direction ? `${audioTags(direction)} ${shot.text}` : shot.text;
         voiceChars += text.length;
         if (provider === 'fal') await falSpeak({ model: kit.voice.tts, text, voiceId, stability, outFile: raw });
@@ -235,35 +309,43 @@ async function main() {
   if (voiceChars && provider === 'fal') say(`(voices: ${voiceChars} characters, about ${money((voiceChars / 1000) * kit.voice.pricePer1000)})`);
 
   // ---- what each shot's video is, and what's still to make
-  const style = kit.style;
   for (const shot of shots) {
-    const look = shot.character?.look ?? 'the scene';
+    if (shot.notes.still) {
+      shot.price = 0;
+      continue;
+    }
+    const looks = shot.cast.map((id) => cast[id].look);
+    const look = looks.join(' and ') || 'the scene';
     const direction = shot.notes.direction.join(', ');
+    const flat = `The plain flat ${KEYS[shot.key].css} background stays perfectly flat and still; the camera does not move.`;
     const lipsync = shot.kind === 'talk' && shot.character.lipsync !== false;
     if (lipsync) {
       shot.model = kit.talking.model;
-      shot.prompt = `${look}, talking${direction ? `, ${direction}` : ''}. ${style}`;
+      shot.prompt = `${look}, talking${direction ? `, ${direction}` : ''}. ${kit.style} ${flat}`;
       shot.billed = shot.seconds;
       shot.price = shot.billed * kit.talking.pricePerSecond;
     } else {
       // An action shot, or someone with no mouth to sync talking over one.
       shot.model = kit.action.model;
       const doing = shot.kind === 'talk' ? `talking, moving as it speaks${direction ? `, ${direction}` : ''}` : `${shot.text}${direction ? `, ${direction}` : ''}`;
-      shot.prompt = shot.character ? `${look}: ${doing}. ${style}` : `${doing}. ${style}`;
+      shot.prompt = `${shot.cast.length ? `${look}: ` : ''}${doing}. ${kit.style} ${flat}`;
       shot.billed = Math.min(15, Math.max(3, Math.ceil(shot.seconds)));
       shot.price = shot.billed * kit.action.pricePerSecond * (shot.notes.sound ? 1.5 : 1);
     }
-    shot.videoKey = hash({ model: shot.model, frame: shot.frameKey, audio: lipsync ? hashFile(shot.audio) : null, prompt: shot.prompt, billed: shot.billed, sound: shot.notes.sound });
+    shot.videoKey = hash({ model: shot.model, start: shot.startKey, audio: lipsync ? hashFile(shot.audio) : null, prompt: shot.prompt, billed: shot.billed, sound: shot.notes.sound });
     shot.video = cached(`shot-${shot.videoKey}.mp4`);
     if (opts.redo.has(shots.indexOf(shot) + 1)) rmSync(shot.video, { force: true });
     shot.lipsync = lipsync;
   }
-  const toMake = shots.filter((s) => !existsSync(s.video));
+  const made = (s) => s.notes.still || existsSync(s.video);
+  const toMake = shots.filter((s) => !made(s));
+  const poseCost = posesToDraw * kit.edit.price;
   const cost = toMake.reduce((sum, s) => sum + s.price, 0);
   say('');
   for (const s of shots) {
-    const state = existsSync(s.video) ? 'made' : `to make, about ${money(s.price)}`;
-    say(`  ${s.label.padEnd(22)} ${s.kind === 'talk' ? 'talks ' : 'action'} ${s.seconds.toFixed(1).padStart(5)}s  ${state}`);
+    const what = s.notes.still ? 'beat  ' : s.kind === 'talk' ? 'talks ' : 'action';
+    const state = s.notes.still ? 'still (free)' : made(s) ? 'made' : `to make, about ${money(s.price)}`;
+    say(`  ${s.label.padEnd(26)} ${what} ${s.seconds.toFixed(1).padStart(5)}s  ${state}`);
   }
 
   // ---- the video shots (only with --yes: they cost money)
@@ -277,13 +359,14 @@ async function main() {
         return;
       }
       const started = Date.now();
-      const input = shot.lipsync
-        ? { image_url: dataUri(shot.frame, 'image/jpeg'), audio_url: dataUri(shot.audio, 'audio/mpeg'), prompt: shot.prompt }
-        : {
-            start_image_url: dataUri(shot.frame, 'image/jpeg'), prompt: shot.prompt, duration: String(shot.billed),
-            generate_audio: shot.notes.sound, negative_prompt: kit.action.negative,
-          };
       try {
+        if (!existsSync(shot.start)) onKey({ layerFile: shot.layer, key: shot.key, size, outFile: shot.start });
+        const input = shot.lipsync
+          ? { image_url: dataUri(shot.start, 'image/jpeg'), audio_url: dataUri(shot.audio, 'audio/mpeg'), prompt: shot.prompt }
+          : {
+              start_image_url: dataUri(shot.start, 'image/jpeg'), prompt: shot.prompt, duration: String(shot.billed),
+              generate_audio: shot.notes.sound, negative_prompt: kit.action.negative,
+            };
         await falVideo({ model: shot.model, input, outFile: shot.video, onStatus: (s) => say(`  ${shot.label}: ${s}`) });
         say(`  ${shot.label}: done in ${Math.round((Date.now() - started) / 1000)}s`);
       } catch (error) {
@@ -298,41 +381,38 @@ async function main() {
     });
   }
 
-  // ---- the cut: video where it's made, the still frame where it isn't yet
+  // ---- the cut: each shot over the still background, video where it's made
   const clips = [];
   const lines = [];
   let t = 0;
   for (const shot of shots) {
     const clip = path.join(out, `clip-${String(shots.indexOf(shot) + 1).padStart(2, '0')}.mp4`);
-    if (existsSync(shot.video)) {
-      const keepSound = shot.notes.sound && shot.kind === 'action' && hasSound(shot.video);
-      fitClip({ video: shot.video, audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip });
-    } else {
-      stillClip({ frame: shot.frame, audio: shot.audio ?? null, seconds: shot.seconds, size, fps, outFile: clip });
-    }
+    const video = !shot.notes.still && existsSync(shot.video) ? shot.video : null;
+    const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
+    composite({
+      plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus,
+      audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
+    });
     const length = duration(clip);
     if (shot.kind === 'talk') lines.push({ start: t + 0.05, end: t + length - 0.1, who: shot.character.name, text: shot.text });
     clips.push(clip);
     t += length;
   }
-  const endcardOn = (settings.endcard ?? 'on') !== 'off' && kit.endcard;
   let endcard = null;
-  if (endcardOn) {
+  if ((settings.endcard ?? 'on') !== 'off' && kit.endcard) {
     const card = path.join(out, 'clip-end.mp4');
-    const frame = cached(`frame-${hash({ background: background && hashFile(background), size, end: true })}.jpg`);
-    if (!existsSync(frame)) startFrame({ character: null, background, size, outFile: frame });
-    stillClip({ frame, audio: null, seconds: kit.endcard.seconds, size, fps, outFile: card });
+    stillClip({ frame: plate, audio: null, seconds: kit.endcard.seconds, size, fps, outFile: card });
     endcard = { start: t, end: t + kit.endcard.seconds, title: kit.endcard.title, line: kit.endcard.line };
     clips.push(card);
     t += duration(card);
   }
   const joined = path.join(out, 'joined.mp4');
   join(clips, path.join(out, 'clips.txt'), joined);
-  const captionsOn = (settings.captions ?? kit.captions) !== 'off';
+  const captions = settings.captions ?? kit.captions;
   const ass = path.join(out, 'captions.ass');
-  writeFileSync(ass, captionsAss({ size, lines: captionsOn ? lines : [], names: (settings.captions ?? kit.captions) === 'names', title: settings.title, endcard }));
+  writeFileSync(ass, captionsAss({ size, lines: captions !== 'off' ? lines : [], names: captions === 'names', show: kit.show, title: settings.title, endcard }));
   writeFileSync(path.join(out, `${slug}.srt`), captionsSrt(lines));
-  const allMade = shots.every((s) => existsSync(s.video));
+  const allMade = shots.every(made) && !posesToDraw;
   const final = path.join(out, `${slug}${allMade ? '' : '-preview'}.mp4`);
   finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
@@ -340,8 +420,11 @@ async function main() {
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);
   if (failed.length && broke) say('No video shots were made: top up fal, then run this again with --yes (the voices are already made).');
   else if (failed.length) say(`${failed.length} shot${failed.length > 1 ? 's' : ''} failed (${failed.map((s) => s.label).join(', ')}): they're stills for now. Run again with --yes to retry them.`);
-  const left = shots.filter((s) => !existsSync(s.video));
-  if (left.length && !opts.yes) say(`To make the ${left.length} video shot${left.length > 1 ? 's' : ''} (about ${money(left.reduce((sum, s) => sum + s.price, 0))} on fal), run it again with --yes.`);
+  const left = shots.filter((s) => !made(s));
+  if ((left.length || posesToDraw) && !opts.yes) {
+    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`].filter(Boolean);
+    say(`To make the ${parts.join(' and ')} (about ${money(left.reduce((sum, s) => sum + s.price, 0) + poseCost)} on fal), run it again with --yes.`);
+  }
 }
 
 main().catch((error) => {

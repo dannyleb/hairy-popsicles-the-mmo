@@ -1,0 +1,16 @@
+# Hairy Popsicles, episode 3. Shiv's nose grows when he lies. Snoot's brain is right there.
+title: Liar
+background: surface
+
+SNOOT (snooty, congested): Shiv. Darling. Do you like my new nose ring?
+SHIV (sly): I love it.
+> SHIV (2s): his long fleshy nose twitches and grows a little longer
+SNOOT (snooty): You hate it.
+SHIV (too smooth): No. It's beautiful.
+> SHIV (2s, push): his nose stretches out even longer, quivering
+SNOOT (offended): Shiv.
+SHIV (strained, close): It's the best... nose ring... I have ever...
+> SNOOT & SHIV (3s, shake): Shiv's long nose shoots out across the gap and jabs into Snoot's exposed brain
+SNOOT (screaming, punch, shake): MY BRAIN! YOU STABBED ME IN THE BRAIN!
+SHIV (sly, close): ...I'm fine.
+> SHIV (2s): his nose grows even longer

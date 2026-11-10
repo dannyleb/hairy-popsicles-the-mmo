@@ -1,0 +1,17 @@
+# Hairy Popsicles, episode 1. Big Eye's eye won't close. Conehead tries to help.
+title: The Sunglasses
+background: surface
+
+> BIG EYE & CONEHEAD (3s): Conehead bounces up to Big Eye, grinning, hiding something behind his back
+CONEHEAD (manic, too cheerful): Big Eye! Big Eye! I got you a present!
+BIG EYE (suspicious): ...what is it.
+CONEHEAD (giggling): Sunglasses! For your eye!
+> BIG EYE (1.5s, still, push)
+BIG EYE (flat): Which eye.
+> CONEHEAD (1.2s, still, close)
+CONEHEAD (whispering, giggling): ...the small one.
+BIG EYE (screaming, punch, shake): THE BIG ONE IS THE ONE THAT HURTS, CONEHEAD!
+CONEHEAD (sing-song): Then close it!
+BIG EYE (quiet, defeated): It doesn't close. It hasn't closed since nineteen ninety-four.
+> BIG EYE (2s, still, close, push)
+CONEHEAD (whispering, close): ...I'll get you a hat.

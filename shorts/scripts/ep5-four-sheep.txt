@@ -1,0 +1,15 @@
+# Hairy Popsicles, episode 5. Red Eye hasn't slept since he was drawn.
+title: Four Sheep
+background: black
+facing: front
+
+RED EYE (whispering, unblinking, push): Haven't slept since I was drawn.
+RED EYE (flat): Doctor says count sheep. So I count sheep.
+> RED EYE (2s, still, push)
+RED EYE (whispering): One sheep. Two sheep. Three sheep with my mother's face.
+RED EYE (twitching, whispering, close): Four sheep. Four sheep is standing at the end of my bed.
+> RED EYE (2s, still, close, push)
+RED EYE (barely audible): ...four sheep. I can see you.
+SCREAMER (screaming, close, punch, shake): AAAAAAAAAAAAAAH!
+> RED EYE (1.5s, still, close)
+RED EYE (flat): ...goodnight, four sheep.

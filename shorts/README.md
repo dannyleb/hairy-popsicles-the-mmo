@@ -1,8 +1,17 @@
 # Shorts kit
 
-Write a short as a plain text script, run one command, get a first-pass
-video: voices, lip-synced talking shots, action shots, captions, music and an
-end card. Vertical (9:16) by default.
+Hairy Popsicles, the show: skits of 30 to 60 seconds. Write one as a plain
+text script, run one command, get the episode:
+- the characters' own designed voices, lip-synced
+- facing each other when they talk to each other
+- the camera slamming in and shaking on them while the background stays put
+- a title card and the hairypopsicles.com end card
+
+Vertical (9:16) by default. Episodes are in `shorts/scripts/ep*.txt`.
+
+How a shot is made: each character is animated on a flat green screen, keyed
+out, and laid over a still background. So the background never warps, and
+the camera moves (shake, punch, close) happen to the character alone.
 
 ## Write a script
 
@@ -27,14 +36,32 @@ CONEHEAD (guilty): ...finders keepers.
 - `> NAME (3s): what happens`: a shot with no talking. 3 to 15 seconds
   (4 if you don't say). Add `sound` in the brackets for sound effects made
   with the video.
+- `> NAME & NAME (3s): what happens`: two of them in the shot, facing each
+  other.
+- `> NAME (1.5s, still)`: a silent beat, a reaction or an awkward pause.
+  Their picture held, no video made, free. Good with `push` or `close`.
 - `> SCENE: what happens`: just the background, no character.
+- **Camera notes** (in the brackets, on any shot) move the character only:
+  - `close`: extreme close-up
+  - `punch`: snaps in
+  - `shake`
+  - `push`: creeps in
+- **Who faces whom:** with two or more in a skit, the first to appear stands
+  on the left facing right, the next on the right facing left. A
+  `left` / `right` / `front` note moves someone for one shot;
+  `facing: front` at the top keeps everyone facing the camera (solo episodes).
+  The turned pictures are drawn once per character and kept in
+  `shorts/characters/poses/` (about $0.15 each).
+  `npm run short -- --pose bigeye,conehead` draws them ahead of time, with a
+  sheet to check them.
 - Settings at the top, all optional:
   - `title:` (shown over the opening)
   - `format: vertical | wide`
   - `background: surface | deep | black | path/to/picture.png`
   - `music: music/song.mp3` (plays quietly under everything)
-  - `captions: on | names | off`
-  - `endcard: off` (skips the "Play free at hairypopsicles.com" card)
+  - `captions: on | names | off` (off unless you say)
+  - `facing: front` (everyone faces the camera)
+  - `endcard: off` (skips the hairypopsicles.com card)
 - Lines starting with `#` are notes to yourself.
 
 ## Make it
@@ -93,9 +120,10 @@ Everything runs on **fal.ai**, from one balance:
   1,000 characters. fal's page says commercial use is included.
 - **Talking shots:** Kling AI Avatar v2, about $0.056 a second.
 - **Action shots:** Kling v3, about $0.084 a second ($0.42 for 5 s).
+- **Turned poses:** nano-banana-pro edit, $0.15 each, once per character and side.
 - **Your own takes:** ElevenLabs' voice changer on fal.
 
-A 30-second short is around $1.50 to $2. Models and prices are in
+An episode of 30 to 40 seconds is around $2. Models and prices are in
 `kit.json`; change the model there to try another.
 
 (`voice.provider: "elevenlabs"` in `kit.json` uses your own ElevenLabs

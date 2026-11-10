@@ -11,9 +11,10 @@ const time = (s) => {
 const srtTime = (s) => time(s).replace(/^(\d):/, '0$1:').replace('.', ',') + '0';
 const clean = (text) => text.replace(/[{}\\]/g, '').replace(/\s+/g, ' ').trim();
 
-// `lines`: [{ start, end, who, text }]; `title`: shown over the opening;
-// `endcard`: { start, end, title, line } over the last card.
-export function captionsAss({ size: [W, H], lines, names, title, endcard }) {
+// `lines`: [{ start, end, who, text }]; `show` and `title`: the show's name
+// and the episode's, over the opening; `endcard`: { start, end, title, line }
+// over the last card.
+export function captionsAss({ size: [W, H], lines, names, show, title, endcard }) {
   const vertical = H > W;
   const big = vertical ? 74 : 62;
   const out = [
@@ -29,7 +30,10 @@ export function captionsAss({ size: [W, H], lines, names, title, endcard }) {
     '[Events]',
     'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
   ];
-  if (title) out.push(`Dialogue: 1,${time(0.1)},${time(2.6)},Title,,0,0,0,,{\\fad(250,450)}${clean(title)}`);
+  if (title) {
+    const showLine = show ? `{\\fs${vertical ? 60 : 50}\\c&H00D6E8FF&}${clean(show).toUpperCase()}\\N{\\r}` : '';
+    out.push(`Dialogue: 1,${time(0.1)},${time(2.6)},Title,,0,0,0,,{\\fad(250,450)}${showLine}${clean(title)}`);
+  }
   for (const { start, end, who, text } of lines) {
     const name = names ? `{\\c&H00A8C8F3&\\fs${Math.round(big * 0.62)}}${clean(who).toUpperCase()}\\N{\\r}` : '';
     out.push(`Dialogue: 0,${time(start)},${time(end)},Line,,0,0,0,,${name}${clean(text)}`);

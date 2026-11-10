@@ -76,23 +76,6 @@ export function stillClip({ frame, audio, seconds, size: [W, H], fps, outFile })
   ]);
 }
 
-// A clip from a video model, made to fit: the frame size and rate, `seconds`
-// long (held on its last frame if it's short), with `audio` as its sound (or
-// its own, with `keepSound`, or silence).
-export function fitClip({ video, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
-  const v = `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5[v]`;
-  let inputs = ['-i', video];
-  let a;
-  if (keepSound) {
-    a = '[0:a]aresample=48000,apad[a]';
-  } else {
-    const sound = soundFor(audio, 1);
-    inputs = [...inputs, ...sound.input];
-    a = sound.filter;
-  }
-  ffmpeg([...inputs, '-filter_complex', `${v};${a}`, '-map', '[v]', '-map', '[a]', '-t', seconds.toFixed(3), ...VIDEO(fps), ...AUDIO, outFile]);
-}
-
 export function hasSound(file) {
   const run = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', file], { encoding: 'utf8' });
   return run.stdout.trim().length > 0;
@@ -149,4 +132,104 @@ export function applyFx(inFile, outFile, names = []) {
   // Every line at the same loudness, whatever was done to it.
   const chain = [...names.map((n) => FX[n]), 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
   whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', chain, '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
+}
+
+// ---------- layers: characters over a still background ----------
+
+export const KEYS = { green: { hex: '0x00FF00', css: 'pure green (#00FF00)', despill: 'green' }, blue: { hex: '0x0000FF', css: 'pure blue (#0000FF)', despill: 'blue' } };
+
+// The characters on a transparent frame, each fitted in its box: { image,
+// cx (centre, px), bottom (px), width, height (the box, px) }.
+export function layer({ chars, size: [W, H], outFile }) {
+  const inputs = ['-f', 'lavfi', '-i', `color=c=black@0.0:s=${W}x${H},format=rgba`, ...chars.flatMap((c) => ['-i', c.image])];
+  const steps = [];
+  let last = '[0:v]';
+  chars.forEach((c, i) => {
+    steps.push(`[${i + 1}:v]format=rgba,scale=${Math.round(c.width)}:${Math.round(c.height)}:force_original_aspect_ratio=decrease[c${i}]`);
+    steps.push(`${last}[c${i}]overlay=x=${Math.round(c.cx)}-w/2:y=${Math.round(c.bottom)}-h:format=auto[l${i}]`);
+    last = `[l${i}]`;
+  });
+  whole(outFile, (temp) => ffmpeg([...inputs, '-filter_complex', steps.join(';'), '-map', last, '-frames:v', '1', '-f', 'image2', '-c:v', 'png', temp]));
+}
+
+// A character layer on a flat key colour: the first frame for a video model,
+// whose background is then keyed out again.
+export function onKey({ layerFile, key, size: [W, H], outFile }) {
+  whole(outFile, (temp) => ffmpeg([
+    '-f', 'lavfi', '-i', `color=c=${KEYS[key].hex}:s=${W}x${H}`, '-i', layerFile,
+    '-filter_complex', '[0:v][1:v]overlay=format=auto,format=yuvj420p', '-frames:v', '1', '-q:v', '2', '-f', 'image2', temp,
+  ]));
+}
+
+// The finished shot: the still background, the character layer over it with
+// its shadow (keyed out of a video, or a still layer), moved by the camera
+// notes (on the character only, the background stays put), `seconds` long.
+// `focus`: [x, y] the camera moves about (the face).
+export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], audio, keepSound, seconds, size: [W, H], fps, outFile }) {
+  const D = seconds.toFixed(3);
+  const zoom = [
+    camera.includes('close') ? '1.7' : '1',
+    camera.includes('punch') ? '(1+0.22*min(t/0.12,1))' : '1',
+    camera.includes('push') ? `(1+0.12*t/${D})` : '1',
+  ].join('*');
+  const shake = camera.includes('shake');
+  const dx = shake ? '+16*sin(t*53)+9*sin(t*31)' : '';
+  const dy = shake ? '+12*sin(t*47)+7*sin(t*23)' : '';
+  const moved = zoom === '1*1*1' && !shake;
+  const source = video
+    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`
+    : `[1:v]fps=${fps},format=rgba`;
+  const motion = moved ? '' : `,scale=w='trunc(${W}*${zoom}/2)*2':h='trunc(${H}*${zoom}/2)*2':eval=frame`;
+  const x = moved ? '0' : `'${fx}-${fx}*${zoom}${dx}'`;
+  const y = moved ? '0' : `'${fy}-${fy}*${zoom}${dy}'`;
+  const xs = moved ? '14' : `'${fx}-${fx}*${zoom}${dx}+14'`;
+  const ys = moved ? '22' : `'${fy}-${fy}*${zoom}${dy}+22'`;
+  const graph = [
+    `[0:v]fps=${fps},scale=${W}:${H},setsar=1,format=rgba[bg]`,
+    `${source}${motion},split[fg][s]`,
+    '[s]colorchannelmixer=rr=0:gg=0:bb=0:aa=0.5,gblur=sigma=16[sh]',
+    `[bg][sh]overlay=x=${xs}:y=${ys}:eval=frame[b2]`,
+    `[b2][fg]overlay=x=${x}:y=${y}:eval=frame,format=yuv420p[v]`,
+  ];
+  const inputs = ['-loop', '1', '-framerate', String(fps), '-i', plate, ...(video ? ['-i', video] : ['-loop', '1', '-framerate', String(fps), '-i', still])];
+  let a;
+  if (keepSound) {
+    a = '[1:a]aresample=48000,apad[a]';
+  } else if (audio) {
+    inputs.push('-i', audio);
+    a = '[2:a]aresample=48000,apad[a]';
+  } else {
+    inputs.push('-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo');
+    a = '[2:a]anull[a]';
+  }
+  ffmpeg([...inputs, '-filter_complex', `${graph.join(';')};${a}`, '-map', '[v]', '-map', '[a]', '-t', D,
+    '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', outFile]);
+}
+
+// The bounding box of what isn't transparent in an image: [x, y, w, h].
+export function opaqueBox(file) {
+  const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file], { encoding: 'utf8' });
+  const [w, h] = probe.stdout.trim().split(',').map(Number);
+  const raw = spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: 256 * 1024 * 1024 }).stdout;
+  let [x0, y0, x1, y1] = [w, h, -1, -1];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (raw[(y * w + x) * 4 + 3] > 24) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  return x1 < 0 ? [0, 0, w, h] : [x0, y0, x1 - x0 + 1, y1 - y0 + 1];
+}
+
+// A picture on a flat key colour, keyed to transparent and cropped to what's left.
+export function keyOut({ inFile, key, outFile }) {
+  const keyed = `${outFile}.keyed.png`;
+  ffmpeg(['-i', inFile, '-vf', `chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`, '-frames:v', '1', keyed]);
+  const [x, y, w, h] = opaqueBox(keyed);
+  whole(outFile, (temp) => ffmpeg(['-i', keyed, '-vf', `crop=${w}:${h}:${x}:${y}`, '-frames:v', '1', '-c:v', 'libwebp', '-quality', '92', '-f', 'webp', temp]));
+  rmSync(keyed, { force: true });
 }
