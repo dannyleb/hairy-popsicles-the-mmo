@@ -1,0 +1,77 @@
+[
+  {
+    "number": 1,
+    "slug": "ep1-the-sunglasses",
+    "title": "The Sunglasses",
+    "logline": "Doolie has made Greg a present. Greg doesn't want it.",
+    "cast": [
+      "bigeye",
+      "conehead"
+    ],
+    "seconds": 58,
+    "video": "ep1-the-sunglasses.mp4",
+    "poster": "ep1-the-sunglasses.jpg",
+    "posterAt": 46,
+    "source": "725063b4aa80d1e8"
+  },
+  {
+    "number": 2,
+    "slug": "ep2-the-interview",
+    "title": "The Interview",
+    "logline": "Dennis needs this job. Orville needs a nap.",
+    "cast": [
+      "droopy",
+      "sweats"
+    ],
+    "seconds": 58.8,
+    "video": "ep2-the-interview.mp4",
+    "poster": "ep2-the-interview.jpg",
+    "posterAt": 23.52,
+    "source": "b0c97c51dd699b93"
+  },
+  {
+    "number": 3,
+    "slug": "ep3-liar",
+    "title": "Liar",
+    "logline": "Shiv's nose grows when he lies. Hork's brain is right there.",
+    "cast": [
+      "snoot",
+      "shiv"
+    ],
+    "seconds": 56.7,
+    "video": "ep3-liar.mp4",
+    "poster": "ep3-liar.jpg",
+    "posterAt": 37.5,
+    "source": "925be74bf0e63be6"
+  },
+  {
+    "number": 4,
+    "slug": "ep4-first-date",
+    "title": "First Date",
+    "logline": "Brayden and Duane, a first date, under the skin.",
+    "cast": [
+      "pimples",
+      "melter"
+    ],
+    "seconds": 58.4,
+    "video": "ep4-first-date.mp4",
+    "poster": "ep4-first-date.jpg",
+    "posterAt": 23.3733332,
+    "source": "3db7b406d51a5a7a"
+  },
+  {
+    "number": 5,
+    "slug": "ep5-four-sheep",
+    "title": "Four Sheep",
+    "logline": "Nerm hasn't slept since he was drawn.",
+    "cast": [
+      "redeye",
+      "screamer"
+    ],
+    "seconds": 52.4,
+    "video": "ep5-four-sheep.mp4",
+    "poster": "ep5-four-sheep.jpg",
+    "posterAt": 20.946666800000003,
+    "source": "530a8a53695b09d5"
+  }
+]
