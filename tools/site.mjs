@@ -97,7 +97,7 @@ const teaser = show.length ? [
   '    <section class="show-teaser" aria-labelledby="show-title">',
   '      <p class="kicker">now showing</p>',
   '      <h2 class="section-title" id="show-title">The Show</h2>',
-  `      <p class="section-lead">Tiny, wet, wrong little films about the cast and their bad luck. ${show.length} episode${show.length === 1 ? '' : 's'}, under a minute each. Headphones on.</p>`,
+  `      <p class="section-lead">Tiny, wet, wrong little films about the cast and their bad luck. ${show.length} episode${show.length === 1 ? '' : 's'}, under a minute each.</p>`,
   '      <ul class="show-row">',
   ...show.map((e) => `        <li><a href="episodes/#ep-${e.number}"><img src="episodes/media/${e.poster}" alt="Episode ${e.number}: ${escape(e.title)}" width="720" height="1280" loading="lazy"><span>${escape(e.title)}</span></a></li>`),
   '      </ul>',

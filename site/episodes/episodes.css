@@ -24,45 +24,8 @@
 
 .show-lead {
   max-width: 34ch;
-  margin: 14px auto 0;
+  margin: 14px auto 22px;
 }
-
-.phones {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin: 18px 0 22px;
-  padding: 6px 14px 7px;
-  font-size: 18px;
-  color: var(--gold);
-  background: rgba(30, 14, 18, 0.7);
-  border: 1px solid rgba(232, 176, 74, 0.35);
-  border-radius: 999px;
-}
-
-/* Headphones, drawn: the band and two cups. */
-.phones-icon {
-  position: relative;
-  width: 20px;
-  height: 16px;
-  border: 3px solid currentColor;
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
-}
-
-.phones-icon::before,
-.phones-icon::after {
-  content: "";
-  position: absolute;
-  bottom: -5px;
-  width: 6px;
-  height: 9px;
-  background: currentColor;
-  border-radius: 3px;
-}
-
-.phones-icon::before { left: -5px; }
-.phones-icon::after { right: -5px; }
 
 /* ---------- the episodes ---------- */
 
