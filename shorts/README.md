@@ -162,8 +162,9 @@ Each character in `cast.json` has its own designed voice:
   afterwards, and the saliva sound of their mouth close-up runs quietly under
   each line (kit.json `mouth.wetUnderVoice`). For that sound under the whole
   episode at one level instead, put `saliva: shiv` in the script (several:
-  `saliva: shiv, hork`): it runs start to finish (kit.json
-  `mouth.salivaVolume`), and the per-shot wet sounds give way to it.
+  `saliva: shiv, hork`): it runs start to finish, kit.json
+  `mouth.salivaBelow` dB (9) under the dialogue, and the per-shot wet sounds
+  give way to it.
 - `mouthStill`, `mouthClip`: their own prompts for the mouth close-up, when
   the usual tongue close-up isn't the point (Shiv's is the hotdog).
 

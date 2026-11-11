@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
-  KEYS, applyFx, brokenVoice, composite, setCloseMic, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
+  KEYS, MASTER_LOUDNESS, applyFx, brokenVoice, composite, setCloseMic, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
@@ -738,14 +738,17 @@ async function main() {
   }
   for (const [name, file] of Object.entries(hitFiles)) if (file) hitFiles[name] = level({ inFile: file, loudness: kit.hits.loudness, outFile: cached(`hit-${hash({ file: hashFile(file), loudness: kit.hits.loudness })}.mp3`) });
   const placed = hits.filter((h) => h.file || hitFiles[h.name]).map((h) => ({ ...h, file: h.file ?? hitFiles[h.name] }));
-  // The saliva bed (saliva: shiv), start to finish at one level.
+  // The saliva bed (saliva: shiv), start to finish at one level: salivaBelow
+  // dB under the dialogue, laid on after the final squeeze so the pauses
+  // can't lift it.
   const salivaClips = saliva.map((id) => mouthClipPath(HERE, id, mouthSettings(id))).filter((f) => existsSync(f));
   const bed = salivaClips.length ? salivaBed({ clips: salivaClips, seconds: t, seed: `${slug}-saliva`, chain: kit.mouth.chain, cacheDir: CACHE }) : null;
-  if (bed) placed.push({ file: bed, at: 0, volume: kit.mouth.salivaVolume ?? kit.mouth.wetUnderVoice ?? 0.6 });
-  else if (saliva.length) say(`(no saliva bed: ${saliva.join(', ')} ${saliva.length > 1 ? "have" : "has"} no mouth close-up with sound yet)`);
+  const salivaLoudness = MASTER_LOUDNESS - (kit.mouth.salivaBelow ?? 9);
+  const over = bed ? { file: level({ inFile: bed, loudness: salivaLoudness, outFile: cached(`saliva-${hash({ bed: hashFile(bed), loudness: salivaLoudness })}.mp3`) }) } : null;
+  if (!bed && saliva.length) say(`(no saliva bed: ${saliva.join(', ')} ${saliva.length > 1 ? "have" : "has"} no mouth close-up with sound yet)`);
   const musicUntil = kit.music.until === 'first line' && lines.length ? lines[0].start : null;
   const range = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.range : 11;  // (loudness range: ASMR is squeezed tight)
-  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, range, total: t, outFile: final });
+  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, over, size, range, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
 
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);
