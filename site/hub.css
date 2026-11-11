@@ -636,8 +636,13 @@ a { color: inherit; }
 
 /* ---------- the show, on the hub (and the bar's link to it) ---------- */
 
-.bar-nav { display: flex; align-items: center; gap: 14px; }
-.bar-link { font-size: 19px; color: var(--flesh); text-decoration: none; }
+.bar-nav { display: flex; flex-shrink: 0; align-items: center; gap: 12px; }
+.bar-link { font-size: 18px; color: var(--flesh); text-decoration: none; }
+.bar-mark { white-space: nowrap; }
+@media (max-width: 420px) {
+  .bar-mark { font-size: 20px; }
+  .bar-nav { gap: 10px; }
+}
 .bar-link:hover { text-decoration: underline; }
 
 .show-teaser {
