@@ -5,21 +5,21 @@ scene: A cramped, sweltering little room on a scorching afternoon: the back wall
 sounds: muggy room tone of a cramped, sweltering little room on a hot afternoon, slow wet drips plopping into a sticky puddle, faint fleshy squelches and creaks, a fly buzzing now and then
 room: small
 
-> GREG (2s, still, push)
+> GREG (1.2s, still, push)
 DOOLIE (whispering, giggling, too fast): Greg... I made you something.
 GREG (snapping): No.
 > GREG & DOOLIE (3s, with: scab sunglasses): Doolie slowly leans in much too close to Greg, grinning, the little scab sunglasses sitting on the ground between them
 DOOLIE (manic, giggling): Sunglasses. For your eye.
-> SCAB SUNGLASSES (3s, push): the crusty scab sunglasses glisten wetly in the heat, a bead of ooze slowly dripping off the frame
+> SCAB SUNGLASSES (2s, push): the crusty scab sunglasses glisten wetly in the heat, a bead of ooze slowly dripping off the frame
 DOOLIE (breathless, too fast, giggling): I made them out of my old scabs. Took me all summer.
 GREG (flat): ...there's one lens.
-DOOLIE (sing-song, creepy): Well... you've only got the one... nice... side.
+DOOLIE (sing-song, creepy): You've only got the one... nice side.
 GREG (low, dangerous, push): Say "nice side" again.
 DOOLIE (squealing, delighted): Nice side—
 GREG (screaming, punch, shake): IT HASN'T CLOSED SINCE NINETEEN NINETY-FOUR!
-> DOOLIE (1.5s, still, push)
+> DOOLIE (1s, still, push)
 DOOLIE (whispering, manic, close): ...put them on, Greg.
 > GREG (2s, still, close, push, wearing: scab sunglasses)
 GREG (quietly, surprised, wearing: scab sunglasses): ...they're warm.
 DOOLIE (whispering, giggling): That's me.
-> GREG (1.5s, still, close, push, wearing: scab sunglasses)
+> GREG (1s, still, close, push, wearing: scab sunglasses)
