@@ -42,7 +42,8 @@
   "talking": {
     "model": "fal-ai/kling-video/ai-avatar/v2/standard",
     "pricePerSecond": 0.0562,
-    "minSeconds": 2
+    "minSeconds": 2,
+    "noText": "No text, captions, subtitles, letters or writing anywhere in the picture."
   },
   "action": {
     "model": "fal-ai/kling-video/v3/standard/image-to-video",

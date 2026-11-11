@@ -491,6 +491,10 @@ async function main() {
       shot.price = shot.billed * kit.action.pricePerSecond * (shot.notes.sound ? 1.5 : 1);
     }
     shot.videoKey = hash({ model: shot.model, start: shot.startKey, audio: lipsync ? hashFile(shot.audio) : null, prompt: shot.prompt, billed: lipsync ? null : shot.billed, sound: shot.notes.sound });
+    // The lip-sync model sometimes writes its own garbled subtitles of the
+    // line under the face. Told not to (an instruction to the model, not part
+    // of what the shot is: shots already made stay as they are).
+    shot.instruction = lipsync ? `${shot.prompt} ${kit.talking.noText}` : shot.prompt;
     shot.video = cached(`shot-${shot.videoKey}.mp4`);
     if (opts.redo.has(shots.indexOf(shot) + 1)) rmSync(shot.video, { force: true });
     shot.lipsync = lipsync;
@@ -522,7 +526,7 @@ async function main() {
       try {
         if (!existsSync(shot.start)) onKey({ layerFile: shot.layer, key: shot.key, size, outFile: shot.start });
         const input = shot.lipsync
-          ? { image_url: dataUri(shot.start, 'image/jpeg'), audio_url: dataUri(shot.audio, 'audio/mpeg'), prompt: shot.prompt }
+          ? { image_url: dataUri(shot.start, 'image/jpeg'), audio_url: dataUri(shot.audio, 'audio/mpeg'), prompt: shot.instruction }
           : {
               start_image_url: dataUri(shot.start, 'image/jpeg'), prompt: shot.prompt, duration: String(shot.billed),
               generate_audio: shot.notes.sound, negative_prompt: kit.action.negative,
