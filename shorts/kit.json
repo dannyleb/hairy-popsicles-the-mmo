@@ -39,8 +39,8 @@
       "format": "mp3_44100_128"
     },
     "asmr": {
-      "_": "ASMR: every character has a second, soft-spoken voice designed from their brief plus `brief` below (saved as <id>~asmr in voices.json): the same odd voice, very quiet and very close to the mic, breath and mouth noise and all. Their pitch effects are kept, the ones that muffle aren't; then a gentle close-mic treatment (chain). Yelled lines use their normal voice. A script's asmr: off turns it off. (mouth: sound-effect mouth noises to add around the words; none by default, they sounded pasted on.)",
-      "brief": "Speaking very softly and intimately, right up close to a sensitive microphone, like a soft-spoken ASMR video: barely above a murmur but still clearly voiced, not whispering. Every breath is audible, with small natural mouth and tongue sounds between words. The same character and the same strangeness, just very close and very quiet.",
+      "_": "ASMR, matched to the reference (an extreme close-up ASMR reel): dry, near the centre, squeezed tight (loudness range `range`), crisp on top, the environment low (`bedLoudness`). Every character has a second, soft-spoken voice designed from their brief plus `brief` (saved as <id>~asmr in voices.json; designed again if `brief` changes), so the mouth sounds come from the voice itself. Pitch effects are kept, the muffling ones aren't; then the close-mic treatment (chain). Yelled lines use their normal voice. A script's asmr: off turns it off.",
+      "brief": "Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
       "tags": "",
       "keepFx": [
         "deep",
@@ -56,9 +56,11 @@
       "lead": 0.35,
       "tail": 0.3,
       "pause": 0.16,
-      "chain": "highpass=f=50,equalizer=f=150:t=q:w=1:g=3,equalizer=f=10000:t=q:w=1.5:g=2,deesser=i=0.25,acompressor=threshold=0.08:ratio=2.5:attack=8:release=120:makeup=1.5",
-      "room": 0.5,
-      "spread": 0.6
+      "chain": "highpass=f=130,agate=threshold=0.006:ratio=2:attack=3:release=120,bass=g=-5:f=250,equalizer=f=2500:t=q:w=1.2:g=1.5,treble=g=9:f=6000,deesser=i=0.25,acompressor=threshold=0.03:ratio=4:attack=2:release=90:makeup=2.5,alimiter=limit=0.9:attack=2:release=40",
+      "room": 0.12,
+      "spread": 0.25,
+      "bedLoudness": -36,
+      "range": 4
     }
   },
   "talking": {

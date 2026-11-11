@@ -95,7 +95,7 @@ export function join(clips, listFile, outFile) {
 // `hits` ([{ file, at, volume }]); the episode's `sounds` ({ file, volume })
 // and/or a made-up `ambience` under them; music under the title until
 // `musicUntil`; VHS static; the sound brought to the loudness the apps expect.
-export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicUntil = null, room = null, sounds = null, hits = [], ambience, vhs, size: [W, H] = [1080, 1920], total, outFile }) {
+export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicUntil = null, room = null, sounds = null, hits = [], ambience, vhs, size: [W, H] = [1080, 1920], range = 11, total, outFile }) {
   const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   const subs = ass ? `subtitles='${esc(ass)}':fontsdir='${esc(fontsDir)}'` : 'null';
   const glitch = vhs?.bursts.length ? staticBursts(vhs.bursts) : null;
@@ -172,7 +172,7 @@ export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicU
       `[n][z]amix=inputs=2:normalize=0,volume='if(${glitch.on},${vhs.volume ?? 0.3},0)':eval=frame,${stereo}[hiss]`);
     mix.push('[hiss]');
   }
-  graph.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]`);
+  graph.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,${range < 8 ? 'acompressor=threshold=0.06:ratio=2.5:attack=15:release=250:makeup=1.5,' : ''}loudnorm=I=-14:TP=-1.5:LRA=${range}[a]`);  // (a tight range gets the whole mix squeezed a little first)
   ffmpeg([
     ...inputs, '-filter_complex', `${video};${graph.join(';')}`, '-map', '[v]', '-map', '[a]',
     '-t', total.toFixed(3), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p',

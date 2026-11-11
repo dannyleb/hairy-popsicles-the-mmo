@@ -297,7 +297,8 @@ async function main() {
   if (settings.sounds) {
     const where = { here: HERE, name: slug, description: settings.sounds, seconds: kit.sounds.seconds, loop: true, settings: kit.sounds, say };
     const file = existsSync(soundPath(where)) ? soundPath(where) : opts.offline ? null : await sound(where);
-    if (file) sounds = { file: level({ inFile: file, loudness: kit.sounds.loudness, outFile: cached(`sounds-${hash({ file: hashFile(file), loudness: kit.sounds.loudness })}.mp3`) }), volume: 1 };
+    const loudness = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.bedLoudness ?? kit.sounds.loudness : kit.sounds.loudness;  // (lower under ASMR voices, so the little sounds read)
+    if (file) sounds = { file: level({ inFile: file, loudness, outFile: cached(`sounds-${hash({ file: hashFile(file), loudness })}.mp3`) }), volume: 1 };
   }
   const ambienceName = settings.ambience ?? (settings.sounds ? 'none' : kit.ambience.default);
   const ambience = ambienceName && ambienceName !== 'none' ? kit.ambience.beds[ambienceName] : null;
@@ -429,7 +430,8 @@ async function main() {
     if (provider === 'fal') {
       const owner = voiceOwner(shot.who);
       const key = asmr && !yelled(shot) ? `${owner}~asmr` : owner;
-      if (!designed[key]) await designVoice(owner, path.join(HERE, 'out', 'voices'), key === owner ? null : asmr);
+      const stale = key !== owner && designed[key] && !designed[key].brief.endsWith(asmr.brief);  // (the ASMR direction changed: design it again)
+      if (!designed[key] || stale) await designVoice(owner, path.join(HERE, 'out', 'voices'), key === owner ? null : asmr);
       voiceId = designed[key].voiceId;
     } else if (provider === 'elevenlabs') {
       voiceId = findVoice(stock, c.voice ?? '')?.id;
@@ -621,7 +623,8 @@ async function main() {
   for (const [name, file] of Object.entries(hitFiles)) if (file) hitFiles[name] = level({ inFile: file, loudness: kit.hits.loudness, outFile: cached(`hit-${hash({ file: hashFile(file), loudness: kit.hits.loudness })}.mp3`) });
   const placed = hits.filter((h) => hitFiles[h.name]).map((h) => ({ ...h, file: hitFiles[h.name] }));
   const musicUntil = kit.music.until === 'first line' && lines.length ? lines[0].start : null;
-  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, total: t, outFile: final });
+  const range = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.range : 11;  // (loudness range: ASMR is squeezed tight)
+  finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, range, total: t, outFile: final });
   for (const clip of [...clips, joined]) rmSync(clip, { force: true });
 
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);
