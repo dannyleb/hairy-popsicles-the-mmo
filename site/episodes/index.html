@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Episodes · Hairy Popsicles</title>
+  <meta name="description" content="Hairy Popsicles, the show: tiny, wet, wrong little films about gross creatures and their bad luck. {{COUNT}}, under a minute each. Headphones on.">
+  <meta name="theme-color" content="#0e0608">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hairy Popsicles">
+  <meta property="og:title" content="Hairy Popsicles: the episodes">
+  <meta property="og:description" content="Tiny, wet, wrong little films about gross creatures and their bad luck. {{COUNT}}, under a minute each. Headphones on.">
+  <meta property="og:url" content="{{SITE}}episodes/">
+  <meta property="og:image" content="{{SITE}}episodes/media/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Stills from the Hairy Popsicles episodes">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="../the-mmo/icons/favicon.png">
+  <link rel="apple-touch-icon" href="../the-mmo/icons/apple-touch-icon.png">
+  <link rel="preload" href="../the-mmo/fonts/rubik-wet-paint.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../the-mmo/fonts/patrick-hand.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../hub.css">
+  <link rel="stylesheet" href="episodes.css">
+  <script src="episodes.js" defer></script>
+</head>
+<body class="show">
+  <div class="skin" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header class="bar on">
+    <a class="bar-mark" href="../">Hairy Popsicles</a>
+    <a class="pill pill-small" href="../the-mmo/">Play</a>
+  </header>
+
+  <main>
+    <section class="show-top">
+      <p class="kicker">the show</p>
+      <h1 class="logo show-logo">Episodes<span class="drop drop-1"></span><span class="drop drop-2"></span></h1>
+      <p class="lead show-lead">Tiny, wet, wrong little films about gross creatures and their bad luck. Under a minute each.</p>
+      <p class="phones"><span class="phones-icon" aria-hidden="true"></span>Headphones on. It's very close.</p>
+      <a class="pill pill-ghost" href="#ep-1">Start at episode 1</a>
+    </section>
+
+    <svg class="ooze" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 0H1200V18C1170 18 1166 46 1150 46S1132 20 1100 20C1062 20 1060 34 1030 34C1000 34 996 22 960 22C930 22 928 54 910 54S888 24 860 24C820 24 816 30 780 30C746 30 742 20 700 20C668 20 664 42 648 42S628 22 600 22C560 22 556 36 520 36C486 36 482 20 440 20C410 20 406 58 388 58S366 24 336 24C300 24 296 32 260 32C226 32 222 20 180 20C150 20 146 44 130 44S110 22 80 22C46 22 40 30 0 30Z"/>
+    </svg>
+
+    <section class="episodes" aria-label="Episodes">
+{{EPISODES}}
+    </section>
+
+    <section class="last">
+      <h2 class="last-title">Grow your own.</h2>
+      <p class="last-lead">Everyone in the show grows out of the ground in the game.</p>
+      <a class="pill pill-big" href="../the-mmo/">Play The MMO</a>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Characters and art by dannyleb · From the world of Hairy Popsicles</p>
+    <p class="foot-fine"><a href="../">hairypopsicles.com</a></p>
+  </footer>
+</body>
+</html>

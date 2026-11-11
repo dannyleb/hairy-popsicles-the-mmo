@@ -1,0 +1,296 @@
+/* hairypopsicles.com/episodes: the show. Built on the hub's look (hub.css:
+   its fonts, colors, skin, buttons and headings), with a VHS edge. */
+
+/* A faint scanline sheen over everything, like a tape on an old set. */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+
+/* ---------- the top ---------- */
+
+.show-top {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(84px + env(safe-area-inset-top)) 16px 34px;
+  text-align: center;
+}
+
+.show-logo { font-size: clamp(64px, 19vw, 128px); }
+
+.show-lead {
+  max-width: 34ch;
+  margin: 14px auto 0;
+}
+
+.phones {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 22px;
+  padding: 6px 14px 7px;
+  font-size: 18px;
+  color: var(--gold);
+  background: rgba(30, 14, 18, 0.7);
+  border: 1px solid rgba(232, 176, 74, 0.35);
+  border-radius: 999px;
+}
+
+/* Headphones, drawn: the band and two cups. */
+.phones-icon {
+  position: relative;
+  width: 20px;
+  height: 16px;
+  border: 3px solid currentColor;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+}
+
+.phones-icon::before,
+.phones-icon::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  width: 6px;
+  height: 9px;
+  background: currentColor;
+  border-radius: 3px;
+}
+
+.phones-icon::before { left: -5px; }
+.phones-icon::after { right: -5px; }
+
+/* ---------- the episodes ---------- */
+
+.episodes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 34px 16px 20px;
+}
+
+@media (min-width: 720px) {
+  .episodes { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 1080px) {
+  .episodes { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.ep {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  scroll-margin-top: 76px;
+}
+
+.ep:target { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232, 176, 74, 0.5), 0 18px 40px rgba(0, 0, 0, 0.55); }
+
+/* The screen: 9:16, never taller than most of the window. */
+.ep-screen {
+  position: relative;
+  width: min(100%, calc(78vh * 9 / 16));
+  aspect-ratio: 9 / 16;
+  margin: 0 auto;
+  background: #000;
+}
+
+.ep-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/* Tape lines and a vignette on the poster, gone once it plays. */
+.ep-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 85% 70% at 50% 45%, transparent 55%, rgba(5, 2, 3, 0.75) 100%);
+  transition: opacity 0.3s ease;
+}
+
+.ep.playing .ep-screen::after { opacity: 0; }
+
+.ep-badge,
+.ep-time {
+  position: absolute;
+  z-index: 2;
+  padding: 4px 10px 5px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+  background: rgba(14, 6, 8, 0.72);
+  border-radius: 999px;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.ep-badge { top: 12px; left: 12px; font-family: var(--wet); font-size: 19px; color: var(--flesh); }
+.ep-time { right: 12px; bottom: 12px; }
+.ep.playing .ep-badge,
+.ep.playing .ep-time { opacity: 0; }
+
+/* The big play button, a wet blob. */
+.ep-play {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: linear-gradient(180deg, #c4534f, var(--blood) 60%, #5e1a1f);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 3px 0 rgba(255, 200, 180, 0.35);
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease, opacity 0.25s ease, filter 0.15s ease;
+  animation: throb 3.6s ease-in-out infinite;
+}
+
+.ep-play::before {
+  content: "";
+  margin-left: 8px;
+  border-style: solid;
+  border-width: 18px 0 18px 30px;
+  border-color: transparent transparent transparent #fbe3d3;
+}
+
+.ep-play:hover { filter: brightness(1.1); transform: translate(-50%, -50%) scale(1.05); }
+.ep-play:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+.ep.playing .ep-play { opacity: 0; pointer-events: none; }
+
+/* Up next, when one ends. */
+.ep-next {
+  position: absolute;
+  z-index: 4;
+  inset: auto 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(14, 6, 8, 0.9);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ep-next[hidden] { display: none; }
+.ep-next-text { flex: 1; margin: 0; font-size: 17px; line-height: 1.2; }
+.ep-next-text b { display: block; font-family: var(--wet); font-weight: 400; font-size: 21px; color: var(--flesh); }
+
+.ep-next button {
+  padding: 6px 12px 7px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  cursor: pointer;
+  background: rgba(30, 14, 18, 0.7);
+  border: 1px solid #6a3344;
+  border-radius: 999px;
+}
+
+.ep-next .ep-next-go { color: #fbe3d3; background: var(--blood); border-color: transparent; }
+
+/* ---------- under the screen ---------- */
+
+.ep-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+
+.ep-num {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--flesh-dim);
+}
+
+.ep-title {
+  margin: 0;
+  font-family: var(--wet);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--flesh);
+  text-shadow: 0 3px 0 #5b2a3a;
+}
+
+.ep-logline { margin: 0; font-size: 19px; }
+
+.ep-cast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ep-cast li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 12px 3px 3px;
+  font-size: 17px;
+  background: rgba(14, 6, 8, 0.6);
+  border: 1px solid rgba(138, 74, 92, 0.4);
+  border-radius: 999px;
+}
+
+.ep-cast img {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  background: #2a1016;
+  border-radius: 50%;
+}
+
+.ep-share {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 5px 14px 6px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--flesh-dim);
+  cursor: pointer;
+  background: none;
+  border: 1px solid #6a3344;
+  border-radius: 999px;
+}
+
+.ep-share:hover { color: var(--text); }
+.ep-share:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- the end ---------- */
+
+.last-lead { margin: -6px 0 18px; font-size: 19px; }
+.foot a { color: var(--flesh); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-play { animation: none; }
+}

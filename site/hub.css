@@ -633,3 +633,54 @@ a { color: inherit; }
   .pill,
   .card { transition: none; }
 }
+
+/* ---------- the show, on the hub (and the bar's link to it) ---------- */
+
+.bar-nav { display: flex; align-items: center; gap: 14px; }
+.bar-link { font-size: 19px; color: var(--flesh); text-decoration: none; }
+.bar-link:hover { text-decoration: underline; }
+
+.show-teaser {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.show-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(130px, 1fr);
+  gap: 12px;
+  margin: 26px 0 24px;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+}
+
+.show-row li { scroll-snap-align: start; }
+
+.show-row a {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.show-row a:hover { transform: translateY(-3px); border-color: var(--gold); }
+
+.show-row img { width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; }
+
+.show-row span {
+  display: block;
+  padding: 8px 10px 10px;
+  font-family: var(--wet);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--flesh);
+}
