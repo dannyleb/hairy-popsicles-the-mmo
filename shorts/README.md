@@ -152,6 +152,14 @@ Each character in `cast.json` has its own designed voice:
 - `look`: what they are, for the video model.
 - `lipsync: false`: anyone without a mouth (Glorp, The Aunties); they move
   while the voice plays over.
+- `mouthful`: they talk with something in their mouth (Shiv and his hotdog).
+  `{ "tags": "[talking with his mouth full]", "pause": "[chews]" }`:
+  `tags` go to the voice model before every line, `pause` goes in at every
+  break between sentences (so he chews between them), the voice is muffled
+  afterwards, and the saliva sound of their mouth close-up runs quietly under
+  each line (kit.json `mouth.wetUnderVoice`).
+- `mouthStill`, `mouthClip`: their own prompts for the mouth close-up, when
+  the usual tongue close-up isn't the point (Shiv's is the hotdog).
 
 Change a character's `fx` or `manner` and run the script again: only their
 lines are remade. `--revoice 3` re-says line 3 (every take differs a little).

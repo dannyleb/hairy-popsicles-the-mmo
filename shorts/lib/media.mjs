@@ -246,10 +246,13 @@ export function applyFx(inFile, outFile, names = []) {
   // (Orville came out silent, then as a flat full-scale hum). So: 100 ms of
   // silence in front, the effects, a round trip through 16-bit (which can't
   // hold a NaN), the 100 ms cut off with the damage in it, and only then the
-  // close-mic treatment and the levelling.
+  // close-mic treatment and the levelling. First, the dead air the voice
+  // model sometimes leaves before and after a line is cut back (to 50 ms in
+  // front, 200 ms after), so a take is only as long as what's said in it.
   const before = names.filter((n) => !AFTER.includes(n)).map((n) => FX[n]);
   const after = names.filter((n) => AFTER.includes(n)).map((n) => FX[n]);
-  const chain = ['adelay=100:all=1', ...before, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS', 'highpass=f=20', ...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
+  const trim = (keep) => `silenceremove=start_periods=1:start_threshold=-60dB:start_silence=${keep}`;
+  const chain = [trim(0.05), 'areverse', trim(0.2), 'areverse', 'adelay=100:all=1', ...before, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS', 'highpass=f=20', ...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
   whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', chain, '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
   if (brokenVoice(outFile)) {
     rmSync(outFile, { force: true });

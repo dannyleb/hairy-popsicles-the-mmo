@@ -227,6 +227,12 @@ function floorOf(c) {
 // the still and the clip if cast.json gives them (mouthStill, mouthClip: Shiv's
 // close-up is of the hotdog in his mouth).
 const wetOf = (shot) => shot.cast.find((id) => cast[id].mouthful) ?? shot.who;
+// (cast.json mouthful: a direction for the voice model, or { tags, pause }:
+// pause is a tag put in at every break between sentences, e.g. [chews])
+const mouthfulOf = (c) => (!c?.mouthful ? null : typeof c.mouthful === 'string' ? { tags: c.mouthful } : c.mouthful);
+// A wet shot (> NAME (2s, wet)) and every line a mouthful character says get
+// the saliva sounds of their mouth close-up under them.
+const isWet = (shot) => shot.notes.wet || (shot.kind === 'talk' && Boolean(mouthfulOf(shot.character)));
 const mouthSettings = (id) => ({ ...kit.mouth, ...(cast[id]?.mouthStill ? { still: cast[id].mouthStill } : {}), ...(cast[id]?.mouthClip ? { clip: cast[id].mouthClip } : {}) });
 const facingFor = (side) => (side === 'left' ? 'right' : side === 'right' ? 'left' : 'front');
 const keyFor = (ids) => (ids.some((id) => cast[id].key === 'blue') ? 'blue' : 'green');
@@ -497,7 +503,9 @@ async function main() {
     }
     // (the take itself, before any effects, is kept: changing a character's
     // effects treats the same performance again instead of recording a new one)
-    const text = [soft ? asmr.tags : '', c.mouthful ?? '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
+    const full = mouthfulOf(c);
+    const said = full?.pause ? shot.text.replace(/([.?!…]) +(?=\S)/g, `$1 ${full.pause} `) : shot.text;
+    const text = [soft ? asmr.tags : '', full?.tags ?? '', direction ? audioTags(direction) : '', said].filter(Boolean).join(' ');
     const takeFile = cached(`take-${hash({ provider, voiceId, stability, take: take && hashFile(take), text: take ? null : text })}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(takeFile, { force: true });  // (--revoice: a new performance, too)
     for (let attempt = 1; !existsSync(shot.audio); attempt++) try {
@@ -549,7 +557,7 @@ async function main() {
 
   // ---- what each shot's video is, and what's still to make
   const mouthsToMake = new Set();
-  for (const shot of shots.filter((s) => s.notes.mouth || s.notes.wet)) {
+  for (const shot of shots.filter((s) => s.notes.mouth || isWet(s))) {
     const id = shot.notes.mouth ? shot.who : wetOf(shot);  // (a wet shot needs its character's clip for the sound)
     if (existsSync(mouthClipPath(HERE, id, mouthSettings(id))) || mouthsToMake.has(id)) continue;
     if (drawing) {
@@ -667,8 +675,9 @@ async function main() {
       jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
-    // A wet shot (> NAME (2s, wet)) gets the saliva sounds of their mouth close-up under it.
-    if (shot.notes.wet) {
+    // A wet shot gets the saliva sounds of their mouth close-up under it
+    // (quieter under a line, wetUnderVoice, so the words stay clear).
+    if (isWet(shot)) {
       const id = wetOf(shot);
       const source = mouthClipPath(HERE, id, mouthSettings(id));
       if (existsSync(source) && hasSound(source)) {
@@ -679,7 +688,7 @@ async function main() {
           ffmpeg(['-ss', from.toFixed(3), '-t', shot.seconds.toFixed(3), '-i', source, '-vn', '-af',
             `aresample=48000,aformat=channel_layouts=stereo,${kit.mouth.chain},afade=t=in:d=${fade},afade=t=out:st=${(shot.seconds - fade).toFixed(3)}:d=${fade}`, '-c:a', 'pcm_s16le', file]);
         }
-        hits.push({ file, at: t, volume: kit.mouth.wetVolume ?? 1 });
+        hits.push({ file, at: t, volume: shot.kind === 'talk' ? kit.mouth.wetUnderVoice ?? 0.6 : kit.mouth.wetVolume ?? 1 });
       }
     }
     // A sound hit for every slam, shake and snap to a close-up.

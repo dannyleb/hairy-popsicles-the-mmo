@@ -64,7 +64,7 @@ const castCounts = `${CHARACTERS.length} of them: ${counts.slice(0, -1).join(', 
 // (npm run episodes puts the finished episodes there).
 const SHOW = path.join(ROOT, 'site', 'episodes');
 const show = existsSync(path.join(SHOW, 'episodes.json')) ? JSON.parse(readFileSync(path.join(SHOW, 'episodes.json'), 'utf8')) : [];
-const clock = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const clock = (s) => `${Math.floor(Math.floor(s) / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;  // (as a player shows it: 59.7 is 0:59)
 const nameOf = (id) => CHARACTER_BY_ID[id]?.name ?? id;
 const episodeCard = (e, i) => {
   const next = show[i + 1];
