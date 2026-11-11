@@ -65,6 +65,9 @@ const castCounts = `${CHARACTERS.length} of them: ${counts.slice(0, -1).join(', 
 const SHOW = path.join(ROOT, 'site', 'episodes');
 const show = existsSync(path.join(SHOW, 'episodes.json')) ? JSON.parse(readFileSync(path.join(SHOW, 'episodes.json'), 'utf8')) : [];
 const clock = (s) => `${Math.floor(Math.floor(s) / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;  // (as a player shows it: 59.7 is 0:59)
+// (a version on each video and poster link, so a remade episode replaces the
+// old one at once instead of whatever a browser kept)
+const v = (e) => (e.source ? `?v=${e.source.slice(0, 10)}` : '');
 const nameOf = (id) => CHARACTER_BY_ID[id]?.name ?? id;
 const episodeCard = (e, i) => {
   const next = show[i + 1];
@@ -72,7 +75,7 @@ const episodeCard = (e, i) => {
   return [
     `      <article class="ep" id="ep-${e.number}">`,
     '        <div class="ep-screen">',
-    `          <video class="ep-video" src="media/${e.video}" poster="media/${e.poster}" preload="none" playsinline width="720" height="1280"></video>`,
+    `          <video class="ep-video" src="media/${e.video}${v(e)}" poster="media/${e.poster}${v(e)}" preload="none" playsinline width="720" height="1280"></video>`,
     `          <span class="ep-badge">Ep ${e.number}</span>`,
     `          <span class="ep-time">${clock(e.seconds)}</span>`,
     `          <button class="ep-play" type="button" aria-label="Play episode ${e.number}: ${escape(e.title)}"></button>`,
@@ -99,7 +102,7 @@ const teaser = show.length ? [
   '      <h2 class="section-title" id="show-title">The Show</h2>',
   `      <p class="section-lead">Tiny, wet, wrong little films about the cast and their bad luck. ${show.length} episode${show.length === 1 ? '' : 's'}, under a minute each.</p>`,
   '      <ul class="show-row">',
-  ...show.map((e) => `        <li><a href="episodes/#ep-${e.number}"><img src="episodes/media/${e.poster}" alt="Episode ${e.number}: ${escape(e.title)}" width="720" height="1280" loading="lazy"><span>${escape(e.title)}</span></a></li>`),
+  ...show.map((e) => `        <li><a href="episodes/#ep-${e.number}"><img src="episodes/media/${e.poster}${v(e)}" alt="Episode ${e.number}: ${escape(e.title)}" width="720" height="1280" loading="lazy"><span>${escape(e.title)}</span></a></li>`),
   '      </ul>',
   '      <a class="pill pill-ghost" href="episodes/">Watch the episodes</a>',
   '    </section>',
