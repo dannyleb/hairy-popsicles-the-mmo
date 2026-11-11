@@ -40,7 +40,7 @@ export function findCharacter(written, cast) {
 }
 
 function readNotes(text) {
-  const notes = { seconds: null, take: null, sound: false, still: false, mouth: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
+  const notes = { seconds: null, take: null, sound: false, still: false, mouth: false, wet: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
   for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
     const word = part.toLowerCase();
     const seconds = part.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
@@ -52,6 +52,7 @@ function readNotes(text) {
     else if (/^(sound|sfx)$/.test(word)) notes.sound = true;
     else if (word === 'still') notes.still = true;
     else if (word === 'mouth') notes.mouth = true;
+    else if (word === 'wet') notes.wet = true;
     else if (word === 'off' || word === 'o.s.' || word === 'offscreen') notes.off = true;
     else if (CAMERA.includes(word)) notes.camera.push(word);
     else if (['front', 'left', 'right'].includes(word)) notes.side = word;

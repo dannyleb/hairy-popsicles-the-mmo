@@ -223,6 +223,10 @@ function floorOf(c) {
   const { iw, ih, gap } = floors.get(c.image);
   return c.bottom - gap * Math.min(c.width / iw, c.height / ih);
 }
+// A character's mouth close-up settings: kit.mouth, with their own prompt for
+// the clip if cast.json gives one (mouthClip: Shiv's has a hotdog in it).
+const wetOf = (shot) => shot.cast.find((id) => cast[id].mouthful) ?? shot.who;
+const mouthSettings = (id) => (cast[id]?.mouthClip ? { ...kit.mouth, clip: cast[id].mouthClip } : kit.mouth);
 const facingFor = (side) => (side === 'left' ? 'right' : side === 'right' ? 'left' : 'front');
 const keyFor = (ids) => (ids.some((id) => cast[id].key === 'blue') ? 'blue' : 'green');
 
@@ -261,7 +265,7 @@ async function main() {
     for (const name of opts.mouth.split(',')) {
       const id = findCharacter(name, cast);
       if (!id) throw new Error(`Nobody called "${name}" in the cast.`);
-      const where = { here: HERE, id, settings: kit.mouth, say };
+      const where = { here: HERE, id, settings: mouthSettings(id), say };
       const still = await mouthStill({ ...where, picture: characterImage(id), size: kit.sizes[kit.format] });
       const clip = await mouthClip({ ...where, still, negative: kit.action.negative });
       say(`${cast[id].name}'s mouth: ${path.relative(ROOT, clip)}`);
@@ -402,7 +406,7 @@ async function main() {
     if (shot.notes.mouth) {  // (cut from the character's mouth clip, below)
       shot.label += "'s mouth";
       shot.seconds = shot.notes.seconds ?? kit.mouth.seconds[0];
-      shot.mouthClip = mouthClipPath(HERE, shot.who, kit.mouth);
+      shot.mouthClip = mouthClipPath(HERE, shot.who, mouthSettings(shot.who));
       continue;
     }
     const pair = shot.visual.length === 2;
@@ -480,7 +484,9 @@ async function main() {
     const soft = asmr && !yelled(shot);
     // (whispered, a character keeps their pitch, not the effects that muffle or thicken: the mouth sounds do that)
     const fx = soft ? (c.fx ?? []).filter((f) => asmr.keepFx.includes(f)) : c.fx ?? [];
-    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
+    // (cast.json mouthful: they talk with something in their mouth: told so, and muffled after)
+    const after = [...(soft ? ['closeMic'] : []), ...(c.mouthful ? ['muffled'] : [])];
+    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(c.mouthful ? { mouthful: c.mouthful } : {}), ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
     // (the ASMR voices' close-mic treatment is kit.voice.asmr.chain, applied as the closeMic effect)
     shot.audio = cached(`voice-${voiceKey}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(shot.audio, { force: true });
@@ -499,7 +505,7 @@ async function main() {
         else await changeVoice({ inFile: take, voiceId, model: kit.voice.elevenlabs.changerModel, format: kit.voice.elevenlabs.format, outFile: raw });
       } else {
         say(`${shot.label}: "${shot.text}"${direction ? ` (${direction})` : ''}`);
-        const text = [soft ? asmr.tags : '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
+        const text = [soft ? asmr.tags : '', c.mouthful ?? '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
         voiceChars += text.length;
         if (provider === 'fal') await falSpeak({ model: kit.voice.tts, text, voiceId, stability, outFile: raw });
         else await speak({ text: shot.text, direction, voiceId, model: kit.voice.elevenlabs.model, format: kit.voice.elevenlabs.format, outFile: raw });
@@ -510,7 +516,7 @@ async function main() {
         applyFx(raw, speech, fx);
         asmrVoice({ speech, mouth, seed: `${slug}-${shots.indexOf(shot)}`, asmr, outFile: shot.audio });
         rmSync(speech, { force: true });
-      } else applyFx(raw, shot.audio, soft ? [...fx, 'closeMic'] : fx);
+      } else applyFx(raw, shot.audio, [...fx, ...after]);
       rmSync(raw, { force: true });
     } catch (error) {
       // (a line the effects broke gets one more go, as a new take)
@@ -536,13 +542,14 @@ async function main() {
 
   // ---- what each shot's video is, and what's still to make
   const mouthsToMake = new Set();
-  for (const shot of shots.filter((s) => s.notes.mouth)) {
-    if (existsSync(shot.mouthClip)) continue;
+  for (const shot of shots.filter((s) => s.notes.mouth || s.notes.wet)) {
+    const id = shot.notes.mouth ? shot.who : wetOf(shot);  // (a wet shot needs its character's clip for the sound)
+    if (existsSync(mouthClipPath(HERE, id, mouthSettings(id))) || mouthsToMake.has(id)) continue;
     if (drawing) {
-      const where = { here: HERE, id: shot.who, settings: kit.mouth, say };
-      const still = await mouthStill({ ...where, picture: characterImage(shot.who), size });
+      const where = { here: HERE, id, settings: mouthSettings(id), say };
+      const still = await mouthStill({ ...where, picture: characterImage(id), size });
       await mouthClip({ ...where, still, negative: kit.action.negative });
-    } else mouthsToMake.add(shot.who);
+    } else mouthsToMake.add(id);
   }
   for (const shot of shots) {
     if (shot.notes.still || shot.notes.off || shot.notes.mouth) {
@@ -639,7 +646,7 @@ async function main() {
         const from = Math.max(0, duration(shot.mouthClip) - shot.seconds - 0.1) * seeded(`${slug}-mouth-${shots.indexOf(shot)}`)();
         mouthInsert({ clip: shot.mouthClip, from, seconds: shot.seconds, chain: kit.mouth.chain, volume: kit.mouth.volume, size, fps, outFile: clip });
       } else {
-        const still = mouthStillPath(HERE, shot.who, kit.mouth);
+        const still = mouthStillPath(HERE, shot.who, mouthSettings(shot.who));
         stillClip({ frame: existsSync(still) ? still : plate, audio: null, seconds: shot.seconds, size, fps, outFile: clip });
       }
       clips.push(clip);
@@ -653,6 +660,21 @@ async function main() {
       jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
+    // A wet shot (> NAME (2s, wet)) gets the saliva sounds of their mouth close-up under it.
+    if (shot.notes.wet) {
+      const id = wetOf(shot);
+      const source = mouthClipPath(HERE, id, mouthSettings(id));
+      if (existsSync(source) && hasSound(source)) {
+        const from = Math.max(0, duration(source) - shot.seconds - 0.1) * seeded(`${slug}-wet-${shots.indexOf(shot)}`)();
+        const file = cached(`wet-${hash({ source: hashFile(source), from, seconds: shot.seconds, chain: kit.mouth.chain })}.wav`);
+        if (!existsSync(file)) {
+          const fade = Math.min(0.15, shot.seconds / 4);
+          ffmpeg(['-ss', from.toFixed(3), '-t', shot.seconds.toFixed(3), '-i', source, '-vn', '-af',
+            `aresample=48000,aformat=channel_layouts=stereo,${kit.mouth.chain},afade=t=in:d=${fade},afade=t=out:st=${(shot.seconds - fade).toFixed(3)}:d=${fade}`, '-c:a', 'pcm_s16le', file]);
+        }
+        hits.push({ file, at: t, volume: kit.mouth.wetVolume ?? 1 });
+      }
+    }
     // A sound hit for every slam, shake and snap to a close-up.
     for (const [move, name, early] of [['punch', 'hit', 0], ['shake', 'rattle', 0.02], ['close', 'whoosh', 0.12]]) {
       if (shot.notes.camera.includes(move) && kit.hits.sounds[name]) hits.push({ name, at: Math.max(0, t - early), volume: kit.hits.volume });
@@ -686,12 +708,12 @@ async function main() {
   if (vhs) say(`(static: ${vhs.bursts.map(([a, b]) => `${a.toFixed(1)}s`).join(", ")})`);
   // The hit sounds, made once each (a cent or so) and kept in shorts/sounds/.
   const hitFiles = {};
-  for (const name of new Set(hits.map((h) => h.name))) {
+  for (const name of new Set(hits.filter((h) => h.name).map((h) => h.name))) {
     const where = { here: HERE, name: `hit-${name}`, description: kit.hits.sounds[name], seconds: kit.hits.seconds, settings: kit.sounds, say };
     hitFiles[name] = existsSync(soundPath(where)) ? soundPath(where) : opts.offline ? null : await sound(where);
   }
   for (const [name, file] of Object.entries(hitFiles)) if (file) hitFiles[name] = level({ inFile: file, loudness: kit.hits.loudness, outFile: cached(`hit-${hash({ file: hashFile(file), loudness: kit.hits.loudness })}.mp3`) });
-  const placed = hits.filter((h) => hitFiles[h.name]).map((h) => ({ ...h, file: hitFiles[h.name] }));
+  const placed = hits.filter((h) => h.file || hitFiles[h.name]).map((h) => ({ ...h, file: h.file ?? hitFiles[h.name] }));
   const musicUntil = kit.music.until === 'first line' && lines.length ? lines[0].start : null;
   const range = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.range : 11;  // (loudness range: ASMR is squeezed tight)
   finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, range, total: t, outFile: final });

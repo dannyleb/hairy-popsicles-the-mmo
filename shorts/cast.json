@@ -52,7 +52,9 @@
     "name": "Shiv", "voice": "Eric",
     "brief": "A thin, wheedling, nasal voice, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
     "manner": "sly, nasal", "fx": ["high"],
-    "look": "a skinny wrinkled creature with a long fleshy nose and bulging eyes"
+    "look": "a skinny wrinkled creature with a long fleshy nose and bulging eyes",
+    "mouthful": "[talking with his mouth full]",
+    "mouthClip": "Extreme macro close-up of a grotesque creature's mouth with a long fleshy hot-dog-shaped growth sticking out of it, filling the frame: the growth twitches and quivers, drool glistens and drips off it, and the mouth works slowly around it with small sticky saliva sounds. The camera holds perfectly still. Grotesque, glossy 3D creature render. Quiet, very close-microphone mouth and saliva sounds only: no music, no voice, no words."
   },
   "conehead": {
     "name": "Doolie", "voice": "Jessica",

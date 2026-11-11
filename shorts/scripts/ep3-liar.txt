@@ -4,19 +4,22 @@ poster: 37.5
 scene: A pretentious velvet parlour: deep crimson walls of wrinkled skin, a chandelier made of teeth, gilded frames holding oil paintings of noses, a fireplace oozing something thick, dim candlelight
 sounds: a stuffy old parlour, a fireplace crackling with something thick bubbling and oozing in it, a slow grandfather clock ticking, a wet drip falling from the chandelier
 room: large
+mouth: 0
 
 HORK (snooty, congested): Shiv. You've noticed.
 SHIV (sly): Noticed what.
 HORK (snooty, slow): The ring, Shiv. In the nose. It came off a bull.
 SHIV (too smooth): Oh. Yeah. It's... nice.
-> SHIV (2s): his long fleshy nose twitches and grows a little longer
+> SHIV (1.5s, mouth)
+> SHIV (2s, wet): his long fleshy nose twitches and grows a little longer
 HORK (snooty, push): Most faces can't carry it. You need the... architecture.
 SHIV (strained, too fast): Mm-hm. Really. Suits you.
-> SHIV (2s, push): his nose stretches out even longer, quivering and wet
+> SHIV (2s, push, wet): his nose stretches out even longer, quivering and wet
 HORK (snooty): Say it slower.
 SHIV (strained, squeaking, close): It's the most beautiful thing I've ever—
-> HORK & SHIV (3s, shake): Shiv's long nose shoots across the gap and jabs straight into Hork's exposed brain
+> HORK & SHIV (3s, shake, wet): Shiv's long nose shoots across the gap and jabs straight into Hork's exposed brain
 > HORK (1.5s, still, close)
+> HORK (1.5s, mouth)
 HORK (calmly, congested): ...Shiv. You're in my brain.
 SHIV (giggling, sly): I know. It's nice in here.
-> SHIV (2s): his nose grows even longer
+> SHIV (2s, wet): his nose grows even longer

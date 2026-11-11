@@ -228,13 +228,14 @@ export const FX = {
   static: 'highpass=f=400,lowpass=f=3200,acrusher=bits=7:mode=lin:aa=1:mix=0.4,tremolo=f=28:d=0.3',
   whisper: 'highpass=f=250,aecho=0.6:0.4:18:0.35',
   uncanny: 'afreqshift=shift=-30,flanger=delay=3:depth=3:speed=0.3',
+  muffled: 'lowpass=f=1900,equalizer=f=350:t=q:w=1.2:g=4,equalizer=f=1200:t=q:w=1:g=-2',  // a mouth full of something
 };
 
 // The ASMR close-mic treatment (kit.voice.asmr.chain), usable as an effect: closeMic.
 export function setCloseMic(chain) { FX.closeMic = chain; }
 
 // Effects that go on after the line is cleaned up (the close-mic treatment).
-const AFTER = ['closeMic'];
+const AFTER = ['closeMic', 'muffled'];
 
 export function applyFx(inFile, outFile, names = []) {
   const unknown = names.filter((n) => !FX[n]);

@@ -99,7 +99,8 @@
     "still": "Extreme macro close-up of this exact creature's mouth only, filling the whole picture from edge to edge: the same skin, teeth, colours and photoreal 3D render style, the mouth slightly open, the tip of the tongue just showing, glistening, soft dramatic light, no background visible.",
     "clip": "Extreme macro close-up of a grotesque creature's mouth filling the frame: the mouth opens slowly and the tongue moves around slowly inside it, glistening, with small sticky mouth and tongue sounds. The camera holds perfectly still. Grotesque, glossy 3D creature render. Quiet, very close-microphone mouth sounds only: no music, no voice, no words.",
     "chain": "highpass=f=120,treble=g=6:f=6000,acompressor=threshold=0.03:ratio=4:attack=2:release=90:makeup=2,loudnorm=I=-20:TP=-2",
-    "volume": 1
+    "volume": 1,
+    "wetVolume": 1.2
   },
   "captions": "off",
   "music": {
