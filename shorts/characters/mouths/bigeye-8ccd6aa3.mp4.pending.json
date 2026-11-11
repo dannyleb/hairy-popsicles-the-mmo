@@ -1,7 +1,0 @@
-{
-  "model": "fal-ai/kling-video/v3/standard/image-to-video",
-  "request_id": "01a1c94a-75e8-7270-8c7c-5885cab6e3ef",
-  "status_url": "https://queue.fal.run/fal-ai/kling-video/requests/01a1c94a-75e8-7270-8c7c-5885cab6e3ef/status",
-  "response_url": "https://queue.fal.run/fal-ai/kling-video/requests/01a1c94a-75e8-7270-8c7c-5885cab6e3ef",
-  "at": 1794378462731
-}

@@ -17,3 +17,4 @@ shorts/**/*.drawn.png
 shorts/**/*.raw
 shorts/**/*.raw.jpg
 shorts/**/*.raw.mp3
+shorts/**/*.pending.json
