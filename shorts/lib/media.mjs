@@ -233,15 +233,35 @@ export const FX = {
 // The ASMR close-mic treatment (kit.voice.asmr.chain), usable as an effect: closeMic.
 export function setCloseMic(chain) { FX.closeMic = chain; }
 
+// Effects that go on after the line is cleaned up (the close-mic treatment).
+const AFTER = ['closeMic'];
+
 export function applyFx(inFile, outFile, names = []) {
   const unknown = names.filter((n) => !FX[n]);
   if (unknown.length) throw new Error(`No voice effect called ${unknown.join(', ')}. There's: ${Object.keys(FX).join(', ')}.`);
-  // Every line at the same loudness, whatever was done to it. The effects
-  // run on the line with 100 ms of silence in front, cut off again after:
-  // vibrato writes a few broken (NaN) samples at the very start, which
-  // poison the loudness pass (Orville came out silent).
-  const chain = ['adelay=100:all=1', ...names.map((n) => FX[n]), 'atrim=start=0.1', 'asetpts=PTS-STARTPTS', 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
+  // Every line at the same loudness, whatever was done to it. vibrato writes
+  // a few broken (NaN) samples at the very start, and anything with memory
+  // after it (an echo, a compressor) is poisoned for the rest of the line
+  // (Orville came out silent, then as a flat full-scale hum). So: 100 ms of
+  // silence in front, the effects, a round trip through 16-bit (which can't
+  // hold a NaN), the 100 ms cut off with the damage in it, and only then the
+  // close-mic treatment and the levelling.
+  const before = names.filter((n) => !AFTER.includes(n)).map((n) => FX[n]);
+  const after = names.filter((n) => AFTER.includes(n)).map((n) => FX[n]);
+  const chain = ['adelay=100:all=1', ...before, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS', 'highpass=f=20', ...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
   whole(outFile, (temp) => ffmpeg(['-i', inFile, '-af', chain, '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
+  if (brokenVoice(outFile)) {
+    rmSync(outFile, { force: true });
+    throw new Error(`The voice effects (${names.join(', ')}) broke a line: it came out silent or as a flat hum. Run it again (a new take usually works).`);
+  }
+}
+
+// A line that came out wrong: far too quiet for a levelled line (silent, or
+// a flat DC hum, which the loudness measure all but ignores).
+export function brokenVoice(file) {
+  const log = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const loudness = Number([...log.matchAll(/I:\s+(-?[\d.]+) LUFS/g)].pop()?.[1]);  // (the last one is the whole line's)
+  return !Number.isFinite(loudness) || loudness < -24;
 }
 
 // ---------- layers: characters over a still background ----------
