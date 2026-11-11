@@ -26,7 +26,7 @@ import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } f
 import { scene, scenePath } from './lib/scenes.mjs';
 import { ROOMS, roomResponse, sound, soundPath } from './lib/sounds.mjs';
 import { asmrVoice, mouthSounds } from './lib/asmr.mjs';
-import { mouthClip, mouthClipPath, mouthInsert, mouthStill, mouthStillPath } from './lib/mouth.mjs';
+import { mouthClip, mouthClipPath, mouthInsert, mouthStill, mouthStillPath, salivaBed } from './lib/mouth.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -296,6 +296,10 @@ async function main() {
   if (errors.length) throw new Error(`The script needs fixing:\n  ${errors.join('\n  ')}`);
 
   const slug = path.basename(scriptFile).replace(/\.[^.]+$/, '');
+  // saliva: shiv (or several, comma-separated): the sound of their mouth
+  // close-up under the whole episode, at one level (instead of under
+  // their own shots only, which switches on and off).
+  const saliva = (settings.saliva && settings.saliva !== 'off' ? settings.saliva.split(',') : []).map((w) => findCharacter(w.trim(), cast) ?? (() => { throw new Error(`saliva: nobody called "${w.trim()}" in the cast.`); })());
   // ASMR mouth close-ups (kit.mouth): a script's own `> NAME (1.5s, mouth)`,
   // plus kit.mouth.auto more dropped at random into pauses (after a silent
   // beat or a line that trails off...), the same places every time. A
@@ -557,8 +561,11 @@ async function main() {
 
   // ---- what each shot's video is, and what's still to make
   const mouthsToMake = new Set();
-  for (const shot of shots.filter((s) => s.notes.mouth || isWet(s))) {
-    const id = shot.notes.mouth ? shot.who : wetOf(shot);  // (a wet shot needs its character's clip for the sound)
+  const needMouths = [
+    ...shots.filter((s) => s.notes.mouth || (isWet(s) && !saliva.length)).map((s) => (s.notes.mouth ? s.who : wetOf(s))),  // (a wet shot needs its character's clip for the sound)
+    ...saliva,
+  ];
+  for (const id of needMouths) {
     if (existsSync(mouthClipPath(HERE, id, mouthSettings(id))) || mouthsToMake.has(id)) continue;
     if (drawing) {
       const where = { here: HERE, id, settings: mouthSettings(id), say };
@@ -676,8 +683,9 @@ async function main() {
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
     // A wet shot gets the saliva sounds of their mouth close-up under it
-    // (quieter under a line, wetUnderVoice, so the words stay clear).
-    if (isWet(shot)) {
+    // (quieter under a line, wetUnderVoice, so the words stay clear), unless
+    // the whole episode has a saliva bed: then that's there all along.
+    if (isWet(shot) && !saliva.length) {
       const id = wetOf(shot);
       const source = mouthClipPath(HERE, id, mouthSettings(id));
       if (existsSync(source) && hasSound(source)) {
@@ -730,6 +738,11 @@ async function main() {
   }
   for (const [name, file] of Object.entries(hitFiles)) if (file) hitFiles[name] = level({ inFile: file, loudness: kit.hits.loudness, outFile: cached(`hit-${hash({ file: hashFile(file), loudness: kit.hits.loudness })}.mp3`) });
   const placed = hits.filter((h) => h.file || hitFiles[h.name]).map((h) => ({ ...h, file: h.file ?? hitFiles[h.name] }));
+  // The saliva bed (saliva: shiv), start to finish at one level.
+  const salivaClips = saliva.map((id) => mouthClipPath(HERE, id, mouthSettings(id))).filter((f) => existsSync(f));
+  const bed = salivaClips.length ? salivaBed({ clips: salivaClips, seconds: t, seed: `${slug}-saliva`, chain: kit.mouth.chain, cacheDir: CACHE }) : null;
+  if (bed) placed.push({ file: bed, at: 0, volume: kit.mouth.salivaVolume ?? kit.mouth.wetUnderVoice ?? 0.6 });
+  else if (saliva.length) say(`(no saliva bed: ${saliva.join(', ')} ${saliva.length > 1 ? "have" : "has"} no mouth close-up with sound yet)`);
   const musicUntil = kit.music.until === 'first line' && lines.length ? lines[0].start : null;
   const range = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.range : 11;  // (loudness range: ASMR is squeezed tight)
   finish({ joined, ass, fontsDir: path.join(HERE, 'fonts'), music, musicVolume: kit.music.volume, musicUntil, room, sounds, hits: placed, ambience, vhs, size, range, total: t, outFile: final });

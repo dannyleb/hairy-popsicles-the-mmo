@@ -5,6 +5,7 @@ scene: A pretentious velvet parlour: deep crimson walls of wrinkled skin, a chan
 sounds: a stuffy old parlour, a fireplace crackling with something thick bubbling and oozing in it, a slow grandfather clock ticking, a wet drip falling from the chandelier
 room: large
 mouth: 0
+saliva: shiv
 
 HORK (snooty, congested): Shiv. You've noticed.
 SHIV (sly): Noticed what.

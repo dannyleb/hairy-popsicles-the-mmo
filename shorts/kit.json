@@ -101,7 +101,8 @@
     "chain": "highpass=f=120,treble=g=6:f=6000,acompressor=threshold=0.03:ratio=4:attack=2:release=90:makeup=2,loudnorm=I=-20:TP=-2",
     "volume": 1,
     "wetVolume": 1.2,
-    "wetUnderVoice": 0.6
+    "wetUnderVoice": 0.6,
+    "salivaVolume": 0.6
   },
   "captions": "off",
   "music": {

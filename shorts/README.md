@@ -91,6 +91,9 @@ DOOLIE (guilty): ...finders keepers.
     wet drips into a sticky puddle, a fly buzzing now and then"). Made once
     into a 20-second loop (about $0.04) and kept in `shorts/sounds/`. It
     plays under everything, dipping a little under the voices.
+  - `saliva: shiv` (or `shiv, hork`): the wet sound of their mouth
+    close-up runs under the whole episode at one steady level, slices of it
+    crossfaded so it never audibly loops (Liar has it: Shiv's hotdog).
   - `room: small | large | cavern | none`: the space the voices ring in
     (small unless you say). Their echo off the walls is what puts them in
     the scene instead of on top of it. Voices also come from where the
@@ -157,7 +160,10 @@ Each character in `cast.json` has its own designed voice:
   `tags` go to the voice model before every line, `pause` goes in at every
   break between sentences (so he chews between them), the voice is muffled
   afterwards, and the saliva sound of their mouth close-up runs quietly under
-  each line (kit.json `mouth.wetUnderVoice`).
+  each line (kit.json `mouth.wetUnderVoice`). For that sound under the whole
+  episode at one level instead, put `saliva: shiv` in the script (several:
+  `saliva: shiv, hork`): it runs start to finish (kit.json
+  `mouth.salivaVolume`), and the per-shot wet sounds give way to it.
 - `mouthStill`, `mouthClip`: their own prompts for the mouth close-up, when
   the usual tongue close-up isn't the point (Shiv's is the hotdog).
 

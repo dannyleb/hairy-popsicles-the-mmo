@@ -1,6 +1,7 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { ffmpeg, hasSound, hash } from './media.mjs';
+import { duration, ffmpeg, hasSound, hash, hashFile, whole } from './media.mjs';
 import { dataUri, download, falRun, falVideo } from './services.mjs';
 
 // ASMR mouth close-ups: now and then, in a pause, the picture cuts to an
@@ -64,4 +65,52 @@ export function mouthInsert({ clip, from, seconds, chain, volume, size: [W, H], 
     '-map', '[v]', '-map', '[a]', '-t', D,
     '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', outFile,
   ]);
+}
+
+// The part of a clip that has sound in it: from the first moment within
+// 20 dB of its loudest to the last (Shiv's close-up is near-silent for its
+// first second).
+function soundingPart(file) {
+  const log = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-vn', '-af', 'aresample=48000,asetnsamples=n=4800,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-', '-f', 'null', '-'], { encoding: 'utf8' }).stdout;
+  const levels = [...log.matchAll(/RMS_level=(-?[\d.]+|-inf)/g)].map((m) => (m[1] === '-inf' ? -200 : Number(m[1])));
+  const loudest = Math.max(...levels);
+  const on = levels.map((l, i) => (l > loudest - 20 ? i : -1)).filter((i) => i >= 0);
+  if (!on.length) return { start: 0, length: 0 };
+  const start = on[0] * 0.1, end = Math.min((on.at(-1) + 1) * 0.1, duration(file));
+  return { start, length: end - start };
+}
+
+// A saliva bed: the sound of one or more mouth close-ups under a whole
+// episode, at one steady level (script: saliva: shiv). Short slices of the
+// clips, picked at random (the same seed, the same bed) and crossfaded into
+// each other so it never loops audibly, then the close-mic treatment
+// (`chain`), its level held steady (no swells or dips to notice), a fade
+// in and a fade out.
+export function salivaBed({ clips, seconds, seed, chain, cacheDir }) {
+  const sources = clips.filter((c) => hasSound(c)).map((file) => ({ file, ...soundingPart(file) })).filter((c) => c.length > 0.8);
+  if (!sources.length) return null;
+  const outFile = path.join(cacheDir, `saliva-${hash({ clips: sources.map((c) => hashFile(c.file)), seconds, seed, chain, v: 3 })}.wav`);
+  if (existsSync(outFile)) return outFile;
+  let n = parseInt(hash(seed).slice(0, 8), 16);
+  const random = () => ((n = (n * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const cross = 0.25;
+  const slices = [];
+  for (let covered = 0; covered < seconds + 1; ) {
+    const { file, start, length } = sources[Math.floor(random() * sources.length)];
+    const long = Math.min(0.8 + random() * 0.8, length);
+    const from = start + random() * (length - long);
+    slices.push({ file, from, long });
+    covered += long - (slices.length > 1 ? cross : 0);
+  }
+  const inputs = slices.flatMap((c) => ['-ss', c.from.toFixed(3), '-t', c.long.toFixed(3), '-i', c.file]);
+  // (each slice levelled on its own first, so a quiet one doesn't make a dip)
+  const graph = slices.map((_, i) => `[${i}:a]aresample=48000,aformat=channel_layouts=stereo,dynaudnorm=f=100:g=5:p=0.5:m=20[s${i}]`);
+  let last = '[s0]';
+  for (let i = 1; i < slices.length; i++) {
+    graph.push(`${last}[s${i}]acrossfade=d=${cross}:c1=tri:c2=tri[x${i}]`);
+    last = `[x${i}]`;
+  }
+  graph.push(`${last}${chain},dynaudnorm=f=200:g=7:p=0.5:m=15,loudnorm=I=-20:TP=-2:LRA=3,atrim=0:${seconds.toFixed(3)},afade=t=in:d=0.5,afade=t=out:st=${Math.max(0, seconds - 1).toFixed(3)}:d=1[bed]`);
+  whole(outFile, (temp) => ffmpeg([...inputs, '-filter_complex', graph.join(';'), '-map', '[bed]', '-c:a', 'pcm_s16le', '-f', 'wav', temp]));
+  return outFile;
 }
