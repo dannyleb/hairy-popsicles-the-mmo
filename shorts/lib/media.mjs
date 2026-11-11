@@ -256,12 +256,15 @@ export function applyFx(inFile, outFile, names = []) {
   }
 }
 
-// A line that came out wrong: far too quiet for a levelled line (silent, or
-// a flat DC hum, which the loudness measure all but ignores).
+// A line that came out wrong: silent, or (some of it) a flat DC hum, which
+// the loudness measure all but ignores: far too quiet for a levelled line,
+// off-centre (DC offset), or much "louder" raw than it sounds.
 export function brokenVoice(file) {
-  const log = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const log = spawnSync('ffmpeg', ['-hide_banner', '-i', file, '-af', 'astats=measure_overall=RMS_level+DC_offset:measure_perchannel=none,ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
   const loudness = Number([...log.matchAll(/I:\s+(-?[\d.]+) LUFS/g)].pop()?.[1]);  // (the last one is the whole line's)
-  return !Number.isFinite(loudness) || loudness < -24;
+  const rms = Number(log.match(/RMS level dB: (-?[\d.]+|-inf)/)?.[1]);
+  const dc = Math.abs(Number(log.match(/DC offset: (-?[\d.]+)/)?.[1] ?? 0));
+  return !Number.isFinite(loudness) || loudness < -24 || dc > 0.02 || (Number.isFinite(rms) && rms - loudness > 6);
 }
 
 // ---------- layers: characters over a still background ----------
