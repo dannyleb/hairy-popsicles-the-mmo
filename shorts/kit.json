@@ -37,6 +37,34 @@
       "model": "eleven_v3",
       "changerModel": "eleven_multilingual_sts_v2",
       "format": "mp3_44100_128"
+    },
+    "asmr": {
+      "_": "ASMR: every line whispered softly, right up against a very sensitive mic: breaths, lip smacks, tongue clicks and wet pops around and between the words, then a close-mic treatment (bass from being close, air on top, s's tamed, squeezed so the little sounds come up). Yelled lines stay yelled. A script's asmr: off turns it off.",
+      "tags": "[whispers]",
+      "keepFx": [
+        "deep",
+        "deeper",
+        "high",
+        "tiny",
+        "warble",
+        "tremble"
+      ],
+      "mouth": {
+        "inhale": "ASMR, extremely close microphone: one soft, slow, wet breath in through the mouth",
+        "smack": "the small sticky click of a mouth opening before speaking, recorded with a very close microphone",
+        "click": "a single small tongue click, recorded with a very close microphone",
+        "pop": "a single tiny bubble pop sound inside a mouth, recorded with a very close microphone",
+        "saliva": "a short sticky mouth noise between words, like someone with a dry mouth talking, recorded with a very close microphone",
+        "close": "the small sticky sound of a mouth closing after speaking, recorded with a very close microphone"
+      },
+      "mouthSeconds": 1,
+      "mouthLevel": 0.55,
+      "lead": 0.35,
+      "tail": 0.3,
+      "pause": 0.16,
+      "chain": "highpass=f=55,equalizer=f=140:t=q:w=1:g=4,equalizer=f=3200:t=q:w=1.4:g=-2,equalizer=f=9500:t=q:w=1.4:g=5,deesser=i=0.35,acompressor=threshold=0.03:ratio=5:attack=3:release=90:makeup=2.5,loudnorm=I=-17:TP=-2:LRA=8",
+      "room": 0.3,
+      "spread": 0.8
     }
   },
   "talking": {

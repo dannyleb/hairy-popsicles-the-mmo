@@ -25,6 +25,7 @@ import {
 import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
 import { ROOMS, roomResponse, sound, soundPath } from './lib/sounds.mjs';
+import { asmrVoice, mouthSounds } from './lib/asmr.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -298,7 +299,8 @@ async function main() {
   if (ambienceName && ambienceName !== 'none' && !ambience) throw new Error(`The ambience "${ambienceName}" isn't one of ${Object.keys(kit.ambience.beds).join(', ')}.`);
   const drawing = opts.yes && !opts.offline;  // poses are drawn (and paid for) only for the real thing
   const roomName = settings.room ?? kit.room;
-  const room = roomName && roomName !== 'none' ? { response: roomResponse({ room: roomName, outFile: cached(`room-${roomName}-${hash(ROOMS[roomName] ?? roomName)}.wav`) }), level: ROOMS[roomName].level } : null;
+  const dry = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.room : 1;  // (ASMR is close and dry)
+  const room = roomName && roomName !== 'none' ? { response: roomResponse({ room: roomName, outFile: cached(`room-${roomName}-${hash(ROOMS[roomName] ?? roomName)}.wav`) }), level: ROOMS[roomName].level * dry } : null;
   const frantic = (settings.energy ?? kit.energy.default) === 'frantic';
   const random = seeded(`${slug}-camera`);
 
@@ -398,13 +400,18 @@ async function main() {
     shot.focus = lead ? [pair ? W / 2 : lead.cx, lead.bottom - lead.height * 0.55] : [W / 2, H / 2];
     // The voice comes from where they stand (off screen: from their side).
     const from = shot.notes.off ? { left: 0.15, right: 0.85 }[sideOf[shot.who]] ?? 0.5 : lead ? lead.cx / W : 0.5;
-    shot.pan = Math.max(-0.6, Math.min(0.6, (from - 0.5) * 1.3));
+    const spread = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr.spread : 0.6;  // (wider in headphones for ASMR)
+    shot.pan = Math.max(-spread, Math.min(spread, (from - 0.5) * 2 * spread));
     if (yelled(shot)) for (const move of ['punch', 'shake']) if (!shot.notes.camera.includes(move)) shot.notes.camera.push(move);
     if (shot.kind !== 'talk') shot.seconds = shot.notes.seconds ?? (shot.notes.still ? 1.5 : kit.action.seconds);
   }
 
   // ---- voices
   const provider = opts.offline ? 'offline' : kit.voice.provider;
+  // ASMR (kit.voice.asmr; a script's asmr: off turns it off): lines are
+  // whispered, close to the mic, with mouth sounds. Yelled lines stay yelled.
+  const asmr = kit.voice.asmr && (settings.asmr ?? 'on') !== 'off' ? kit.voice.asmr : null;
+  const mouth = asmr ? await mouthSounds({ here: HERE, cacheDir: CACHE, asmr, soundSettings: kit.sounds, offline: provider === 'offline', say }) : {};
   const stock = provider === 'elevenlabs' && shots.some((s) => s.kind === 'talk') ? await listVoices() : [];
   let voiceChars = 0;
   for (const shot of shots.filter((s) => s.kind === 'talk')) {
@@ -423,8 +430,10 @@ async function main() {
       if (!voiceId) throw new Error(`${c.name}'s voice "${c.voice}" isn't on your ElevenLabs account. Pick one from: npm run short -- --voices`);
     }
     const stability = c.stability ?? kit.voice.stability;
-    const fx = c.fx ?? [];
-    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3 });
+    const soft = asmr && !yelled(shot);
+    // (whispered, a character keeps their pitch, not the effects that muffle or thicken: the mouth sounds do that)
+    const fx = soft ? (c.fx ?? []).filter((f) => asmr.keepFx.includes(f)) : c.fx ?? [];
+    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
     shot.audio = cached(`voice-${voiceKey}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(shot.audio, { force: true });
     if (!existsSync(shot.audio)) {
@@ -438,13 +447,18 @@ async function main() {
         else await changeVoice({ inFile: take, voiceId, model: kit.voice.elevenlabs.changerModel, format: kit.voice.elevenlabs.format, outFile: raw });
       } else {
         say(`${shot.label}: "${shot.text}"${direction ? ` (${direction})` : ''}`);
-        const text = direction ? `${audioTags(direction)} ${shot.text}` : shot.text;
+        const text = [soft ? asmr.tags : '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
         voiceChars += text.length;
         if (provider === 'fal') await falSpeak({ model: kit.voice.tts, text, voiceId, stability, outFile: raw });
         else await speak({ text: shot.text, direction, voiceId, model: kit.voice.elevenlabs.model, format: kit.voice.elevenlabs.format, outFile: raw });
       }
       if (provider === 'offline') renameSync(raw, shot.audio);  // (silence: nothing to treat)
-      else applyFx(raw, shot.audio, fx);
+      else if (soft) {
+        const speech = `${shot.audio}.speech.mp3`;
+        applyFx(raw, speech, fx);
+        asmrVoice({ speech, mouth, seed: `${slug}-${shots.indexOf(shot)}`, asmr, outFile: shot.audio });
+        rmSync(speech, { force: true });
+      } else applyFx(raw, shot.audio, fx);
       rmSync(raw, { force: true });
     }
     shot.seconds = Math.max(duration(shot.audio) + tailFor(shot.text), shot.notes.off ? 0.6 : kit.talking.minSeconds);
