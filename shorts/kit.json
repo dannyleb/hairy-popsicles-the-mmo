@@ -85,6 +85,22 @@
     "model": "fal-ai/nano-banana-pro",
     "style": "Photoreal 3D render, grotesque, wet and glossy, organic and crusty, cinematic lighting, like a gross stop-motion puppet prop."
   },
+  "mouth": {
+    "_": "ASMR mouth close-ups: now and then, in a pause (after a silent beat or a line that trails off), the picture cuts to an extreme close-up of that character's mouth, the tongue moving, with the sound of it. Each character's is made once: a macro still drawn from their picture (model, $0.15) and clipSeconds of it moving with its own sound (video, about $0.63); each insert is a slice of it. `auto` per episode, `seconds` long ([shortest, longest]). A script's mouth: N or off changes how many; > NAME (1.5s, mouth) puts one in by hand.",
+    "auto": 2,
+    "seconds": [
+      1.2,
+      1.8
+    ],
+    "model": "fal-ai/nano-banana-pro/edit",
+    "video": "fal-ai/kling-video/v3/standard/image-to-video",
+    "clipSeconds": 5,
+    "price": 0.78,
+    "still": "Extreme macro close-up of this exact creature's mouth only, filling the whole picture from edge to edge: the same skin, teeth, colours and photoreal 3D render style, the mouth slightly open, the tip of the tongue just showing, glistening, soft dramatic light, no background visible.",
+    "clip": "Extreme macro close-up of a grotesque creature's mouth filling the frame: the mouth opens slowly and the tongue moves around slowly inside it, glistening, with small sticky mouth and tongue sounds. The camera holds perfectly still. Grotesque, glossy 3D creature render. Quiet, very close-microphone mouth sounds only: no music, no voice, no words.",
+    "chain": "highpass=f=120,treble=g=6:f=6000,acompressor=threshold=0.03:ratio=4:attack=2:release=90:makeup=2,loudnorm=I=-20:TP=-2",
+    "volume": 1
+  },
   "captions": "off",
   "music": {
     "_": "Music under the title: it fades away as the first line is said (until: \"first line\"; anything else keeps it under the whole episode). Each track is the game's Suno music given a treatment once: the creepy ones are slowed, detuned, darkened and drowned in echo.",

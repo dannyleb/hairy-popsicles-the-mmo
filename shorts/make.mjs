@@ -26,6 +26,7 @@ import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } f
 import { scene, scenePath } from './lib/scenes.mjs';
 import { ROOMS, roomResponse, sound, soundPath } from './lib/sounds.mjs';
 import { asmrVoice, mouthSounds } from './lib/asmr.mjs';
+import { mouthClip, mouthClipPath, mouthInsert, mouthStill, mouthStillPath } from './lib/mouth.mjs';
 import { findCharacter, parseScript } from './lib/script.mjs';
 import {
   audioTags, changeVoice, dataUri, download, falChangeVoice, falDesignVoice, falSpeak, falVideo, findVoice, listVoices, loadKeys, speak,
@@ -58,7 +59,7 @@ const say = (...parts) => console.log(...parts);
 const money = (n) => `$${n.toFixed(2)}`;
 
 function args(argv) {
-  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, flip: null, redo: new Set(), revoice: new Set() };
+  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, flip: null, mouth: null, redo: new Set(), revoice: new Set() };
   const shots = (v) => new Set(String(v ?? '').split(',').map(Number).filter((n) => n > 0));
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -68,6 +69,7 @@ function args(argv) {
     else if (a === '--design') opts.design = String(argv[++i] ?? '');
     else if (a === '--pose') opts.pose = String(argv[++i] ?? '');
     else if (a === '--flip') opts.flip = String(argv[++i] ?? '');
+    else if (a === '--mouth') opts.mouth = String(argv[++i] ?? '');
     else if (a === '--redo') opts.redo = shots(argv[++i]);
     else if (a === '--revoice') opts.revoice = shots(argv[++i]);
     else if (!a.startsWith('-')) opts.script = a;
@@ -254,6 +256,18 @@ async function main() {
   }
   if (opts.design) return designVoices(opts.design);
   if (opts.pose) return drawPoses(opts.pose);
+  if (opts.mouth) {
+    // --mouth conehead,bigeye: make characters' mouth close-ups ahead of time.
+    for (const name of opts.mouth.split(',')) {
+      const id = findCharacter(name, cast);
+      if (!id) throw new Error(`Nobody called "${name}" in the cast.`);
+      const where = { here: HERE, id, settings: kit.mouth, say };
+      const still = await mouthStill({ ...where, picture: characterImage(id), size: kit.sizes[kit.format] });
+      const clip = await mouthClip({ ...where, still, negative: kit.action.negative });
+      say(`${cast[id].name}'s mouth: ${path.relative(ROOT, clip)}`);
+    }
+    return;
+  }
   if (opts.flip) {
     // --flip snoot-right: mirror a turned picture that faces the wrong way.
     for (const name of opts.flip.split(',')) {
@@ -271,6 +285,25 @@ async function main() {
   if (errors.length) throw new Error(`The script needs fixing:\n  ${errors.join('\n  ')}`);
 
   const slug = path.basename(scriptFile).replace(/\.[^.]+$/, '');
+  // ASMR mouth close-ups (kit.mouth): a script's own `> NAME (1.5s, mouth)`,
+  // plus kit.mouth.auto more dropped at random into pauses (after a silent
+  // beat or a line that trails off...), the same places every time. A
+  // script's mouth: N sets how many, mouth: off none.
+  if (kit.mouth && (settings.mouth ?? 'on') !== 'off') {
+    const count = /^\d+$/.test(settings.mouth ?? '') ? Number(settings.mouth) : kit.mouth.auto;
+    const pick = seeded(`${slug}-mouth`);
+    const spots = shots.map((s, i) => [s, i]).filter(([s, i]) => i > 0 && i < shots.length - 1 && s.who !== 'scene' && !s.prop && s.cast.length === 1
+      && !s.notes.mouth && !shots[i + 1].notes.mouth && (s.notes.still || (s.kind === 'talk' && /(\.\.\.|…)\s*$/.test(s.text))));
+    const chosen = [];
+    while (chosen.length < count && spots.length) chosen.push(spots.splice(Math.floor(pick() * spots.length), 1)[0]);
+    const [lo, hi] = kit.mouth.seconds;
+    for (const [s, i] of chosen.sort((a, b) => b[1] - a[1])) {
+      shots.splice(i + 1, 0, {
+        n: s.n, line: '(a mouth close-up)', kind: 'action', who: s.who, cast: [s.who], text: '',
+        notes: { seconds: Number((lo + pick() * (hi - lo)).toFixed(2)), take: null, sound: false, still: false, mouth: true, off: false, camera: [], side: null, with: null, wearing: null, direction: [] },
+      });
+    }
+  }
   const out = path.join(HERE, 'out', slug);
   mkdirSync(out, { recursive: true });
   mkdirSync(CACHE, { recursive: true });
@@ -335,7 +368,7 @@ async function main() {
     shot.visual = shot.cast;
     shot.look = { prop: shot.prop ?? null, with: shot.notes.with, wearing: shot.notes.wearing };
     if (!shot.notes.off) continue;
-    const others = (s) => !s.notes.off && (s.prop || (s.cast.length && !(s.cast.length === 1 && s.cast[0] === shot.who)));
+    const others = (s) => !s.notes.off && !s.notes.mouth && (s.prop || (s.cast.length && !(s.cast.length === 1 && s.cast[0] === shot.who)));
     const near = [...shots.slice(0, i)].reverse().find(others) ?? shots.slice(i + 1).find(others);
     if (near) {
       shot.visual = near.cast;
@@ -366,6 +399,12 @@ async function main() {
   for (const shot of shots) {
     shot.character = shot.who === 'scene' ? null : cast[shot.who];
     shot.label = `#${shots.indexOf(shot) + 1} ${shot.cast.map((id) => cast[id].name).join(' & ') || (shot.prop ? `The ${shot.prop}` : 'Scene')}`;
+    if (shot.notes.mouth) {  // (cut from the character's mouth clip, below)
+      shot.label += "'s mouth";
+      shot.seconds = shot.notes.seconds ?? kit.mouth.seconds[0];
+      shot.mouthClip = mouthClipPath(HERE, shot.who, kit.mouth);
+      continue;
+    }
     const pair = shot.visual.length === 2;
     const sides = pair ? ['left', 'right'] : shot.visual.map((id) => shot.notes.side ?? sideOf[id]);
     const chars = [];
@@ -480,16 +519,25 @@ async function main() {
   if (frantic) {
     const { jitter, jolts: { every: [lo, hi], size: [small, big] } } = kit.energy;
     for (const shot of shots) {
-      shot.jitter = shot.notes.still ? jitter / 2 : jitter;
+      shot.jitter = shot.notes.mouth ? 0 : shot.notes.still ? jitter / 2 : jitter;
       shot.jolts = [];
-      if (shot.notes.still || shot.notes.camera.includes('close')) continue;
+      if (shot.notes.still || shot.notes.mouth || shot.notes.camera.includes('close')) continue;
       for (let at = 0.25 + random() * lo; at < shot.seconds - 0.2; at += lo + random() * (hi - lo)) shot.jolts.push([at, small + random() * (big - small)]);
     }
   }
 
   // ---- what each shot's video is, and what's still to make
+  const mouthsToMake = new Set();
+  for (const shot of shots.filter((s) => s.notes.mouth)) {
+    if (existsSync(shot.mouthClip)) continue;
+    if (drawing) {
+      const where = { here: HERE, id: shot.who, settings: kit.mouth, say };
+      const still = await mouthStill({ ...where, picture: characterImage(shot.who), size });
+      await mouthClip({ ...where, still, negative: kit.action.negative });
+    } else mouthsToMake.add(shot.who);
+  }
   for (const shot of shots) {
-    if (shot.notes.still || shot.notes.off) {
+    if (shot.notes.still || shot.notes.off || shot.notes.mouth) {
       shot.price = 0;
       continue;
     }
@@ -522,11 +570,11 @@ async function main() {
     if (opts.redo.has(shots.indexOf(shot) + 1)) rmSync(shot.video, { force: true });
     shot.lipsync = lipsync;
   }
-  const made = (s) => s.notes.still || s.notes.off || existsSync(s.video);
-  const toMake = shots.filter((s) => !made(s));
+  const made = (s) => s.notes.still || s.notes.off || (s.notes.mouth ? existsSync(s.mouthClip) : existsSync(s.video));
+  const toMake = shots.filter((s) => !made(s) && !s.notes.mouth);  // (mouth clips are made above, once per character)
   const propsToDraw = undrawn.size;
   const posesToDraw = posesUndrawn.size;
-  const poseCost = (posesToDraw + propsToDraw) * kit.edit.price + (sceneToPaint ? kit.scene.price : 0);
+  const poseCost = (posesToDraw + propsToDraw) * kit.edit.price + (sceneToPaint ? kit.scene.price : 0) + mouthsToMake.size * (kit.mouth?.price ?? 0);
   const cost = toMake.reduce((sum, s) => sum + s.price, 0);
   say('');
   for (const s of shots) {
@@ -576,6 +624,20 @@ async function main() {
   let t = 0;
   for (const shot of shots) {
     const clip = path.join(out, `clip-${String(shots.indexOf(shot) + 1).padStart(2, '0')}.mp4`);
+    if (shot.notes.mouth) {
+      // A slice of the character's mouth clip (somewhere new each time, the
+      // same place every run), its sound through the ASMR close-mic treatment.
+      if (existsSync(shot.mouthClip)) {
+        const from = Math.max(0, duration(shot.mouthClip) - shot.seconds - 0.1) * seeded(`${slug}-mouth-${shots.indexOf(shot)}`)();
+        mouthInsert({ clip: shot.mouthClip, from, seconds: shot.seconds, chain: kit.mouth.chain, volume: kit.mouth.volume, size, fps, outFile: clip });
+      } else {
+        const still = mouthStillPath(HERE, shot.who, kit.mouth);
+        stillClip({ frame: existsSync(still) ? still : plate, audio: null, seconds: shot.seconds, size, fps, outFile: clip });
+      }
+      clips.push(clip);
+      t += duration(clip);
+      continue;
+    }
     const video = !shot.notes.still && !shot.notes.off && existsSync(shot.video) ? shot.video : null;
     const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
     composite({
@@ -630,9 +692,9 @@ async function main() {
   say(`\n${allMade ? 'Done' : 'Preview (stills where the video shots will go)'}: ${path.relative(ROOT, final)} (${t.toFixed(1)}s)`);
   if (failed.length && broke) say('No video shots were made: top up fal, then run this again with --yes (the voices are already made).');
   else if (failed.length) say(`${failed.length} shot${failed.length > 1 ? 's' : ''} failed (${failed.map((s) => s.label).join(', ')}): they're stills for now. Run again with --yes to retry them.`);
-  const left = shots.filter((s) => !made(s));
-  if ((left.length || posesToDraw || propsToDraw || sceneToPaint) && !opts.yes) {
-    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`, propsToDraw && 'the props', sceneToPaint && 'the scene'].filter(Boolean);
+  const left = shots.filter((s) => !made(s) && !s.notes.mouth);
+  if ((left.length || posesToDraw || propsToDraw || sceneToPaint || mouthsToMake.size) && !opts.yes) {
+    const parts = [left.length && `${left.length} video shot${left.length > 1 ? 's' : ''}`, posesToDraw && `${posesToDraw} turned pose${posesToDraw > 1 ? 's' : ''}`, mouthsToMake.size && `${mouthsToMake.size} mouth close-up${mouthsToMake.size > 1 ? 's' : ''}`, propsToDraw && 'the props', sceneToPaint && 'the scene'].filter(Boolean);
     say(`To make the ${parts.join(' and ')} (about ${money(left.reduce((sum, s) => sum + s.price, 0) + poseCost)} on fal), run it again with --yes.`);
   }
 }

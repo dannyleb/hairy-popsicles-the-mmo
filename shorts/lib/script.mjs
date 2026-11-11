@@ -25,7 +25,7 @@
 //   "front", "left", "right": face the camera, or stand on that side
 //   anything else: direction for how it's said and acted
 
-export const SETTINGS = ['title', 'format', 'scene', 'music', 'ambience', 'background', 'captions', 'endcard', 'facing', 'vhs', 'room', 'sounds', 'energy', 'asmr'];
+export const SETTINGS = ['title', 'format', 'scene', 'music', 'ambience', 'background', 'captions', 'endcard', 'facing', 'vhs', 'room', 'sounds', 'energy', 'asmr', 'mouth'];
 export const CAMERA = ['close', 'shake', 'punch', 'push'];
 const normal = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -40,7 +40,7 @@ export function findCharacter(written, cast) {
 }
 
 function readNotes(text) {
-  const notes = { seconds: null, take: null, sound: false, still: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
+  const notes = { seconds: null, take: null, sound: false, still: false, mouth: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
   for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
     const word = part.toLowerCase();
     const seconds = part.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
@@ -51,6 +51,7 @@ function readNotes(text) {
     else if (prop) notes[prop[1].toLowerCase()] = prop[2].trim().toLowerCase();
     else if (/^(sound|sfx)$/.test(word)) notes.sound = true;
     else if (word === 'still') notes.still = true;
+    else if (word === 'mouth') notes.mouth = true;
     else if (word === 'off' || word === 'o.s.' || word === 'offscreen') notes.off = true;
     else if (CAMERA.includes(word)) notes.camera.push(word);
     else if (['front', 'left', 'right'].includes(word)) notes.side = word;
@@ -112,7 +113,7 @@ export function parseScript(source, cast) {
       return;
     }
     const notes = readNotes(noteText);
-    if (!text && !(action && notes.still)) {
+    if (!text && !(action && (notes.still || notes.mouth))) {
       errors.push(`line ${n}: ${action ? 'what happens' : 'what they say'} is missing after the colon.`);
       return;
     }
