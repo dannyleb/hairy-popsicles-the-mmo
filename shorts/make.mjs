@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
-  KEYS, applyFx, composite, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
+  KEYS, applyFx, composite, setCloseMic, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
@@ -50,6 +50,7 @@ const tailFor = (text) => (/(—|--)\s*$/.test(text) ? 0.02 : /(\.\.\.|…)\s*$/
 const WORDS_PER_SECOND = 2.6;  // for placeholder voices (--offline)
 
 const kit = JSON.parse(readFileSync(path.join(HERE, 'kit.json'), 'utf8'));
+if (kit.voice.asmr) setCloseMic(kit.voice.asmr.chain);
 const cast = JSON.parse(readFileSync(path.join(HERE, 'cast.json'), 'utf8'));
 const VOICES_FILE = path.join(HERE, 'voices.json');
 const designed = existsSync(VOICES_FILE) ? JSON.parse(readFileSync(VOICES_FILE, 'utf8')) : {};
@@ -126,19 +127,23 @@ function sampleFor(id) {
 
 // Designs `id`'s voice from its brief and saves it in voices.json. Returns
 // the sample it said, with the character's effects on, for auditioning.
-async function designVoice(id, outDir) {
-  const { name, brief, fx = [] } = cast[id];
-  if (!brief) throw new Error(`${name} has no voice brief in cast.json to design from.`);
-  say(`Designing ${name}'s voice...`);
-  const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${hash(id).slice(0, 6)}` });  // (a label only: some names, like Shiv, trip the content filter)
-  designed[id] = { voiceId, brief, designed: new Date().toISOString().slice(0, 10) };
+// (`asmr`: the character's soft-spoken ASMR voice, a second design kept
+// beside the first as "<id>~asmr".)
+async function designVoice(id, outDir, asmr = null) {
+  const { name, fx = [] } = cast[id];
+  const brief = asmr ? `${cast[id].asmrBrief ?? cast[id].brief} ${asmr.brief}` : cast[id].brief;
+  const key = asmr ? `${id}~asmr` : id;
+  if (!cast[id].brief) throw new Error(`${name} has no voice brief in cast.json to design from.`);
+  say(`Designing ${name}'s ${asmr ? 'ASMR ' : ''}voice...`);
+  const { voiceId, sampleUrl } = await falDesignVoice({ model: kit.voice.design, brief, sample: sampleFor(id), name: `HP ${hash(key).slice(0, 6)}` });  // (a label only: some names, like Shiv, trip the content filter)
+  designed[key] = { voiceId, brief, designed: new Date().toISOString().slice(0, 10) };
   // Merged into what's on disk now, not what was there when this run began:
   // two episodes made at once mustn't wipe each other's new voices.
   const saved = existsSync(VOICES_FILE) ? JSON.parse(readFileSync(VOICES_FILE, 'utf8')) : {};
-  writeFileSync(VOICES_FILE, `${JSON.stringify({ ...saved, [id]: designed[id] }, null, 2)}\n`);
+  writeFileSync(VOICES_FILE, `${JSON.stringify({ ...saved, [key]: designed[key] }, null, 2)}\n`);
   mkdirSync(outDir, { recursive: true });
-  const raw = path.join(outDir, `${id}-raw.mp3`);
-  const sample = path.join(outDir, `${id}.mp3`);
+  const raw = path.join(outDir, `${key}-raw.mp3`);
+  const sample = path.join(outDir, `${key}.mp3`);
   await download(sampleUrl, raw);
   applyFx(raw, sample, fx);
   rmSync(raw, { force: true });
@@ -423,8 +428,9 @@ async function main() {
     let voiceId = 'offline';
     if (provider === 'fal') {
       const owner = voiceOwner(shot.who);
-      if (!designed[owner]) await designVoice(owner, path.join(HERE, 'out', 'voices'));
-      voiceId = designed[owner].voiceId;
+      const key = asmr && !yelled(shot) ? `${owner}~asmr` : owner;
+      if (!designed[key]) await designVoice(owner, path.join(HERE, 'out', 'voices'), key === owner ? null : asmr);
+      voiceId = designed[key].voiceId;
     } else if (provider === 'elevenlabs') {
       voiceId = findVoice(stock, c.voice ?? '')?.id;
       if (!voiceId) throw new Error(`${c.name}'s voice "${c.voice}" isn't on your ElevenLabs account. Pick one from: npm run short -- --voices`);
@@ -434,6 +440,7 @@ async function main() {
     // (whispered, a character keeps their pitch, not the effects that muffle or thicken: the mouth sounds do that)
     const fx = soft ? (c.fx ?? []).filter((f) => asmr.keepFx.includes(f)) : c.fx ?? [];
     const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
+    // (the ASMR voices' close-mic treatment is kit.voice.asmr.chain, applied as the closeMic effect)
     shot.audio = cached(`voice-${voiceKey}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(shot.audio, { force: true });
     if (!existsSync(shot.audio)) {
@@ -453,12 +460,12 @@ async function main() {
         else await speak({ text: shot.text, direction, voiceId, model: kit.voice.elevenlabs.model, format: kit.voice.elevenlabs.format, outFile: raw });
       }
       if (provider === 'offline') renameSync(raw, shot.audio);  // (silence: nothing to treat)
-      else if (soft) {
+      else if (soft && Object.keys(mouth).length) {
         const speech = `${shot.audio}.speech.mp3`;
         applyFx(raw, speech, fx);
         asmrVoice({ speech, mouth, seed: `${slug}-${shots.indexOf(shot)}`, asmr, outFile: shot.audio });
         rmSync(speech, { force: true });
-      } else applyFx(raw, shot.audio, fx);
+      } else applyFx(raw, shot.audio, soft ? [...fx, 'closeMic'] : fx);
       rmSync(raw, { force: true });
     }
     shot.seconds = Math.max(duration(shot.audio) + tailFor(shot.text), shot.notes.off ? 0.6 : kit.talking.minSeconds);

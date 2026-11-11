@@ -230,6 +230,9 @@ export const FX = {
   uncanny: 'afreqshift=shift=-30,flanger=delay=3:depth=3:speed=0.3',
 };
 
+// The ASMR close-mic treatment (kit.voice.asmr.chain), usable as an effect: closeMic.
+export function setCloseMic(chain) { FX.closeMic = chain; }
+
 export function applyFx(inFile, outFile, names = []) {
   const unknown = names.filter((n) => !FX[n]);
   if (unknown.length) throw new Error(`No voice effect called ${unknown.join(', ')}. There's: ${Object.keys(FX).join(', ')}.`);

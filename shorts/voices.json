@@ -49,5 +49,15 @@
     "voiceId": "mbqsautphaR05Zlr3H5o",
     "brief": "A thick, sludgy, dripping voice whose words slide and melt into each other, syrupy and wet, bubbling now and then, sad and disgusting.",
     "designed": "2026-11-10"
+  },
+  "conehead~asmr": {
+    "voiceId": "8fb45CmP8N2WuhNfeS7i",
+    "brief": "A deranged, high, nasal, wet voice belonging to a grinning cone-headed creature. Sing-song and far too cheerful, spit bubbling on every S, sudden manic giggles, voice cracking and wobbling, unsettling pauses in the wrong places. Abrasive and off-putting. Speaking very softly and intimately, right up close to a sensitive microphone, like a soft-spoken ASMR video: barely above a murmur but still clearly voiced, not whispering. Every breath is audible, with small natural mouth and tongue sounds between words. The same character and the same strangeness, just very close and very quiet.",
+    "designed": "2026-11-11"
+  },
+  "bigeye~asmr": {
+    "voiceId": "3xiW2nVWYo1G3IXkJY1U",
+    "brief": "A paranoid, intense, too-loud old man who sees everything, gravelly and strained, hissing through yellow teeth, every sentence an accusation, eye twitching in his voice. Speaking very softly and intimately, right up close to a sensitive microphone, like a soft-spoken ASMR video: barely above a murmur but still clearly voiced, not whispering. Every breath is audible, with small natural mouth and tongue sounds between words. The same character and the same strangeness, just very close and very quiet.",
+    "designed": "2026-11-11"
   }
 }
