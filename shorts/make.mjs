@@ -223,10 +223,11 @@ function floorOf(c) {
   const { iw, ih, gap } = floors.get(c.image);
   return c.bottom - gap * Math.min(c.width / iw, c.height / ih);
 }
-// A character's mouth close-up settings: kit.mouth, with their own prompt for
-// the clip if cast.json gives one (mouthClip: Shiv's has a hotdog in it).
+// A character's mouth close-up settings: kit.mouth, with their own prompts for
+// the still and the clip if cast.json gives them (mouthStill, mouthClip: Shiv's
+// close-up is of the hotdog in his mouth).
 const wetOf = (shot) => shot.cast.find((id) => cast[id].mouthful) ?? shot.who;
-const mouthSettings = (id) => (cast[id]?.mouthClip ? { ...kit.mouth, clip: cast[id].mouthClip } : kit.mouth);
+const mouthSettings = (id) => ({ ...kit.mouth, ...(cast[id]?.mouthStill ? { still: cast[id].mouthStill } : {}), ...(cast[id]?.mouthClip ? { clip: cast[id].mouthClip } : {}) });
 const facingFor = (side) => (side === 'left' ? 'right' : side === 'right' ? 'left' : 'front');
 const keyFor = (ids) => (ids.some((id) => cast[id].key === 'blue') ? 'blue' : 'green');
 
