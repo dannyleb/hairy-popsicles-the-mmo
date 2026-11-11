@@ -4,13 +4,11 @@ scene: A dreary little office made of flesh: a cheap desk and a damp swivel chai
 sounds: the hum of a dingy little office, a flickering fluorescent tube buzzing, a water cooler glugging and dripping, a damp chair creaking, a fly bumping against a window
 room: small
 
-> ORVILLE (2s, still, push)
+> ORVILLE (1.2s, still, push)
 ORVILLE (exhausted, slurring): Right. So... Dennis.
 DENNIS (panicked, too fast): Yes. Sorry. That's me. Sorry. Hello.
 ORVILLE (exhausted): It says here... bowling alley...
-DENNIS (hysterical, too fast, giggling nervously): Six years. The balls kept... slipping out. Into a birthday party.
-> ORVILLE (2s, still, close)
-ORVILLE (exhausted): ...mm.
+DENNIS (hysterical, too fast, giggling nervously): Six years. The balls kept slipping. Into a birthday party.
 DENNIS (whispering, panicked): Was the birthday party relevant?
 ORVILLE (slurring, push): Where do you see yourself... in five...
 > ORVILLE (3s): his eyelids slowly sag shut and his whole face droops lower and lower
@@ -21,4 +19,4 @@ DENNIS (sobbing, close): A towel. In five years I'd like to be a towel.
 > DENNIS (3s): sweat pours down his face in thick blue streams, dripping off his chin
 ORVILLE (exhausted): ...you start Monday.
 DENNIS (whispering, ashamed): Sorry about your chair.
-> ORVILLE (1.5s, still, push)
+> ORVILLE (1s, still, push)
