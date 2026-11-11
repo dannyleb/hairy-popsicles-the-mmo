@@ -495,18 +495,24 @@ async function main() {
       say(`${shot.label}: its voice came out broken last time (silent, or a flat hum): making it again.`);
       rmSync(shot.audio, { force: true });
     }
+    // (the take itself, before any effects, is kept: changing a character's
+    // effects treats the same performance again instead of recording a new one)
+    const text = [soft ? asmr.tags : '', c.mouthful ?? '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
+    const takeFile = cached(`take-${hash({ provider, voiceId, stability, take: take && hashFile(take), text: take ? null : text })}.mp3`);
+    if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(takeFile, { force: true });  // (--revoice: a new performance, too)
     for (let attempt = 1; !existsSync(shot.audio); attempt++) try {
-      const raw = `${shot.audio}.raw.mp3`;
+      const raw = provider === 'offline' ? `${shot.audio}.raw.mp3` : takeFile;
       if (provider === 'offline') {
         const seconds = Math.max(1.2, shot.text.split(/\s+/).length / WORDS_PER_SECOND);
         ffmpeg(['-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', '-t', seconds.toFixed(2), '-c:a', 'libmp3lame', raw]);
+      } else if (existsSync(raw)) {
+        say(`${shot.label}: treating the take again (${[...fx, ...after].join(', ') || 'no effects'})...`);
       } else if (take) {
         say(`${shot.label}: turning your take into ${c.name}'s voice...`);
         if (provider === 'fal') await falChangeVoice({ model: kit.voice.changer, inFile: take, voiceId, outFile: raw });
         else await changeVoice({ inFile: take, voiceId, model: kit.voice.elevenlabs.changerModel, format: kit.voice.elevenlabs.format, outFile: raw });
       } else {
         say(`${shot.label}: "${shot.text}"${direction ? ` (${direction})` : ''}`);
-        const text = [soft ? asmr.tags : '', c.mouthful ?? '', direction ? audioTags(direction) : '', shot.text].filter(Boolean).join(' ');
         voiceChars += text.length;
         if (provider === 'fal') await falSpeak({ model: kit.voice.tts, text, voiceId, stability, outFile: raw });
         else await speak({ text: shot.text, direction, voiceId, model: kit.voice.elevenlabs.model, format: kit.voice.elevenlabs.format, outFile: raw });
@@ -518,10 +524,10 @@ async function main() {
         asmrVoice({ speech, mouth, seed: `${slug}-${shots.indexOf(shot)}`, asmr, outFile: shot.audio });
         rmSync(speech, { force: true });
       } else applyFx(raw, shot.audio, [...fx, ...after]);
-      rmSync(raw, { force: true });
     } catch (error) {
       // (a line the effects broke gets one more go, as a new take)
       if (attempt > 1 || !/broke a line/.test(error.message)) throw error;
+      rmSync(takeFile, { force: true });
       say(`${shot.label}: ${error.message.split('.')[0]}. Trying a new take.`);
     }
     shot.seconds = Math.max(duration(shot.audio) + tailFor(shot.text), shot.notes.off ? 0.6 : kit.talking.minSeconds);

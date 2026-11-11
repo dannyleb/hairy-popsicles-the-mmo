@@ -51,7 +51,7 @@
   "shiv": {
     "name": "Shiv", "voice": "Eric",
     "brief": "A thin, wheedling, nasal voice, oily and too smooth then suddenly whiny, hissing every S, sniffing constantly through a very long nose.",
-    "manner": "sly, nasal", "fx": ["high"],
+    "manner": "sly, nasal",
     "look": "a skinny wrinkled creature with a long fleshy nose and bulging eyes",
     "mouthful": "[talking with his mouth full]",
     "mouthStill": "Extreme macro close-up of this exact creature's face, framed tightly on its mouth and the long fleshy trunk that grows out of it, filling the whole picture from edge to edge: the same skin, teeth, colours and photoreal 3D render style, glistening and wet, soft dramatic light, no background visible.",

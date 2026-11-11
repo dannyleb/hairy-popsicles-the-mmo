@@ -121,7 +121,9 @@ want to upload captions separately. Until every shot has video, it's
 `<name>-preview.mp4`, with stills standing in.
 
 - **Change a line, run again.** Everything is kept, keyed by what went into
-  it, so only what changed is remade (and paid for).
+  it, so only what changed is remade (and paid for). Each line's raw take is
+  kept too, so changing a character's effects (cast.json `fx`) treats the
+  same performance again rather than recording a new one.
 - **Don't like a take?** `--redo 3` remakes shot 3's video. `--revoice 3`
   remakes its voice.
 - **Testing without spending anything?** `--offline` uses silent placeholder
