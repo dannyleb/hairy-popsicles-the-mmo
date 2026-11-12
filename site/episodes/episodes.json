@@ -106,6 +106,21 @@
     "source": "10c123750a284bb5"
   },
   {
+    "number": 8,
+    "slug": "ep8-reflection",
+    "title": "Reflection",
+    "logline": "Pud asks the mirror a question. The mirror is Pim.",
+    "cast": [
+      "weeper",
+      "mirror"
+    ],
+    "seconds": 53.2,
+    "video": "ep8-reflection.mp4",
+    "poster": "ep8-reflection.jpg",
+    "posterAt": 21.28,
+    "source": "6725632c40cb1014"
+  },
+  {
     "number": 9,
     "slug": "ep9-the-reunion",
     "title": "The Reunion",
@@ -120,5 +135,36 @@
     "poster": "ep9-the-reunion.jpg",
     "posterAt": 19.2725868,
     "source": "25908b55d108ed14"
+  },
+  {
+    "number": 10,
+    "slug": "ep10-take-me-to-your-leader",
+    "title": "Take Me to Your Leader",
+    "logline": "Zib has come a very long way to meet the leader. It's Doug.",
+    "cast": [
+      "antenna",
+      "bat-rat",
+      "bricks"
+    ],
+    "seconds": 45.4,
+    "video": "ep10-take-me-to-your-leader.mp4",
+    "poster": "ep10-take-me-to-your-leader.jpg",
+    "posterAt": 18.1733332,
+    "source": "961a64a6103e5c22"
+  },
+  {
+    "number": 11,
+    "slug": "ep11-gone-fishing",
+    "title": "Gone Fishing",
+    "logline": "Mabel goes fishing. The river is Marla.",
+    "cast": [
+      "fairy",
+      "tendrils"
+    ],
+    "seconds": 41.7,
+    "video": "ep11-gone-fishing.mp4",
+    "poster": "ep11-gone-fishing.jpg",
+    "posterAt": 16.666666799999998,
+    "source": "7e6be7b873b8a3e1"
   }
 ]
