@@ -4,17 +4,18 @@ scene: A dark cluttered garage at night: a jagged smoking hole punched through t
 sounds: a dark garage at night, smoke hissing, a dripping pipe, crickets outside, something electrical sparking and crackling now and then
 room: large
 mouth: 1
+facing: front
 
-> ZIB (3s): Zib stands up shakily in the drifting smoke, its single antenna crackling
-ZIB (flat, curious): Take me. To your leader.
+> ZIB (3s, front): Zib stands up shakily in the drifting smoke, its single antenna crackling
+ZIB (flat, curious, front): Take me. To your leader.
 SKITCH (twitchy, hissing): Leader? Leader? No leader. Just Doug.
 DOUG (proud, staccato): Hello.
-ZIB (flat, push): You are very rectangular.
+ZIB (flat, push, front): You are very rectangular.
 DOUG (proud, staccato): Thank. You.
-ZIB (curious): The rectangular one leads. I will take a sample.
-> ZIB & DOUG (3s): Zib reaches out and slowly pulls a single brick out of the side of Doug's head
+ZIB (curious, front): The rectangular one leads. I will take a sample.
+> DOUG (3s): a single brick slowly slides out of the side of Doug's square head and drops to the floor, leaving a dark square hole
 > DOUG (1.5s, still, close)
 DOUG (staccato, strained): That. Was. Load. Bearing.
-> DOUG (3s, shake): Doug's brick head slowly caves in and crumbles inward with a grinding crunch
+> DOUG (3s, shake): Doug's whole square head cracks apart and collapses into a heap of loose broken bricks on the floor
 SKITCH (twitchy, giggling, punch): Mine. The hole is mine now.
-ZIB (flat): Earth is easy.
+ZIB (flat, front): Earth is easy.

@@ -22,6 +22,8 @@
 //     reaction, held; free)
 //   "with: <prop>": the prop is in the shot too, in front of them
 //   "wearing: <prop>": they're wearing it (a version of their picture with it on)
+//   "mask: 0.76": everything in the shot's video below 76% of its height is
+//     keyed out (for letters the video model wrote under a character)
 //   "front", "left", "right": face the camera, or stand on that side
 //   anything else: direction for how it's said and acted
 
@@ -40,13 +42,15 @@ export function findCharacter(written, cast) {
 }
 
 function readNotes(text) {
-  const notes = { seconds: null, take: null, sound: false, still: false, mouth: false, wet: false, off: false, camera: [], side: null, with: null, wearing: null, direction: [] };
+  const notes = { seconds: null, take: null, sound: false, still: false, mouth: false, wet: false, off: false, camera: [], side: null, with: null, wearing: null, mask: null, direction: [] };
   for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
     const word = part.toLowerCase();
     const seconds = part.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)$/i);
     const take = part.match(/^take\s*[:=]?\s*(.+)$/i);
     const prop = part.match(/^(with|wearing)\s*:\s*(.+)$/i);
+    const mask = part.match(/^mask\s*:\s*(0?\.\d+)$/i);
     if (seconds) notes.seconds = Number(seconds[1]);
+    else if (mask) notes.mask = Number(mask[1]);
     else if (take) notes.take = take[1].trim();
     else if (prop) notes[prop[1].toLowerCase()] = prop[2].trim().toLowerCase();
     else if (/^(sound|sfx)$/.test(word)) notes.sound = true;

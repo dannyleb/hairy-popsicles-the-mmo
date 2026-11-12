@@ -258,7 +258,9 @@ export function applyFx(inFile, outFile, names = []) {
   // close-mic treatment and the levelling. First, the dead air the voice
   // model sometimes leaves before and after a line is cut back (to 50 ms in
   // front, 200 ms after), so a take is only as long as what's said in it.
-  const before = names.filter((n) => !AFTER.includes(n)).map((n) => FX[n]);
+  // (and straight after every vibrato too, since the effect after it inside
+  // the same one, gurgle's phaser, has memory of its own)
+  const before = names.filter((n) => !AFTER.includes(n)).map((n) => FX[n].replace(/vibrato=[^,]*/g, '$&,aformat=sample_fmts=s16,aformat=sample_fmts=flt'));
   const after = names.filter((n) => AFTER.includes(n)).map((n) => FX[n]);
   const trim = (keep) => `silenceremove=start_periods=1:start_threshold=-60dB:start_silence=${keep}`;
   const chain = [trim(0.05), 'areverse', trim(0.2), 'areverse', 'adelay=100:all=1', ...before, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS', 'highpass=f=20', ...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',');
@@ -319,7 +321,7 @@ export function onKey({ layerFile, key, size: [W, H], outFile }) {
 // handheld by someone who hasn't slept, and `jolts` ([[seconds, size]])
 // snap it in and let it spring back. `pan` (-1 left to 1 right) puts the
 // voice where they stand.
-export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, jitter = 0, jolts = [], pan = 0, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
+export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, jitter = 0, jolts = [], pan = 0, mask = null, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
   const D = seconds.toFixed(3);
   const spring = (at) => `exp(-(t-${at.toFixed(3)})/0.13)*gte(t,${at.toFixed(3)})`;
   const zoom = [
@@ -335,7 +337,7 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
   const dy = `${shake ? '+12*sin(t*47)+7*sin(t*23)' : ''}${jitter ? `+${jitter}*(0.8*sin(t*7.3+0.5)+0.6*sin(t*19.7))` : ''}`;
   const moved = zoom === '1*1*1*1' && !dx && !dy;
   const source = video
-    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`
+    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,${mask ? `drawbox=x=0:y=ih*${mask}:w=iw:h=ih:color=${KEYS[key].hex}:t=fill,` : ''}chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`
     : `[1:v]fps=${fps},format=rgba`;
   const motion = moved ? '' : `,scale=w='trunc(${W}*${zoom}/2)*2':h='trunc(${H}*${zoom}/2)*2':eval=frame`;
   const x = moved ? '0' : `'${fx}-${fx}*${zoom}${dx}'`;

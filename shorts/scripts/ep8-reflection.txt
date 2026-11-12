@@ -5,7 +5,7 @@ sounds: a cramped bathroom at night, a tap dripping slowly into a full sink, a f
 room: small
 mouth: 1
 
-> PUD (3s): Pud sobs, big tears rolling down from his one huge bloodshot eye
+> PUD (3s): Pud sobs, big tears rolling down from his huge bloodshot eye
 PUD (sobbing): Mirror... am I ugly?
 PIM (hypnotic, too calm): Mirror... am I ugly?
 PUD (sniffling): No, you're meant to... you're meant to copy me.
@@ -13,9 +13,9 @@ PIM (too calm, push): I am copying. I'm a bit off this morning.
 PUD (sobbing): You've got three eyes.
 PIM (hypnotic): We've got three eyes.
 > PUD (1.5s, still, close)
-PUD (whispering, sniffling): ...I've got one.
+PUD (whispering, sniffling, mask: 0.76): ...I've got two.
 PIM (too calm, close, push): Then one of us is wrong.
-> PUD (3s, shake): Pud's one huge eye slowly slides across his face toward the side of his head
+> PUD (3s, shake): Pud's huge eye slowly slides across his face toward the side of his head
 PIM (hypnotic, softly): There we go. Much better.
 > PUD (2s, still, close, push)
 PUD (sniffling, quietly): ...it is a bit better.

@@ -63,6 +63,11 @@ DOOLIE (guilty): ...finders keepers.
   - `punch`: snaps in
   - `shake`
   - `push`: creeps in
+- **Letters under someone?** The lip-sync model now and then writes made-up
+  subtitles under a character. Remake the shot (`--redo 3`), or, when it
+  keeps doing it and the character doesn't reach that low, key out the
+  bottom of that shot's video: `PUD (sniffling, mask: 0.76): ...` hides
+  everything below 76% of its height. Free: nothing is made again.
 - **Who faces whom:** with two or more in a skit, the first to appear stands
   on the left facing right, the next on the right facing left. A
   `left` / `right` / `front` note moves someone for one shot;

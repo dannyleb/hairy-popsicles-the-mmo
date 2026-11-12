@@ -99,5 +99,75 @@
     "voiceId": "wbRyY7b2iFG1ot6GSlgO",
     "brief": "A rasping, wheezing, crotchety old grandmother, a forty-a-day smoker's rattle in her chest, gumming her words with no teeth, scolding and sour. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
     "designed": "2026-11-12"
+  },
+  "toad~asmr": {
+    "voiceId": "5uFC41f9UxQtwWPY99sl",
+    "brief": "A croaking, guttural, phlegmy voice, deep and lazy, burping between words, wet slurping sounds, smug and disgusting. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "leprechaun~asmr": {
+    "voiceId": "iCva2RE8H86Y8zh9Qwdt",
+    "brief": "A cackling, wheezing, gleefully nasty old Irish voice, phlegmy laughter bubbling under every word, spitting consonants, greedy and mischievous. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "stubble~asmr": {
+    "voiceId": "1PoRsVsyXXZzp5BDKAiu",
+    "brief": "A sandpaper-rough, gravel-throated man who hasn't slept or shaved in a week, growling every word through clenched teeth, scratchy breaths, constantly irritated and ready to snap. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "weeper~asmr": {
+    "voiceId": "UbwyzGp2TT19jcXntUi7",
+    "brief": "A trembling, perpetually sobbing voice, blubbering and sniffling through every word, high and wavering, clogged with snot, pitiful and wet, hiccuping mid-sentence. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "mirror~asmr": {
+    "voiceId": "K974v2sGTIN2aaQt4ITM",
+    "brief": "An uncanny, warped voice that sounds slightly wrong, too smooth and too close, like it is copying your voice and getting it almost right. Hypnotic and creepy. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "roast~asmr": {
+    "voiceId": "psI9JOUyPLFnwFuyKsiA",
+    "brief": "A deep, bubbling, gurgling voice like something speaking up through hot fat, wet crackles and sizzles between words, slow and greasy, barely human. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "snoot-2~asmr": {
+    "voiceId": "9kiVrUfCq4GkjJNtjdNK",
+    "brief": "A pompous, plummy, congested old man's voice, deeper and slower than his nephew's, sniffing wetly through a long dripping nose, every word heavy with disdain. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "snoot-3~asmr": {
+    "voiceId": "3DZ3C1pqh3LoRJNtxwLU",
+    "brief": "A whiny, nasal, congested young man's voice, eager to impress and easily wounded, sniffing wetly through a long dripping nose, cracking when he's embarrassed. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "head-bloom~asmr": {
+    "voiceId": "XTGYB3JcnSSfxfpzDNSe",
+    "brief": "A choir of tiny overlapping whispers, dry and rattling like bones in a jar, ancient and hollow, deeply unsettling. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "antenna~asmr": {
+    "voiceId": "NPNMSVZKTFAr4yYaSC0b",
+    "brief": "A crackling, glitching alien voice, flat and curious, consonants buzzing and clicking, words cutting in and out like a bad signal. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "bat-rat~asmr": {
+    "voiceId": "yQWDM5Ck3et9jcq5mQ42",
+    "brief": "A squeaky, chittering, hissing voice, high and fast, words breaking into squeaks and clicks, twitchy and feral. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "bricks~asmr": {
+    "voiceId": "CNwBLqeL0t71hMqlOFf2",
+    "brief": "A heavy, blocky, stiff voice, punchy and staccato like bricks being dropped one by one, grit and dust in the throat, proud and a bit dim. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "fairy~asmr": {
+    "voiceId": "Zoq89gB4as70BD2nem0m",
+    "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "tendrils~asmr": {
+    "voiceId": "8MPzunVakIQyuLLS68JU",
+    "brief": "A soft, airy, slithering voice that seems to come from several places at once, breathy and whispery, wet tongue clicks between words, alien and unsettling. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
   }
 }

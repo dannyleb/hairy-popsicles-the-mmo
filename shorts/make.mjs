@@ -679,7 +679,7 @@ async function main() {
     const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
     composite({
       plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus, base: shot.base,
-      jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0,
+      jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0, mask: shot.notes.mask ?? null,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
     // A wet shot gets the saliva sounds of their mouth close-up under it

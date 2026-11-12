@@ -13,7 +13,6 @@ DRAK (growling, exhausted): One. I want a shave.
 FERGAL (cackling, punch): Done!
 > DRAK (3s, shake): the dark stubble on Drak's face starts crawling away across his skin like a swarm of tiny ants
 DRAK (flat, exhausted): ...that's not a shave.
-FERGAL (cackling, push): It's gone though, isn't it?
 DRAK (growling): Two. Put it back.
 FERGAL (giggling): Done!
 > DRAK (1.5s, still, close, push)

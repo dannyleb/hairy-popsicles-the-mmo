@@ -6,7 +6,7 @@ room: small
 mouth: 0
 
 > GLORP (3s, front): steam curls slowly up off its glistening roasted skin as it bubbles quietly in a puddle of its own juices
-SPOON NANA (wheezing, proud): Sunday roast. Eat it while it's hot.
+SPOON NANA (wheezing, proud, mask: 0.84): Sunday roast. Eat it while it's hot.
 GUB (croaking, smug): It's on the floor, Nana.
 SPOON NANA (scolding): Table's broken. Eat.
 GLORP (gurgling, politely, front): Afternoon.
