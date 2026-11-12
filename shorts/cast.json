@@ -139,6 +139,7 @@
     "name": "The Aunties", "voice": "Horror",
     "brief": "A choir of tiny overlapping whispers, dry and rattling like bones in a jar, ancient and hollow, deeply unsettling.",
     "manner": "whispering", "fx": ["choir", "echo", "deep"],
+    "chorus": { "voice": "fairy~asmr" },
     "look": "a cluster of tiny skulls blooming on a spiny stalk, with moth wings", "lipsync": false
   },
   "snoot-2": {

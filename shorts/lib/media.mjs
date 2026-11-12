@@ -271,6 +271,31 @@ export function applyFx(inFile, outFile, names = []) {
   }
 }
 
+// A line with a chorus under it (cast.json chorus): `main` given the
+// character's effects, and the same line in another voice (`chorus`, the
+// voice changer's version of the same take, so every word lands together)
+// as a few smaller, higher copies of it a few milliseconds apart; then the
+// two together get what applyFx does at the end (trimmed, the close-mic
+// treatment, levelled).
+export function chorusVoice({ main, chorus, names = [], settings, outFile }) {
+  const { pitches, delays, volume = 0.3, level = 1 } = settings;
+  const before = names.filter((n) => !AFTER.includes(n)).map((n) => FX[n].replace(/vibrato=[^,]*/g, '$&,aformat=sample_fmts=s16,aformat=sample_fmts=flt'));
+  const after = names.filter((n) => AFTER.includes(n)).map((n) => FX[n]);
+  const lane = (chain) => ['aformat=channel_layouts=mono', 'aresample=44100', 'adelay=100:all=1', ...chain, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS'].join(',');
+  const trim = (keep) => `silenceremove=start_periods=1:start_threshold=-60dB:start_silence=${keep}`;
+  const graph = [
+    `[0:a]${lane(before)}[m]`,
+    `[1:a]${lane([])},asplit=${pitches.length}${pitches.map((_, i) => `[c${i}]`).join('')}`,
+    ...pitches.map((p, i) => `[c${i}]rubberband=pitch=${p}:formant=shifted,adelay=${delays[i] ?? 0}:all=1,volume=${volume * level}[d${i}]`),
+    `[m]${pitches.map((_, i) => `[d${i}]`).join('')}amix=inputs=${pitches.length + 1}:normalize=0:duration=longest,${trim(0.05)},areverse,${trim(0.2)},areverse,highpass=f=20,${[...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',')}[out]`,
+  ];
+  whole(outFile, (temp) => ffmpeg(['-i', main, '-i', chorus, '-filter_complex', graph.join(';'), '-map', '[out]', '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
+  if (brokenVoice(outFile)) {
+    rmSync(outFile, { force: true });
+    throw new Error(`The chorus broke a line: it came out silent or as a flat hum. Run it again (a new take usually works).`);
+  }
+}
+
 // A line that came out wrong: silent, or (some of it) a flat DC hum, which
 // the loudness measure all but ignores: far too quiet for a levelled line,
 // off-centre (DC offset), or much "louder" raw than it sounds.

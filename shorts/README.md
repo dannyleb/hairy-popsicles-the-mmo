@@ -172,6 +172,12 @@ Each character in `cast.json` has its own designed voice:
   `saliva: shiv, hork`): it runs start to finish, kit.json
   `mouth.salivaBelow` dB (9) under the dialogue, and the per-shot wet sounds
   give way to it.
+- `chorus`: `{ "voice": "fairy~asmr" }` puts a chorus of small high voices
+  under every line, in unison (The Aunties: their little skulls all talk).
+  Each line's take goes through the voice changer into that voice (a key in
+  voices.json; it must be voiced, not a whisper), then a few pitched-up
+  copies of it, a few milliseconds apart (kit.json `voice.chorus`). About a
+  cent a line.
 - `keyStrength`: how much of the green (or blue) screen colour is keyed out
   around them, 0.28 unless set. Lower it for someone glossy or wet who picks
   up the screen's colour and goes see-through at the edges (Glorp and his

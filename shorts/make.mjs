@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { CHARACTER_BY_ID } from '../packages/shared/src/characters.js';
 import {
-  KEYS, MASTER_LOUDNESS, applyFx, brokenVoice, composite, setCloseMic, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
+  KEYS, MASTER_LOUDNESS, applyFx, brokenVoice, chorusVoice, composite, setCloseMic, duration, ffmpeg, finish, hasSound, hash, hashFile, imageSize, join, layer, level, onKey, opaqueBox, startFrame, stillClip, treatMusic,
 } from './lib/media.mjs';
 import { flipPose, pose, posePath, propImage, propPath, wearing, wearingPath } from './lib/poses.mjs';
 import { scene, scenePath } from './lib/scenes.mjs';
@@ -498,7 +498,7 @@ async function main() {
     const fx = soft ? (c.fx ?? []).filter((f) => asmr.keepFx.includes(f)) : c.fx ?? [];
     // (cast.json mouthful: they talk with something in their mouth: told so, and muffled after)
     const after = [...(soft ? ['closeMic'] : []), ...(c.mouthful ? ['muffled'] : [])];
-    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(c.mouthful ? { mouthful: c.mouthful } : {}), ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
+    const voiceKey = hash({ provider, text: shot.text, direction, voiceId, take: take && hashFile(take), stability, fx, v: 3, ...(c.mouthful ? { mouthful: c.mouthful } : {}), ...(c.chorus ? { chorus: { ...kit.voice.chorus, ...c.chorus } } : {}), ...(soft ? { asmr: { tags: asmr.tags, chain: asmr.chain, mouth: asmr.mouth, lead: asmr.lead, tail: asmr.tail, pause: asmr.pause, level: asmr.mouthLevel } } : {}) });
     // (the ASMR voices' close-mic treatment is kit.voice.asmr.chain, applied as the closeMic effect)
     shot.audio = cached(`voice-${voiceKey}.mp3`);
     if (opts.revoice.has(shots.indexOf(shot) + 1)) rmSync(shot.audio, { force: true });
@@ -536,6 +536,16 @@ async function main() {
         applyFx(raw, speech, fx);
         asmrVoice({ speech, mouth, seed: `${slug}-${shots.indexOf(shot)}`, asmr, outFile: shot.audio });
         rmSync(speech, { force: true });
+      } else if (c.chorus && provider === 'fal') {
+        // (cast.json chorus: the same take in another voice, for the chorus under it)
+        const chorusId = designed[c.chorus.voice]?.voiceId;
+        if (!chorusId) throw new Error(`${c.name}'s chorus voice (${c.chorus.voice}) isn't in voices.json yet: design it first.`);
+        const chorusTake = cached(`chorus-${hash({ take: hashFile(raw), voiceId: chorusId })}.mp3`);
+        if (!existsSync(chorusTake)) {
+          say(`${shot.label}: the chorus, in ${c.chorus.voice}'s voice...`);
+          await falChangeVoice({ model: kit.voice.changer, inFile: raw, voiceId: chorusId, outFile: chorusTake });
+        }
+        chorusVoice({ main: raw, chorus: chorusTake, names: [...fx, ...after], settings: { ...kit.voice.chorus, ...c.chorus }, outFile: shot.audio });
       } else applyFx(raw, shot.audio, [...fx, ...after]);
     } catch (error) {
       // (a line the effects broke gets one more go, as a new take)
