@@ -17,5 +17,5 @@ MARLA (whispering): ...there's something.
 > MABEL (3s, shake): Mabel's antenna line pulls tight and she yanks back hard, her wings buzzing furiously
 MABEL (excited, squealing, sickly sweet): Big one!
 > MARLA (2s, shake): Marla's long tendrils thrash wildly as something long and wriggling is dragged out of them
-MABEL (sickly sweet, close, mask: 0.835): ...that's not a fish.
+MABEL (sickly sweet, close, mask: 0.815): ...that's not a fish.
 MARLA (breathy, too calm, push): No. That's my brother.

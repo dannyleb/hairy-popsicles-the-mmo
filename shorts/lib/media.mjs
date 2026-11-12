@@ -311,7 +311,13 @@ export function brokenVoice(file) {
 
 // ---------- layers: characters over a still background ----------
 
-export const KEYS = { green: { hex: '0x00FF00', css: 'pure green (#00FF00)', despill: 'green' }, blue: { hex: '0x0000FF', css: 'pure blue (#0000FF)', despill: 'blue' } };
+// (blue's `clamp`: blue never above green, which takes the lavender tint out of
+// edges and motion blur that the despill leaves; the characters put on blue are
+// warm, peach and tan, with less blue than green anyway)
+export const KEYS = {
+  green: { hex: '0x00FF00', css: 'pure green (#00FF00)', despill: 'green', clamp: '' },
+  blue: { hex: '0x0000FF', css: 'pure blue (#0000FF)', despill: 'blue', clamp: ",geq=r='r(X,Y)':g='g(X,Y)':b='min(b(X,Y),g(X,Y))':a='alpha(X,Y)'" },
+};
 
 // The characters on a transparent frame, each fitted in its box: { image,
 // cx (centre, px), bottom (px), width, height (the box, px) }.
@@ -364,7 +370,7 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
   const dy = `${shake ? '+12*sin(t*47)+7*sin(t*23)' : ''}${jitter ? `+${jitter}*(0.8*sin(t*7.3+0.5)+0.6*sin(t*19.7))` : ''}`;
   const moved = zoom === '1*1*1*1' && !dx && !dy;
   const source = video
-    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,${mask ? `drawbox=x=0:y=ih*${mask}:w=iw:h=ih:color=${KEYS[key].hex}:t=fill,` : ''}chromakey=${KEYS[key].hex}:${similarity}:${similarity < 0.2 ? 0.1 : 0.06},despill=type=${KEYS[key].despill},format=rgba`
+    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,${mask ? `drawbox=x=0:y=ih*${mask}:w=iw:h=ih:color=${KEYS[key].hex}:t=fill,` : ''}chromakey=${KEYS[key].hex}:${similarity}:${similarity < 0.2 ? 0.1 : 0.06},despill=type=${KEYS[key].despill},format=rgba${KEYS[key].clamp}`
     : `[1:v]fps=${fps},format=rgba`;
   const motion = moved ? '' : `,scale=w='trunc(${W}*${zoom}/2)*2':h='trunc(${H}*${zoom}/2)*2':eval=frame`;
   const x = moved ? '0' : `'${fx}-${fx}*${zoom}${dx}'`;

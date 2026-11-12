@@ -183,6 +183,9 @@ Each character in `cast.json` has its own designed voice:
   up the screen's colour and goes see-through at the edges (Glorp and his
   juices: 0.13; below 0.2 the edge is softened too, so no dark outline).
   Free: only the cut is made again.
+- `key: "blue"`: they're made on a blue screen, not green: for anyone with
+  green on them (Mabel's mushroom is green moss, which the green key cut
+  holes in). Blue's edges are cleaned of any lavender tint.
 - `mouthStill`, `mouthClip`: their own prompts for the mouth close-up, when
   the usual tongue close-up isn't the point (Shiv's is the hotdog).
 
