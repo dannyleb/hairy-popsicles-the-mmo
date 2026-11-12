@@ -73,5 +73,52 @@
     "poster": "ep5-four-sheep.jpg",
     "posterAt": 20.946666800000003,
     "source": "530a8a53695b09d5"
+  },
+  {
+    "number": 6,
+    "slug": "ep6-sunday-roast",
+    "title": "Sunday Roast",
+    "logline": "Spoon Nana has made Sunday roast. The roast has opinions.",
+    "cast": [
+      "roast",
+      "spoon-nana",
+      "toad"
+    ],
+    "seconds": 53.8,
+    "video": "ep6-sunday-roast.mp4",
+    "poster": "ep6-sunday-roast.jpg",
+    "posterAt": 21.5333332,
+    "source": "ef54248213301d42"
+  },
+  {
+    "number": 7,
+    "slug": "ep7-three-wishes",
+    "title": "Three Wishes",
+    "logline": "Drak has caught a leprechaun. He only wants a shave.",
+    "cast": [
+      "leprechaun",
+      "stubble"
+    ],
+    "seconds": 54.3,
+    "video": "ep7-three-wishes.mp4",
+    "poster": "ep7-three-wishes.jpg",
+    "posterAt": 21.7066668,
+    "source": "10c123750a284bb5"
+  },
+  {
+    "number": 9,
+    "slug": "ep9-the-reunion",
+    "title": "The Reunion",
+    "logline": "Hork's family gets together. Somebody's brain is smooth.",
+    "cast": [
+      "snoot-2",
+      "snoot-3",
+      "head-bloom"
+    ],
+    "seconds": 48.2,
+    "video": "ep9-the-reunion.mp4",
+    "poster": "ep9-the-reunion.jpg",
+    "posterAt": 19.2725868,
+    "source": "25908b55d108ed14"
   }
 ]

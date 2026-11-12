@@ -1,5 +1,6 @@
 # Hairy Popsicles, episode 8. Pud asks the mirror a question. The mirror is Pim.
 title: Reflection
+draft: yes
 scene: A cramped grimy bathroom at night: cracked mouldy tiles like dead skin on the back wall, a sink full of murky grey water, an empty ornate mirror frame with no glass in it hanging on the wall, a flickering bulb, a stained wet tiled floor across the lower half of the picture, cold greenish light
 sounds: a cramped bathroom at night, a tap dripping slowly into a full sink, a flickering bulb ticking and buzzing, pipes groaning in the walls
 room: small

@@ -1,5 +1,6 @@
 # Hairy Popsicles, episode 11. Mabel goes fishing. The river is Marla.
 title: Gone Fishing
+draft: yes
 scene: A dim cluttered attic room: old fishing rods and a torn net hanging on the slanted wooden wall, a dusty rocking chair, a round window with grey rainy light, jars of murky water, a creaky warped wooden floor across the lower half of the picture
 sounds: a dim attic on a rainy afternoon, rain pattering on the roof, a rocking chair creaking slowly, water dripping into a bucket, a fly buzzing
 room: small

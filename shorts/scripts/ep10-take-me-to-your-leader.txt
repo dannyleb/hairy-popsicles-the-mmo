@@ -1,5 +1,6 @@
 # Hairy Popsicles, episode 10. Zib has come a very long way to meet the leader. It's Doug.
 title: Take Me to Your Leader
+draft: yes
 scene: A dark cluttered garage at night: a jagged smoking hole punched through the roof with cold moonlight pouring in, shelves of dusty jars with things floating in them, an old workbench, a stained cracked concrete floor across the lower half of the picture, smoke drifting in the moonlight
 sounds: a dark garage at night, smoke hissing, a dripping pipe, crickets outside, something electrical sparking and crackling now and then
 room: large

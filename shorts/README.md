@@ -99,6 +99,8 @@ DOOLIE (guilty): ...finders keepers.
   - `saliva: shiv` (or `shiv, hork`): the wet sound of their mouth
     close-up runs under the whole episode at one steady level, slices of it
     crossfaded so it never audibly loops (Liar has it: Shiv's hotdog).
+  - `draft: yes`: keeps it off hairypopsicles.com/episodes until it's ready
+    (`npm run episodes` leaves it out).
   - `room: small | large | cavern | none`: the space the voices ring in
     (small unless you say). Their echo off the walls is what puts them in
     the scene instead of on top of it. Voices also come from where the

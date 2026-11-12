@@ -5,7 +5,8 @@
 //
 //   npm run episodes                 every finished episode (only what changed is redone)
 //
-// A script's poster: <seconds> picks the poster frame (40% in, otherwise).
+// A script's poster: <seconds> picks the poster frame (40% in, otherwise);
+// draft: yes keeps it off the page until it's ready.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -38,6 +39,10 @@ for (const file of readdirSync(path.join(HERE, 'scripts')).filter((f) => /^ep\d+
   }
   const source = readFileSync(path.join(HERE, 'scripts', file), 'utf8');
   const { settings, shots } = parseScript(source, cast);
+  if (/^(yes|on|true)$/i.test(settings.draft ?? '')) {
+    console.log(`${slug}: a draft (draft: yes in the script), left off.`);
+    continue;
+  }
   const number = parseInt(slug.slice(2), 10);
   // The logline: the note at the top, after "episode N."
   const logline = (source.match(/^#\s*Hairy Popsicles, episode \d+\.\s*(.+)$/m)?.[1] ?? '').trim();
