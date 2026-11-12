@@ -563,9 +563,11 @@ async function main() {
   if (frantic) {
     const { jitter, jolts: { every: [lo, hi], size: [small, big] } } = kit.energy;
     for (const shot of shots) {
-      shot.jitter = shot.notes.mouth ? 0 : shot.notes.still ? jitter / 2 : jitter;
+      // (cast.json steady: someone small and spindly the tremble and jolts just throw about)
+      const steady = shot.cast.some((id) => cast[id]?.steady);
+      shot.jitter = shot.notes.mouth || steady ? 0 : shot.notes.still ? jitter / 2 : jitter;
       shot.jolts = [];
-      if (shot.notes.still || shot.notes.mouth || shot.notes.camera.includes('close')) continue;
+      if (shot.notes.still || shot.notes.mouth || steady || shot.notes.camera.includes('close')) continue;
       for (let at = 0.25 + random() * lo; at < shot.seconds - 0.2; at += lo + random() * (hi - lo)) shot.jolts.push([at, small + random() * (big - small)]);
     }
   }

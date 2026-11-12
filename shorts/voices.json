@@ -160,14 +160,20 @@
     "brief": "A heavy, blocky, stiff voice, punchy and staccato like bricks being dropped one by one, grit and dust in the throat, proud and a bit dim. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
     "designed": "2026-11-12"
   },
-  "fairy~asmr": {
-    "voiceId": "Zoq89gB4as70BD2nem0m",
-    "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
-    "designed": "2026-11-12"
-  },
   "tendrils~asmr": {
     "voiceId": "8MPzunVakIQyuLLS68JU",
     "brief": "A soft, airy, slithering voice that seems to come from several places at once, breathy and whispery, wet tongue clicks between words, alien and unsettling. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12"
+  },
+  "aunties-chorus": {
+    "voiceId": "Zoq89gB4as70BD2nem0m",
+    "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
+    "designed": "2026-11-12",
+    "note": "Mabel's first ASMR voice (high, sweet), kept for The Aunties' chorus when Mabel's became a man's"
+  },
+  "fairy~asmr": {
+    "voiceId": "GLGJe2PnljEw6fSMamEa",
+    "brief": "A grown man's voice coming out of a tiny fairy: a middle-aged man with a gravelly, raspy smoker's voice putting on a sickly sweet, sugary, sing-song tone, like a sleazy uncle doing a children's TV voice, giggling at the wrong moments. Speaking softly and slowly, right up against a very sensitive microphone, like a close-up ASMR video: quiet and intimate but clearly voiced, never whispering. Every word comes with crisp little clicks of the tongue, soft sticky mouth sounds and audible breaths. The same character and the same strangeness, just extremely close.",
     "designed": "2026-11-12"
   }
 }

@@ -112,10 +112,10 @@
     "look": "a bald head with an exposed brain, pointed ears and a long dripping trunk of a nose"
   },
   "fairy": {
-    "name": "Mabel", "voice": "Bella",
-    "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments.",
-    "manner": "sickly sweet", "fx": ["tremble"],
-    "key": "blue",
+    "name": "Mabel", "voice": "Bill",
+    "brief": "A grown man's voice coming out of a tiny fairy: a middle-aged man with a gravelly, raspy smoker's voice putting on a sickly sweet, sugary, sing-song tone, like a sleazy uncle doing a children's TV voice, giggling at the wrong moments.",
+    "manner": "deep voice, sickly sweet", "fx": ["tremble"],
+    "key": "blue", "steady": true,
     "look": "a tiny gross fairy with insect wings and an antenna like a fishing rod, sitting on a mushroom"
   },
   "antenna": {
@@ -140,7 +140,7 @@
     "name": "The Aunties", "voice": "Horror",
     "brief": "A choir of tiny overlapping whispers, dry and rattling like bones in a jar, ancient and hollow, deeply unsettling.",
     "manner": "whispering", "fx": ["choir", "echo", "deep"],
-    "chorus": { "voice": "fairy~asmr" },
+    "chorus": { "voice": "aunties-chorus" },
     "look": "a cluster of tiny skulls blooming on a spiny stalk, with moth wings", "lipsync": false
   },
   "snoot-2": {

@@ -5,17 +5,17 @@ sounds: a dim attic on a rainy afternoon, rain pattering on the roof, a rocking 
 room: small
 mouth: 1
 
-> MABEL (3s): Mabel hovers, buzzing her little insect wings, swinging the glowing lure on her antenna like a fishing line
-MABEL (sickly sweet, mask: 0.815): Ooh. What a lovely river.
+> MABEL (3s): Mabel stands still on her mushroom, her little insect wings buzzing gently, slowly swinging the glowing lure on her antenna like a fishing line
+MABEL (deep voice, sickly sweet, mask: 0.815): Ooh. What a lovely river.
 MARLA (breathy, slithering): That's my hair.
-MABEL (sweet, giggling): Shh. You'll scare the fish.
-> MABEL & MARLA (3s): Mabel casts the glowing lure on her antenna into Marla's long streaming tendrils
+MABEL (deep voice, hushed): Shh. You'll scare the fish.
+> MABEL & MARLA (3s): Mabel stays standing on her mushroom and casts the glowing lure on her antenna into Marla's long streaming tendrils
 MARLA (breathy): There aren't any fish in there.
-MABEL (sweet, push): There's always fish.
+MABEL (deep voice, sweet, push): There's always fish.
 > MARLA (1.5s, still, close, push)
 MARLA (whispering): ...there's something.
-> MABEL (3s, shake): Mabel's antenna line pulls tight and she yanks back hard, her wings buzzing furiously
-MABEL (excited, squealing, sickly sweet): Big one!
+> MABEL (3s): standing firm on her mushroom, Mabel leans back and tugs hard as her antenna line pulls tight, her wings buzzing
+MABEL (deep voice, excited): Big one!
 > MARLA (2s, shake): Marla's long tendrils thrash wildly as something long and wriggling is dragged out of them
-MABEL (sickly sweet, close, mask: 0.815): ...that's not a fish.
+MABEL (deep voice, sickly sweet, close, mask: 0.815): ...that's not a fish.
 MARLA (breathy, too calm, push): No. That's my brother.

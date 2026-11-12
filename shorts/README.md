@@ -172,7 +172,7 @@ Each character in `cast.json` has its own designed voice:
   `saliva: shiv, hork`): it runs start to finish, kit.json
   `mouth.salivaBelow` dB (9) under the dialogue, and the per-shot wet sounds
   give way to it.
-- `chorus`: `{ "voice": "fairy~asmr" }` puts a chorus of small high voices
+- `chorus`: `{ "voice": "aunties-chorus" }` puts a chorus of small high voices
   under every line, in unison (The Aunties: their little skulls all talk).
   Each line's take goes through the voice changer into that voice (a key in
   voices.json; it must be voiced, not a whisper), then a few pitched-up
@@ -183,6 +183,9 @@ Each character in `cast.json` has its own designed voice:
   up the screen's colour and goes see-through at the edges (Glorp and his
   juices: 0.13; below 0.2 the edge is softened too, so no dark outline).
   Free: only the cut is made again.
+- `steady: true`: no camera tremble or jolts on their shots (energy:
+  frantic still shakes everyone else). For someone small and spindly the
+  tremble just throws about (Mabel).
 - `key: "blue"`: they're made on a blue screen, not green: for anyone with
   green on them (Mabel's mushroom is green moss, which the green key cut
   holes in). Blue's edges are cleaned of any lavender tint.
