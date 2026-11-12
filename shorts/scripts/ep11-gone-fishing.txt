@@ -6,7 +6,7 @@ room: small
 mouth: 1
 
 > MABEL (3s): Mabel hovers, buzzing her little insect wings, swinging the glowing lure on her antenna like a fishing line
-MABEL (sickly sweet): Ooh. What a lovely river.
+MABEL (sickly sweet, mask: 0.815): Ooh. What a lovely river.
 MARLA (breathy, slithering): That's my hair.
 MABEL (sweet, giggling): Shh. You'll scare the fish.
 > MABEL & MARLA (3s): Mabel casts the glowing lure on her antenna into Marla's long streaming tendrils

@@ -115,6 +115,7 @@
     "name": "Mabel", "voice": "Bella",
     "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments.",
     "manner": "sickly sweet", "fx": ["tremble"],
+    "key": "blue",
     "look": "a tiny gross fairy with insect wings and an antenna like a fishing rod, sitting on a mushroom"
   },
   "antenna": {
