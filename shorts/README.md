@@ -170,6 +170,11 @@ Each character in `cast.json` has its own designed voice:
   `saliva: shiv, hork`): it runs start to finish, kit.json
   `mouth.salivaBelow` dB (9) under the dialogue, and the per-shot wet sounds
   give way to it.
+- `keyStrength`: how much of the green (or blue) screen colour is keyed out
+  around them, 0.28 unless set. Lower it for someone glossy or wet who picks
+  up the screen's colour and goes see-through at the edges (Glorp and his
+  juices: 0.13; below 0.2 the edge is softened too, so no dark outline).
+  Free: only the cut is made again.
 - `mouthStill`, `mouthClip`: their own prompts for the mouth close-up, when
   the usual tongue close-up isn't the point (Shiv's is the hotdog).
 

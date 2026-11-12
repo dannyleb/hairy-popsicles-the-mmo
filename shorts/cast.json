@@ -40,7 +40,7 @@
     "name": "Glorp", "voice": "Horror",
     "brief": "A deep, bubbling, gurgling voice like something speaking up through hot fat, wet crackles and sizzles between words, slow and greasy, barely human.",
     "manner": "gurgling", "fx": ["deeper", "gurgle", "wet"],
-    "look": "a lumpy pink roasted blob of flesh lying in a puddle of its own juices", "lipsync": false
+    "look": "a lumpy pink roasted blob of flesh lying in a puddle of its own juices", "lipsync": false, "keyStrength": 0.13
   },
   "toad": {
     "name": "Gub", "voice": "Callum",

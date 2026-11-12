@@ -449,6 +449,7 @@ async function main() {
       if (image) chars.push({ image, cx: pair || !by ? W2 / 2 : by.cx, bottom: H2 * (pair ? 0.8 : 0.93), width: W2 * 0.38, height: H2 * 0.13 });
     }
     shot.key = keyFor(shot.visual);
+    shot.similarity = Math.min(...shot.visual.map((id) => cast[id].keyStrength ?? 0.28), 0.28);  // (cast.json keyStrength: how much of the screen colour is keyed out)
     // A held picture (a beat, or a line said off screen) creeps in unless told otherwise.
     if ((shot.notes.still || shot.notes.off) && !shot.notes.camera.length) shot.notes.camera = ['push'];
     const layerKey = hash({ chars: chars.map((c) => ({ ...c, image: hashFile(c.image) })), size });
@@ -679,7 +680,7 @@ async function main() {
     const keepSound = Boolean(video) && shot.notes.sound && shot.kind === 'action' && hasSound(video);
     composite({
       plate, video, still: video ? null : shot.layer, key: shot.key, camera: shot.notes.camera, focus: shot.focus, base: shot.base,
-      jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0, mask: shot.notes.mask ?? null,
+      jitter: shot.jitter ?? 0, jolts: shot.jolts ?? [], pan: shot.pan ?? 0, mask: shot.notes.mask ?? null, similarity: shot.similarity ?? 0.28,
       audio: shot.audio ?? null, keepSound, seconds: shot.seconds, size, fps, outFile: clip,
     });
     // A wet shot gets the saliva sounds of their mouth close-up under it

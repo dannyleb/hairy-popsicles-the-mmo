@@ -321,7 +321,7 @@ export function onKey({ layerFile, key, size: [W, H], outFile }) {
 // handheld by someone who hasn't slept, and `jolts` ([[seconds, size]])
 // snap it in and let it spring back. `pan` (-1 left to 1 right) puts the
 // voice where they stand.
-export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, jitter = 0, jolts = [], pan = 0, mask = null, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
+export function composite({ plate, video, still, key = 'green', camera = [], focus: [fx, fy], base = null, jitter = 0, jolts = [], pan = 0, mask = null, similarity = 0.28, audio, keepSound, seconds, size: [W, H], fps, outFile }) {
   const D = seconds.toFixed(3);
   const spring = (at) => `exp(-(t-${at.toFixed(3)})/0.13)*gte(t,${at.toFixed(3)})`;
   const zoom = [
@@ -337,7 +337,7 @@ export function composite({ plate, video, still, key = 'green', camera = [], foc
   const dy = `${shake ? '+12*sin(t*47)+7*sin(t*23)' : ''}${jitter ? `+${jitter}*(0.8*sin(t*7.3+0.5)+0.6*sin(t*19.7))` : ''}`;
   const moved = zoom === '1*1*1*1' && !dx && !dy;
   const source = video
-    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,${mask ? `drawbox=x=0:y=ih*${mask}:w=iw:h=ih:color=${KEYS[key].hex}:t=fill,` : ''}chromakey=${KEYS[key].hex}:0.28:0.06,despill=type=${KEYS[key].despill},format=rgba`
+    ? `[1:v]scale=${W}:${H},setsar=1,fps=${fps},tpad=stop_mode=clone:stop_duration=5,${mask ? `drawbox=x=0:y=ih*${mask}:w=iw:h=ih:color=${KEYS[key].hex}:t=fill,` : ''}chromakey=${KEYS[key].hex}:${similarity}:${similarity < 0.2 ? 0.1 : 0.06},despill=type=${KEYS[key].despill},format=rgba`
     : `[1:v]fps=${fps},format=rgba`;
   const motion = moved ? '' : `,scale=w='trunc(${W}*${zoom}/2)*2':h='trunc(${H}*${zoom}/2)*2':eval=frame`;
   const x = moved ? '0' : `'${fx}-${fx}*${zoom}${dx}'`;
