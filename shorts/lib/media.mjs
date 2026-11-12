@@ -284,8 +284,10 @@ export function chorusVoice({ main, chorus, names = [], settings, outFile }) {
   const lane = (chain) => ['aformat=channel_layouts=mono', 'aresample=44100', 'adelay=100:all=1', ...chain, 'aformat=sample_fmts=s16', 'atrim=start=0.1', 'asetpts=PTS-STARTPTS'].join(',');
   const trim = (keep) => `silenceremove=start_periods=1:start_threshold=-60dB:start_silence=${keep}`;
   const graph = [
-    `[0:a]${lane(before)}[m]`,
-    `[1:a]${lane([])},asplit=${pitches.length}${pitches.map((_, i) => `[c${i}]`).join('')}`,
+    // (both levelled first: the voice changer hands back its version much
+    // quieter than it got it, which buried the chorus)
+    `[0:a]${lane(before)},loudnorm=I=-20:TP=-2:LRA=11[m]`,
+    `[1:a]${lane([])},loudnorm=I=-20:TP=-2:LRA=11,asplit=${pitches.length}${pitches.map((_, i) => `[c${i}]`).join('')}`,
     ...pitches.map((p, i) => `[c${i}]rubberband=pitch=${p}:formant=shifted,adelay=${delays[i] ?? 0}:all=1,volume=${volume * level}[d${i}]`),
     `[m]${pitches.map((_, i) => `[d${i}]`).join('')}amix=inputs=${pitches.length + 1}:normalize=0:duration=longest,${trim(0.05)},areverse,${trim(0.2)},areverse,highpass=f=20,${[...after, 'loudnorm=I=-16:TP=-1.5:LRA=11'].join(',')}[out]`,
   ];

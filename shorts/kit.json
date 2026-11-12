@@ -39,10 +39,10 @@
       "format": "mp3_44100_128"
     },
     "chorus": {
-      "_": "cast.json chorus: { voice } puts a chorus under a character's lines: the same take through the voice changer into that voice (so every word lands together), as copies pitched up by `pitches` (formants too, so they sound small), each `delays` ms late, at `volume` each (times the character's own `level`, if set).",
-      "pitches": [1.3, 1.5, 1.72, 1.95],
-      "delays": [0, 17, 31, 46],
-      "volume": 0.3
+      "_": "cast.json chorus: { voice } puts a chorus under a character's lines: the same take through the voice changer into that voice (so every word lands together), levelled to match the main voice, as copies pitched up by `pitches` (formants too, so they sound small), each `delays` ms late, at `volume` each (times the character's own `level`, if set). The first copy only a little higher, so the words stay clear; four at 0.32 come to about 5 dB under the main voice (voiced, so they still stand out against a whisper).",
+      "pitches": [1.15, 1.6, 1.9, 2.25],
+      "delays": [0, 8, 15, 23],
+      "volume": 0.32
     },
     "asmr": {
       "_": "ASMR, matched to the reference (an extreme close-up ASMR reel): dry, near the centre, squeezed tight (loudness range `range`), crisp on top, the environment low (`bedLoudness`). Every character has a second, soft-spoken voice designed from their brief plus `brief` (saved as <id>~asmr in voices.json; designed again if `brief` changes), so the mouth sounds come from the voice itself. Pitch effects are kept, the muffling ones aren't; then the close-mic treatment (chain). Yelled lines use their normal voice. A script's asmr: off turns it off.",
