@@ -1,0 +1,21 @@
+# Hairy Popsicles, episode 9. Hork's family gets together. Somebody's brain is smooth.
+title: The Reunion
+scene: A stuffy old family parlour: framed oil portraits of brains on dark green walls, a dusty sideboard with a wobbling pink jelly mould shaped like a brain, faded floral curtains drawn shut, a threadbare rug on a creaky wooden floor across the lower half of the picture, dim lamplight
+sounds: a stuffy old parlour, a grandfather clock ticking slowly, a wet sniff now and then, a jelly wobbling on a plate, the floorboards creaking
+room: large
+mouth: 1
+
+UNCLE HORK (pompous, congested): Cousin. Let's see it, then.
+> COUSIN HORK (2s): Cousin Hork proudly bows his head forward to show off the top of his exposed brain
+COUSIN HORK (whiny, proud): New folds. Since Easter.
+UNCLE HORK (pompous, sniffing, push): Hm. Mine has forty-one.
+> UNCLE HORK (2s): Uncle Hork tilts his head to show off his own glistening exposed brain, his huge eye rolling up
+THE AUNTIES (whispering, front): ...smooth... his is smooth...
+COUSIN HORK (whiny, voice cracking, shake): It's not smooth. It's minimalist.
+UNCLE HORK (pompous, sniffing): Where's Hork?
+COUSIN HORK (whispering): Hork had an incident. With a nose.
+> UNCLE HORK (1.5s, still, close, push)
+UNCLE HORK (gravely): ...in the brain?
+COUSIN HORK (whispering, close): In the brain.
+THE AUNTIES (whispering, front, push): We knew. We always know.
+> THE AUNTIES (2s, front): the tiny skulls on the stalk all slowly turn to stare

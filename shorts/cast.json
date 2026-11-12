@@ -114,7 +114,7 @@
   "fairy": {
     "name": "Mabel", "voice": "Bella",
     "brief": "A tiny, high, buzzing voice like an insect pretending to be sweet, sugary on top with a nasty raspy edge underneath, giggling at the wrong moments.",
-    "manner": "sickly sweet", "fx": ["tiny", "tremble"],
+    "manner": "sickly sweet", "fx": ["tremble"],
     "look": "a tiny gross fairy with insect wings and an antenna like a fishing rod, sitting on a mushroom"
   },
   "antenna": {
@@ -132,7 +132,7 @@
   "bat-rat": {
     "name": "Skitch", "voice": "Callum",
     "brief": "A squeaky, chittering, hissing voice, high and fast, words breaking into squeaks and clicks, twitchy and feral.",
-    "manner": "twitchy, hissing", "fx": ["high", "tremble"],
+    "manner": "twitchy, hissing", "fx": ["tremble"],
     "look": "a bat-eared, rat-faced creature with big orange eyes"
   },
   "head-bloom": {
@@ -142,11 +142,13 @@
     "look": "a cluster of tiny skulls blooming on a spiny stalk, with moth wings", "lipsync": false
   },
   "snoot-2": {
-    "name": "Uncle Hork", "voice": "Roger", "voiceOf": "snoot", "manner": "snooty, congested", "fx": ["wet"],
+    "name": "Uncle Hork", "voice": "Roger", "manner": "pompous, congested", "fx": ["wet"],
+    "brief": "A pompous, plummy, congested old man's voice, deeper and slower than his nephew's, sniffing wetly through a long dripping nose, every word heavy with disdain.",
     "look": "a bald head with an exposed brain, one huge bulging eye and a long dripping trunk of a nose"
   },
   "snoot-3": {
-    "name": "Cousin Hork", "voice": "Roger", "voiceOf": "snoot", "manner": "snooty, congested", "fx": ["wet"],
+    "name": "Cousin Hork", "voice": "Roger", "manner": "whiny, congested", "fx": ["wet"],
+    "brief": "A whiny, nasal, congested young man's voice, eager to impress and easily wounded, sniffing wetly through a long dripping nose, cracking when he's embarrassed.",
     "look": "a bald head with an exposed brain, gauged earlobes and a long dripping nose"
   }
 }

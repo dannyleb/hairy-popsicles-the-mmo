@@ -1,0 +1,24 @@
+# Hairy Popsicles, episode 7. Drak has caught a leprechaun. He only wants a shave.
+title: Three Wishes
+prop: pot of gold = a small dented black iron pot filled to the brim with old gold teeth, glinting
+scene: A damp pub cellar at night: stacked wooden kegs leaking something cloudy, sweating brick walls, a bare bulb hanging from a cord, cobwebs, a sticky stone floor with a spreading puddle across the lower half of the picture, dim yellow light
+sounds: a damp pub cellar at night, a slow leak dripping into a puddle, a bare bulb buzzing, muffled pub noise and footsteps through the ceiling above, an old keg creaking
+room: small
+mouth: 1
+
+FERGAL (cackling, greedy): Ah, you caught me fair and square. Three wishes.
+FERGAL (giggling, with: pot of gold): And don't touch the pot. Those are good teeth.
+> POT OF GOLD (2s, push): the old gold teeth glint and one of them slowly wobbles loose
+DRAK (growling, exhausted): One. I want a shave.
+FERGAL (cackling, punch): Done!
+> DRAK (3s, shake): the dark stubble on Drak's face starts crawling away across his skin like a swarm of tiny ants
+DRAK (flat, exhausted): ...that's not a shave.
+FERGAL (cackling, push): It's gone though, isn't it?
+DRAK (growling): Two. Put it back.
+FERGAL (giggling): Done!
+> DRAK (1.5s, still, close, push)
+DRAK (whispering, close): ...it's growing inwards. I can feel it.
+DRAK (growling, exhausted): Three. I wish I'd never caught you.
+FERGAL (cackling, shake): Ah, now that one's free.
+> DRAK (2s, still, push)
+DRAK (flat, exhausted): ...still itchy.

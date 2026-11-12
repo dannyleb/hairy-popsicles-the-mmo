@@ -1,0 +1,20 @@
+# Hairy Popsicles, episode 10. Zib has come a very long way to meet the leader. It's Doug.
+title: Take Me to Your Leader
+scene: A dark cluttered garage at night: a jagged smoking hole punched through the roof with cold moonlight pouring in, shelves of dusty jars with things floating in them, an old workbench, a stained cracked concrete floor across the lower half of the picture, smoke drifting in the moonlight
+sounds: a dark garage at night, smoke hissing, a dripping pipe, crickets outside, something electrical sparking and crackling now and then
+room: large
+mouth: 1
+
+> ZIB (3s): Zib stands up shakily in the drifting smoke, its single antenna crackling
+ZIB (flat, curious): Take me. To your leader.
+SKITCH (twitchy, hissing): Leader? Leader? No leader. Just Doug.
+DOUG (proud, staccato): Hello.
+ZIB (flat, push): You are very rectangular.
+DOUG (proud, staccato): Thank. You.
+ZIB (curious): The rectangular one leads. I will take a sample.
+> ZIB & DOUG (3s): Zib reaches out and slowly pulls a single brick out of the side of Doug's head
+> DOUG (1.5s, still, close)
+DOUG (staccato, strained): That. Was. Load. Bearing.
+> DOUG (3s, shake): Doug's brick head slowly caves in and crumbles inward with a grinding crunch
+SKITCH (twitchy, giggling, punch): Mine. The hole is mine now.
+ZIB (flat): Earth is easy.

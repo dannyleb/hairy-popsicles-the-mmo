@@ -1,0 +1,21 @@
+# Hairy Popsicles, episode 11. Mabel goes fishing. The river is Marla.
+title: Gone Fishing
+scene: A dim cluttered attic room: old fishing rods and a torn net hanging on the slanted wooden wall, a dusty rocking chair, a round window with grey rainy light, jars of murky water, a creaky warped wooden floor across the lower half of the picture
+sounds: a dim attic on a rainy afternoon, rain pattering on the roof, a rocking chair creaking slowly, water dripping into a bucket, a fly buzzing
+room: small
+mouth: 1
+
+> MABEL (3s): Mabel hovers, buzzing her little insect wings, swinging the glowing lure on her antenna like a fishing line
+MABEL (sickly sweet): Ooh. What a lovely river.
+MARLA (breathy, slithering): That's my hair.
+MABEL (sweet, giggling): Shh. You'll scare the fish.
+> MABEL & MARLA (3s): Mabel casts the glowing lure on her antenna into Marla's long streaming tendrils
+MARLA (breathy): There aren't any fish in there.
+MABEL (sweet, push): There's always fish.
+> MARLA (1.5s, still, close, push)
+MARLA (whispering): ...there's something.
+> MABEL (3s, shake): Mabel's antenna line pulls tight and she yanks back hard, her wings buzzing furiously
+MABEL (straining, sickly sweet): Big one!
+> MARLA (2s, shake): Marla's long tendrils thrash wildly as something long and wriggling is dragged out of them
+MABEL (sickly sweet, close): ...that's not a fish.
+MARLA (breathy, too calm, push): No. That's my brother.

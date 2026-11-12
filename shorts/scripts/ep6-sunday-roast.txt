@@ -1,0 +1,23 @@
+# Hairy Popsicles, episode 6. Spoon Nana has made Sunday roast. The roast has opinions.
+title: Sunday Roast
+scene: Spoon Nana's cramped little dining room on a Sunday afternoon: floral wallpaper peeling like sunburnt skin, a cuckoo clock, a dusty china cabinet full of old teeth, a wobbly table shoved against the back wall with one leg snapped off, a lumpy fleshy carpet with a dark sticky stain across the lower half of the picture, dim warm lamplight
+sounds: a stuffy little dining room on a Sunday afternoon, a cuckoo clock ticking, something hot sizzling and spitting quietly, a kettle wheezing far away in another room
+room: small
+mouth: 0
+
+> GLORP (3s, front): steam curls slowly up off its glistening roasted skin as it bubbles quietly in a puddle of its own juices
+SPOON NANA (wheezing, proud): Sunday roast. Eat it while it's hot.
+GUB (croaking, smug): It's on the floor, Nana.
+SPOON NANA (scolding): Table's broken. Eat.
+GLORP (gurgling, politely, front): Afternoon.
+> GUB (1.5s, still, push)
+GUB (croaking, shake): It talked. Nana, the roast talked.
+SPOON NANA (scolding, wheezing): Don't be rude. Say hello to Glorp.
+GUB (croaking, flat): I'm not eating something with a name.
+SPOON NANA (wheezing, punch): You ate the soup.
+> GUB (1.5s, still, close)
+GLORP (gurgling, kindly, front): It's fine, Gub. Honestly. It's what I'm for.
+> GUB (1.5s, mouth)
+> GUB (3s, shake): Gub opens his huge wet mouth wide and gulps something down with a loud swallow, his round belly bulging
+GUB (croaking, burping): ...he says thanks for having him.
+SPOON NANA (wheezing, pleased, push): Lovely. Same time next week.

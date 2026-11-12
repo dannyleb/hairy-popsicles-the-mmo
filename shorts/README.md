@@ -151,7 +151,7 @@ Each character in `cast.json` has its own designed voice:
   - wobble: `warble`, `tremble`, `gurgle`
   - texture: `wet`, `crunch`, `rasp`, `whisper`, `static`
   - space: `choir`, `echo`, `uncanny`
-- `voiceOf`: share another character's voice (the snoots do).
+- `voiceOf`: share another character's voice.
 - `look`: what they are, for the video model.
 - `lipsync: false`: anyone without a mouth (Glorp, The Aunties); they move
   while the voice plays over.

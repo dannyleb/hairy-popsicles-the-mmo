@@ -307,7 +307,7 @@ async function main() {
   if (kit.mouth && (settings.mouth ?? 'on') !== 'off') {
     const count = /^\d+$/.test(settings.mouth ?? '') ? Number(settings.mouth) : kit.mouth.auto;
     const pick = seeded(`${slug}-mouth`);
-    const spots = shots.map((s, i) => [s, i]).filter(([s, i]) => i > 0 && i < shots.length - 1 && s.who !== 'scene' && !s.prop && s.cast.length === 1
+    const spots = shots.map((s, i) => [s, i]).filter(([s, i]) => i > 0 && i < shots.length - 1 && s.who !== 'scene' && !s.prop && s.cast.length === 1 && cast[s.who]?.lipsync !== false
       && !s.notes.mouth && !shots[i + 1].notes.mouth && (s.notes.still || (s.kind === 'talk' && /(\.\.\.|…)\s*$/.test(s.text))));
     const chosen = [];
     while (chosen.length < count && spots.length) chosen.push(spots.splice(Math.floor(pick() * spots.length), 1)[0]);
