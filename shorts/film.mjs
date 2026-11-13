@@ -8,6 +8,8 @@
 //   npm run film -- the-itch --yes     first makes what's missing and costs money: painted key
 //                                      frames, sounds, voices (it says how much before, without --yes)
 //   npm run film -- the-itch --shots   the shot list to film from: each key frame, how long, the prompt
+//   npm run film -- the-itch --chat    the same, as words to paste into a Claude chat with Higgsfield
+//                                      connected (the shots not filmed yet; README, "Filming on Higgsfield")
 //
 // A film is a folder, shorts/films/<name>/:
 //   film.json   the cut list (lib/film.mjs says what goes in it)
@@ -20,7 +22,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
-import { readFilm, timing } from './lib/film.mjs';
+import { chatBrief, readFilm, timing } from './lib/film.mjs';
 import { MASTER_LOUDNESS, duration, ffmpeg, finish, hasSound, hash, hashFile, join, regain, startFrame, treatMusic, whole } from './lib/media.mjs';
 import { dataUri, download, falRun, loadKeys } from './lib/services.mjs';
 
@@ -41,10 +43,11 @@ const VIDEO = (fps) => ['-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfa
 const AUDIO = ['-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2'];
 
 function args(argv) {
-  const opts = { film: null, yes: false, shots: false };
+  const opts = { film: null, yes: false, shots: false, chat: false };
   for (const a of argv) {
     if (a === '--yes' || a === '-y') opts.yes = true;
     else if (a === '--shots') opts.shots = true;
+    else if (a === '--chat') opts.chat = true;
     else if (!a.startsWith('-')) opts.film = a;
     else throw new Error(`Unknown option ${a}.`);
   }
@@ -88,6 +91,21 @@ async function main() {
       if (shot.note) say(`  note:      ${shot.note}`);
       say('');
     }
+    return;
+  }
+
+  // ---- the same for a Claude chat to film on Higgsfield. It fetches the key
+  // frames from GitHub, so they have to be pushed.
+  if (opts.chat) {
+    const todo = filmed.filter((s) => !existsSync(clipOf(s)));
+    if (!todo.length) return say('Every shot is filmed.');
+    const unmade = todo.filter((s) => !existsSync(frameOf(s))).map((s) => s.id);
+    if (unmade.length) throw new Error(`No key frame yet for ${unmade.join(', ')}: npm run film -- ${slug} --yes`);
+    const git = (...a) => spawnSync('git', a, { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
+    const repo = git('remote', 'get-url', 'origin').match(/([^/:]+\/[^/]+?)(?:\.git)?$/)?.[1];
+    if (!repo) throw new Error('Which GitHub repository is this? (git remote get-url origin says nothing.)');
+    if (git('status', '--porcelain', '--', path.join(dir, 'frames'))) console.error('(Some key frames aren\'t committed. Push them first: the chat fetches them from GitHub.)\n');
+    say(chatBrief(film, { shots: todo, frames: `https://raw.githubusercontent.com/${repo}/${git('rev-parse', '--abbrev-ref', 'HEAD')}/${rel(path.join(dir, 'frames'))}`, how: kit.film.chat }));
     return;
   }
 

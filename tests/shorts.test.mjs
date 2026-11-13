@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { check, finish } from './lib.mjs';
 import { captionsAss, captionsSrt } from '../shorts/lib/captions.mjs';
-import { readFilm, timing } from '../shorts/lib/film.mjs';
+import { chatBrief, readFilm, timing } from '../shorts/lib/film.mjs';
 import { findCharacter, parseScript } from '../shorts/lib/script.mjs';
 import { audioTags } from '../shorts/lib/services.mjs';
 
@@ -83,6 +83,8 @@ const itch = readFilm(fileURLToPath(new URL('../shorts/films/the-itch', import.m
 check('the-itch film reads cleanly', itch.errors.length === 0 && itch.film.shots.length >= 10, itch.errors.join('; '));
 const cut = timing(itch.film);
 check('...and runs under a minute, shots back to back', cut.total <= 60 && cut.at['01-skin'].start === itch.film.shots[0].seconds, String(cut.total));
+const brief = chatBrief(itch.film, { shots: itch.film.shots.filter((s) => s.id === '01-skin'), frames: 'https://example.test/frames', how: { model: 'm', mode: 'x', resolution: '720p', takes: 2 } });
+check('...and its brief for a chat films the shot from its key frame, never on credits', brief.includes('https://example.test/frames/01-skin.jpg') && brief.includes('01-skin (5 seconds)') && brief.includes('use_unlim: true') && !brief.includes('02-plot'), `${brief.length} characters`);
 const badFilm = readFilm(fileURLToPath(new URL('./fixtures/bad-film', import.meta.url)), cast);
 check('a film with mistakes says what they are', badFilm.errors.length === 4, badFilm.errors.join(' / '));
 finish();

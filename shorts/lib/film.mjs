@@ -79,3 +79,30 @@ export function timing(film) {
   }
   return { at, total: t };
 }
+
+// What to paste into a Claude chat that has Higgsfield connected, so it films
+// `shots` on the free trial's unlimited generations (Higgsfield gives those in
+// a chat, never in a Claude Code session: that one can only spend credits).
+// `frames` is the web address the key frames are at (<frames>/<shot id>.jpg);
+// `how` is kit.json's film.chat: { model, mode, resolution, takes }.
+export function chatBrief(film, { shots, frames, how }) {
+  const lines = [
+    `Film ${shots.length} shot${shots.length === 1 ? '' : 's'} for "${film.title}" on Higgsfield, on my free trial's unlimited generations.`,
+    '',
+    'Rules:',
+    '- Every generate_video call has use_unlim: true. Never spend credits. If a call can\'t run on unlimited, stop and tell me exactly what it said.',
+    '- Nothing to ask me and nothing to preview: work through the list (the batch tool is fine).',
+    '',
+    'For each shot:',
+    '1. media_import_url its key frame.',
+    `2. generate_video, ${how.takes} take${how.takes === 1 ? '' : 's'}: model ${how.model}, mode ${how.mode}, the key frame as start_image, aspect_ratio ${film.format === 'wide' ? '16:9' : '9:16'}, resolution ${how.resolution}, generate_audio false, and the seconds and prompt below.`,
+    '',
+    'When every job has finished, give me one table: shot, take, job id, status.',
+  ];
+  for (const shot of shots) {
+    const seconds = Math.max(4, Math.ceil(shot.seconds * (shot.speed ?? 1) - 0.05));
+    lines.push('', `${shot.id} (${seconds} seconds)`, `key frame: ${frames}/${shot.id}.jpg`,
+      `prompt: ${[shot.camera ? `Camera: ${shot.camera}.` : '', shot.prompt, film.look].filter(Boolean).join(' ')}`);
+  }
+  return lines.join('\n');
+}

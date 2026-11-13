@@ -169,18 +169,32 @@ A film is a folder, `shorts/films/<name>/`, all of it committed:
 The mix is left as it's laid out, quiet parts quiet (an episode's dialogue is
 evened out instead), then brought to `loudness` as a whole.
 
-**Filming on Higgsfield** (a connector on claude.ai; a session has its tools
-only if it was connected when the session started):
-1. Import each key frame: `media_import_url` with its raw GitHub address
-   (`https://raw.githubusercontent.com/<owner>/<repo>/main/shorts/films/<name>/frames/<id>.jpg`;
-   the cloud session can't reach Higgsfield's upload server, and doesn't need to).
-2. Quote before filming (`generate_video` with `get_cost: true`): in November
-   2026 a 5-second vertical shot cost 5 credits on Cinema Studio Video or
-   Grok Video Lite, 7.5 on Kling 3.0, 35 on Seedance 2.5.
-3. Film from the key frame (`start_image`) with the prompt from `--shots`,
-   9:16, sound off (the film has its own).
-4. Download the result into `clips/<id>.mp4` (its host has to be allowed in
-   the environment's network settings), and cut.
+**Filming on Higgsfield** (a connector on claude.ai). Where the session runs
+decides who pays:
+- **A Claude chat** (claude.ai, Cowork or ChatGPT, with Higgsfield connected)
+  can film on a free trial's unlimited generations. Those cover Seedance 2.0
+  and 2.5 for video (and Nano Banana, GPT Image, Seedream and Soul for
+  pictures, Text to Speech and Seed Audio for sound).
+- **A Claude Code session** (this kit's home) can't: Higgsfield refuses
+  unlimited generations there, so everything it films costs credits.
+
+So the shots are filmed in a chat and cut here:
+1. Push the key frames, then `npm run film -- <name> --chat`. It prints what to
+   paste into a Claude chat: every shot not filmed yet, its key frame's GitHub
+   address, its prompt, and the settings (`kit.json`, `film.chat`). The chat
+   imports each key frame (`media_import_url`), films it with `use_unlim: true`
+   and never on credits, and answers with the job ids.
+2. In the Code session, find the finished jobs (`show_generations`, or
+   `show_generation_by_ids` with the ids), pick a take of each, download it
+   into `clips/<id>.mp4` (its host has to be allowed in the environment's
+   network settings), and cut.
+
+Filming from a Code session on credits works the same way with
+`generate_video` (quote first with `get_cost: true`): in November 2026 a
+5-second vertical shot cost 5 credits on Cinema Studio Video or Grok Video
+Lite, 7.5 on Kling 3.0, 35 on Seedance 2.5. The cloud session can't reach
+Higgsfield's upload server, and doesn't need to: `media_import_url` takes the
+key frame's raw GitHub address.
 
 ## Cast and voices
 
