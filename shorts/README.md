@@ -8,6 +8,7 @@ text script, run one command, get the episode:
 - a title card and the hairypopsicles.com end card
 
 Vertical (9:16) by default. Episodes are in `shorts/scripts/ep*.txt`.
+The world, its residents and the plan for bigger video: `shorts/WORLD.md`.
 
 How a shot is made: each character is animated on a flat green screen, keyed
 out, and laid over a still background. So the background never warps, and
