@@ -7,7 +7,6 @@
   "title": "THE ITCH",
   "line": "hairypopsicles.com"
  },
- "range": 16,
  "sounds": {
   "drip": {
    "make": "a single drop of water falling into a still puddle in a silent cave, very close, with a short echo",
@@ -15,7 +14,7 @@
    "peak": -7
   },
   "wind": {
-   "make": "a soft low wind over a vast empty plain at dawn, hollow and distant, no music",
+   "make": "wind blowing steadily across a wide open plain, a low hollow moaning wind, close and clear, constant, no music",
    "seconds": 20,
    "loop": true,
    "loudness": -27
@@ -24,7 +23,7 @@
    "make": "a very slow deep heartbeat, muffled, as if heard from inside an enormous body, steady, no music",
    "seconds": 12,
    "loop": true,
-   "loudness": -24
+   "loudness": -26
   },
   "sprout": {
    "make": "something soft slowly pushing up out of wet mud with a sticky stretching squelch, then a small pop",
@@ -62,10 +61,6 @@
   },
   "dining": {
    "file": "sounds/ep6-sunday-roast-3d2ca3f3.mp3",
-   "loudness": -26
-  },
-  "parlour": {
-   "file": "sounds/ep9-the-reunion-b7c99546.mp3",
    "loudness": -26
   },
   "hit": {
@@ -107,26 +102,35 @@
    "fadeOut": 0.2
   },
   {
-   "name": "heart",
-   "from": "07-eye",
-   "to": "09-nail",
-   "fadeIn": 1.5,
-   "fadeOut": 0.05
-  },
-  {
-   "name": "parlour",
-   "from": "08-aunties",
-   "to": "08-aunties",
-   "fadeIn": 0.2,
-   "fadeOut": 0.2
-  },
-  {
    "name": "wind",
    "from": "09-nail",
    "to": "09-nail",
    "fadeIn": 0.3,
    "fadeOut": 0.05,
    "volume": 1.3
+  },
+  {
+   "name": "heart",
+   "from": "07-eye",
+   "to": "07-eye",
+   "fadeIn": 1.5,
+   "fadeOut": 0.4
+  },
+  {
+   "name": "heart",
+   "from": "08-aunties",
+   "to": "08-aunties",
+   "volume": 0.3,
+   "fadeIn": 0.4,
+   "fadeOut": 0.4
+  },
+  {
+   "name": "heart",
+   "from": "09-nail",
+   "to": "09-nail",
+   "volume": 1.4,
+   "fadeIn": 0.4,
+   "fadeOut": 0.05
   }
  ],
  "shots": [
@@ -147,7 +151,7 @@
    "fadeIn": 2.5,
    "speed": 0.77,
    "frame": {
-    "paint": "Aerial view, flying low over a vast landscape at dawn where the ground is the sunburnt skin of something enormous, stretching to the horizon: pores like small craters, freckles like dark lakes, deep wrinkles like dry riverbeds, a few coarse black hairs standing like bare dead trees, fine white flakes drifting through the air like snow, low mist pooled in the folds, pale pink sunrise light raking across it."
+    "paint": "Aerial photograph looking down at an angle across an endless plain of human-like skin at dawn, as if a sleeping giant's back were a whole country: pale pink sunburnt skin with visible pores, fine wrinkles and creases like dry riverbeds, scattered brown freckles and moles as big as lakes and hills, sparse coarse dark hairs standing up like bare trees, each casting a long shadow, patches of dry peeling skin, fine white flakes drifting in the air like snow, low mist lying in the creases, the horizon curving gently, pale pink sunrise light raking across it. No sand, no rock, no water: it is all skin."
    },
    "camera": "slow aerial drift forward, low over the ground",
    "prompt": "The camera glides slowly forward over the landscape of skin. White flakes drift down like snow, mist moves in the folds, the far-off hairs sway a little. The whole ground very faintly rises and falls, as if breathing."
@@ -276,7 +280,7 @@
    "id": "07-eye",
    "seconds": 5,
    "frame": {
-    "paint": "Extreme close-up, looking down at a huge eyeball set into the ground at the bottom of a shallow hollow of wrinkled pink skin like a navel: thick heavy eyelids of skin almost shut, only a thin wet slit showing a sliver of yellow-green iris, coarse black hairs around it like eyelashes, a few candle stubs burning on the rim of the hollow, red dusk light, wet and glossy."
+    "paint": "Looking straight down at the ground: a plain of wrinkled pink skin with a shallow round hollow in it like a navel, and at the bottom of the hollow a single enormous eye set directly into the ground, with no face around it at all: no eyebrow, no nose, no cheek, only the ground's own skin folding into two heavy lids, almost shut, a thin wet slit showing a sliver of yellow-green iris; a ring of short coarse black hairs around the hollow, a few small candle stubs burning on its rim, red dusk light, wet and glossy."
    },
    "camera": "crash zoom into the slit of the eye",
    "prompt": "The heavy eyelid slowly peels open with a wet stretch. The iris rolls, searching, then snaps to look straight into the camera. The candle flames lean away from it.",
@@ -301,7 +305,8 @@
     "who": "head-bloom",
     "say": "We remember the last one.",
     "how": "whispering",
-    "at": 1.0
+    "at": 1.0,
+    "volume": 1.3
    }
   },
   {

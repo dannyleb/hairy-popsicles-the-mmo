@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
 import { readFilm, timing } from './lib/film.mjs';
-import { duration, ffmpeg, finish, hasSound, hash, hashFile, join, startFrame, treatMusic, whole } from './lib/media.mjs';
+import { MASTER_LOUDNESS, duration, ffmpeg, finish, hasSound, hash, hashFile, join, regain, startFrame, treatMusic, whole } from './lib/media.mjs';
 import { dataUri, download, falRun, loadKeys } from './lib/services.mjs';
 
 // (behind an HTTPS proxy, Node's fetch needs NODE_USE_ENV_PROXY=1: see make.mjs)
@@ -150,6 +150,12 @@ async function main() {
       if (!body.audio?.url) throw new Error(`The sound model didn't make "${name}" (${JSON.stringify(body).slice(0, 200)}).`);
       const raw = `${madeSound(name)}.raw`;
       await download(body.audio.url, raw);
+      // (the sound model answers "soft" and "distant" with next to nothing: catch that here, not in the mix)
+      const heard = Number(spawnSync('ffmpeg', ['-hide_banner', '-i', raw, '-af', 'volumedetect', '-f', 'null', '-'], { encoding: 'utf8' }).stderr.match(/mean_volume: (-?[\d.]+) dB/)?.[1] ?? -99);
+      if (heard < -50) {
+        rmSync(raw, { force: true });
+        throw new Error(`The sound "${name}" came out all but silent (${heard} dB). Describe it louder and closer, and run again.`);
+      }
       whole(madeSound(name), (temp) => ffmpeg(['-i', raw, '-ar', '48000', '-c:a', 'libmp3lame', '-q:a', '2', '-f', 'mp3', temp]));
       rmSync(raw, { force: true });
       soundFile[name] = madeSound(name);
@@ -253,11 +259,14 @@ async function main() {
   writeFileSync(ass, captionsAss({ size, lines: (film.captions ?? 'on') === 'off' ? [] : lines, names: false, show: null, title: null, endcard: card }));
   writeFileSync(path.join(out, `${slug}.srt`), captionsSrt(lines));
   const final = path.join(out, `${slug}${standIns ? '-animatic' : ''}.mp4`);
+  // (mixed as it was laid out, quiet parts left quiet, then the whole of it brought to its loudness)
+  const mixed = path.join(out, 'mixed.mp4');
   finish({
     joined, ass, fontsDir: path.join(HERE, 'fonts'), music: null, hits, vhs: bursts.length ? { bursts, volume: kit.vhs.volume } : null,
-    size, range: film.range ?? 16, total, outFile: final,
+    size, range: null, total, outFile: mixed,
   });
-  for (const clip of [...clips, joined]) rmSync(clip, { force: true });
+  regain({ inFile: mixed, loudness: film.loudness ?? MASTER_LOUDNESS, outFile: final });
+  for (const clip of [...clips, joined, mixed]) rmSync(clip, { force: true });
   say(`\n${standIns ? `The animatic (${standIns} shots still to film; their key frames stand in)` : 'Done'}: ${rel(final)} (${duration(final).toFixed(1)}s)`);
   if (standIns) say(`The shot list to film from: npm run film -- ${slug} --shots`);
 }

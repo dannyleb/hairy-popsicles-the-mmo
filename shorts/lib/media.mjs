@@ -176,7 +176,10 @@ export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicU
       `[n][z]amix=inputs=2:normalize=0,volume='if(${glitch.on},${vhs.volume ?? 0.3},0)':eval=frame,${stereo}[hiss]`);
     mix.push('[hiss]');
   }
-  graph.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,${range < 8 ? 'acompressor=threshold=0.06:ratio=2.5:attack=15:release=250:makeup=1.5,' : ''}loudnorm=I=${MASTER_LOUDNESS}:TP=-1.5:LRA=${range},aresample=48000[master]`);  // (a tight range gets the whole mix squeezed a little first)
+  // (a tight range gets the whole mix squeezed a little first; range: null leaves
+  // the mix exactly as loud and as quiet as it was put together: see regain)
+  const evened = range == null ? '' : `${range < 8 ? 'acompressor=threshold=0.06:ratio=2.5:attack=15:release=250:makeup=1.5,' : ''}loudnorm=I=${MASTER_LOUDNESS}:TP=-1.5:LRA=${range},`;
+  graph.push(`${mix.join('')}amix=inputs=${mix.length}:duration=first:normalize=0,${evened}aresample=48000[master]`);
   // `over` ({ file }, already at the loudness it should be heard at) goes on
   // after all that, so the squeeze can't lift it in the pauses: it stays put.
   if (over) {
@@ -188,6 +191,18 @@ export function finish({ joined, ass, fontsDir, music, musicVolume = 0.4, musicU
     '-t', total.toFixed(3), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p',
     ...AUDIO, '-movflags', '+faststart', outFile,
   ]);
+}
+
+// A finished video's sound turned up or down as a whole to `loudness` (LUFS),
+// the picture untouched: for a mix whose quiet parts are meant to stay quiet
+// (a film's; an episode's dialogue is evened out instead). Only the very
+// loudest peaks are held back.
+export function regain({ inFile, loudness = MASTER_LOUDNESS, outFile }) {
+  const log = spawnSync('ffmpeg', ['-hide_banner', '-i', inFile, '-vn', '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const now = Number([...log.matchAll(/I:\s+(-?[\d.]+) LUFS/g)].pop()?.[1]);
+  const gain = Number.isFinite(now) && now > -60 ? loudness - now : 0;
+  ffmpeg(['-i', inFile, '-c:v', 'copy', '-af', `volume=${gain.toFixed(2)}dB,alimiter=limit=0.89:level=0:attack=3:release=60`, ...AUDIO, '-movflags', '+faststart', outFile]);
+  return gain;
 }
 
 // VHS static over the picture during each burst ([start, end] seconds):

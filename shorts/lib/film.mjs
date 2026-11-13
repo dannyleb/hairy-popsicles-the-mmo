@@ -7,7 +7,7 @@ import path from 'node:path';
 //   "title": "The Itch", "format": "vertical" | "wide",
 //   "look": "words added to every shot's prompt (the look to keep)",
 //   "card": { "title": "THE ITCH", "line": "hairypopsicles.com" },
-//   "range": 16,                         loudness range of the mix (bigger: quieter quiet, louder loud)
+//   "loudness": -14,                     how loud the whole film is (LUFS); its quiet parts stay quiet
 //   "captions": "on" | "off",
 //   "sounds": { "<name>": one of
 //       { "make": "a description", "seconds": 4 }       made by the sound model, kept in sounds/<name>.mp3
