@@ -140,6 +140,48 @@ want to upload captions separately. Until every shot has video, it's
 - **Testing without spending anything?** `--offline` uses silent placeholder
   voices and stills.
 
+## Films: shots made elsewhere
+
+The kit makes dialogue: characters on a green screen over a still room. For
+the big picture (landscapes, camera moves, the Eye opening) a **film** takes
+its shots from anywhere that hands back a video file (Higgsfield, the kit's
+own video model, a phone) and cuts them with the kit's voices, sound, VHS
+static and titles:
+
+```
+npm run film -- the-itch           # where it stands, and the cut (the animatic until every shot is filmed)
+npm run film -- the-itch --yes     # first makes what's missing and costs money (key frames, sounds, lines)
+npm run film -- the-itch --shots   # the shot list to film from: each key frame, how long, the prompt
+```
+
+A film is a folder, `shorts/films/<name>/`, all of it committed:
+- `film.json`: the cut list. Each shot has an id, how long it runs, a key
+  frame (painted from a description, or a character stood in a set that's
+  already painted: free), a prompt and camera note for whoever films it,
+  sound cues and maybe a line. `lib/film.mjs` lists every field.
+- `frames/<id>.jpg`: the key frames. Film each shot **from its key frame**
+  (image-to-video), so the characters and the world stay as drawn.
+- `clips/<id>.mp4`: the filmed shots, dropped in under the shot's id (any
+  size or length: they're fitted, and `speed` slows one down). Until a
+  shot's clip is there its key frame stands in, drifting, marked "still".
+- `sounds/`, `voices/`: made once (`--yes`), kept. Delete one to make it again.
+
+The mix is left as it's laid out, quiet parts quiet (an episode's dialogue is
+evened out instead), then brought to `loudness` as a whole.
+
+**Filming on Higgsfield** (a connector on claude.ai; a session has its tools
+only if it was connected when the session started):
+1. Import each key frame: `media_import_url` with its raw GitHub address
+   (`https://raw.githubusercontent.com/<owner>/<repo>/main/shorts/films/<name>/frames/<id>.jpg`;
+   the cloud session can't reach Higgsfield's upload server, and doesn't need to).
+2. Quote before filming (`generate_video` with `get_cost: true`): in November
+   2026 a 5-second vertical shot cost 5 credits on Cinema Studio Video or
+   Grok Video Lite, 7.5 on Kling 3.0, 35 on Seedance 2.5.
+3. Film from the key frame (`start_image`) with the prompt from `--shots`,
+   9:16, sound off (the film has its own).
+4. Download the result into `clips/<id>.mp4` (its host has to be allowed in
+   the environment's network settings), and cut.
+
 ## Cast and voices
 
 Each character in `cast.json` has its own designed voice:
