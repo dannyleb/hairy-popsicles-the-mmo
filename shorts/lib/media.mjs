@@ -39,7 +39,8 @@ export const hashFile = (file) => hash(readFileSync(file));
 // darkened so the character stands out) or null for plain dark.
 // A texture (the game's ground) is blurred and darkened hard so it reads as a
 // backdrop; a painted `scene` only a little (some depth of field), to keep it a place.
-export function startFrame({ character, background, scene = false, size: [W, H], height, bottom, outFile }) {
+// The character's box is `height` of the frame tall, its foot at `bottom`, its middle `across` the width.
+export function startFrame({ character, background, scene = false, size: [W, H], height, bottom, across = 0.5, outFile }) {
   const inputs = background ? ['-i', background] : ['-f', 'lavfi', '-i', `color=c=0x0e0608:s=${W}x${H}`];
   const treat = scene ? 'gblur=sigma=1.6,eq=brightness=-0.05:saturation=0.95,vignette=PI/5' : 'gblur=sigma=4,eq=brightness=-0.1:saturation=0.85,vignette=PI/4';
   const bg = background
@@ -55,8 +56,8 @@ export function startFrame({ character, background, scene = false, size: [W, H],
     bg,
     `[1:v]format=rgba,scale=${boxW}:${boxH}:force_original_aspect_ratio=decrease,split[c][s]`,
     '[s]colorchannelmixer=rr=0:gg=0:bb=0:aa=0.55,gblur=sigma=16[sh]',
-    `[bg][sh]overlay=x=(W-w)/2+14:y=${Math.round(H * bottom)}-h+22[b2]`,
-    `[b2][c]overlay=x=(W-w)/2:y=${Math.round(H * bottom)}-h,format=yuvj420p`,
+    `[bg][sh]overlay=x=W*${across}-w/2+14:y=${Math.round(H * bottom)}-h+22[b2]`,
+    `[b2][c]overlay=x=W*${across}-w/2:y=${Math.round(H * bottom)}-h,format=yuvj420p`,
   ].join(';');
   whole(outFile, (temp) => ffmpeg([...inputs, '-i', character, '-filter_complex', graph, '-frames:v', '1', '-q:v', '3', '-f', 'image2', temp]));
 }

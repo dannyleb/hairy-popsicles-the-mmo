@@ -16,7 +16,8 @@
     "load": "node tools/load/run.mjs",
     "site": "npm run build -w @hptm/client -- --base=/the-mmo/ && node tools/site.mjs",
     "short": "node shorts/make.mjs",
-    "episodes": "node shorts/publish.mjs"
+    "episodes": "node shorts/publish.mjs",
+    "film": "node shorts/film.mjs"
   },
   "devDependencies": {
     "@neon/config": "^1.9.3",

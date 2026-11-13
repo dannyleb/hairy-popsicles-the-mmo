@@ -9,12 +9,13 @@
 //   npm run short -- --design conehead,redeye     design those characters' voices from their briefs (or "all")
 //   npm run short -- --pose conehead,redeye       draw them turned left and right (or "all")
 //   npm run short -- --voices                     the stock ElevenLabs voices on your account
+//   npm run short -- lines.txt --lines some/folder   only the lines, said and treated, as files (films use this)
 //
 // Everything made is kept (shorts/out/.cache), keyed by what went into it,
 // so running again only makes what changed: edit one line and only that
 // line's voice and shot are made again.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { captionsAss, captionsSrt } from './lib/captions.mjs';
@@ -59,7 +60,7 @@ const say = (...parts) => console.log(...parts);
 const money = (n) => `$${n.toFixed(2)}`;
 
 function args(argv) {
-  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, flip: null, mouth: null, redo: new Set(), revoice: new Set() };
+  const opts = { script: null, yes: false, offline: false, voices: false, design: null, pose: null, flip: null, mouth: null, lines: null, redo: new Set(), revoice: new Set() };
   const shots = (v) => new Set(String(v ?? '').split(',').map(Number).filter((n) => n > 0));
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -70,6 +71,7 @@ function args(argv) {
     else if (a === '--pose') opts.pose = String(argv[++i] ?? '');
     else if (a === '--flip') opts.flip = String(argv[++i] ?? '');
     else if (a === '--mouth') opts.mouth = String(argv[++i] ?? '');
+    else if (a === '--lines') opts.lines = String(argv[++i] ?? '');
     else if (a === '--redo') opts.redo = shots(argv[++i]);
     else if (a === '--revoice') opts.revoice = shots(argv[++i]);
     else if (!a.startsWith('-')) opts.script = a;
@@ -556,6 +558,13 @@ async function main() {
     shot.seconds = Math.max(duration(shot.audio) + tailFor(shot.text), shot.notes.off ? 0.6 : kit.talking.minSeconds);
   }
   if (voiceChars && provider === 'fal') say(`(voices: ${voiceChars} characters, about ${money((voiceChars / 1000) * kit.voice.pricePer1000)})`);
+  // --lines <folder>: only the lines, said and treated, as line-1.mp3, line-2.mp3...
+  // (what a film's cut uses: shorts/film.mjs). Nothing else is made.
+  if (opts.lines) {
+    mkdirSync(opts.lines, { recursive: true });
+    shots.filter((s) => s.kind === 'talk').forEach((shot, i) => copyFileSync(shot.audio, path.join(opts.lines, `line-${i + 1}.mp3`)));
+    return;
+  }
 
   // The frenzy (energy: frantic): the camera never quite holds still, and
   // snaps in at random while anyone's moving. Silent beats only tremble: the

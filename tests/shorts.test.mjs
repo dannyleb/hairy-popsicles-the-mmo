@@ -1,7 +1,9 @@
 // The shorts kit's script reader and captions (no services, no server).
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { check, finish } from './lib.mjs';
 import { captionsAss, captionsSrt } from '../shorts/lib/captions.mjs';
+import { readFilm, timing } from '../shorts/lib/film.mjs';
 import { findCharacter, parseScript } from '../shorts/lib/script.mjs';
 import { audioTags } from '../shorts/lib/services.mjs';
 
@@ -75,4 +77,12 @@ const ass = captionsAss({ size: [1080, 1920], lines, names: true, title: 'T', en
 check('captions: timed, braces stripped, name shown', ass.includes('0:00:00.05,0:00:02.40,Line') && ass.includes('Has anyone seen my eye?') && ass.includes('GREG'));
 check('captions: title and end card', ass.includes(',Title,') && ass.includes(',End,') && ass.includes('Play'));
 check('srt timing', captionsSrt(lines).includes('00:00:00,050 --> 00:00:02,400'), captionsSrt(lines));
+
+// Films (shorts/films/<name>/film.json): the cut list reads, and is under a minute.
+const itch = readFilm(fileURLToPath(new URL('../shorts/films/the-itch', import.meta.url)), cast);
+check('the-itch film reads cleanly', itch.errors.length === 0 && itch.film.shots.length >= 10, itch.errors.join('; '));
+const cut = timing(itch.film);
+check('...and runs under a minute, shots back to back', cut.total <= 60 && cut.at['01-skin'].start === itch.film.shots[0].seconds, String(cut.total));
+const badFilm = readFilm(fileURLToPath(new URL('./fixtures/bad-film', import.meta.url)), cast);
+check('a film with mistakes says what they are', badFilm.errors.length === 4, badFilm.errors.join(' / '));
 finish();

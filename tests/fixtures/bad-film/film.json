@@ -1,0 +1,36 @@
+{
+ "title": "Bad",
+ "sounds": {
+  "a": {
+   "make": "x",
+   "seconds": 40
+  }
+ },
+ "beds": [
+  {
+   "name": "a",
+   "from": "one",
+   "to": "nowhere"
+  }
+ ],
+ "shots": [
+  {
+   "id": "one",
+   "seconds": 2,
+   "black": true,
+   "sound": [
+    {
+     "name": "missing"
+    }
+   ]
+  },
+  {
+   "id": "two",
+   "seconds": 3,
+   "frame": {
+    "set": "x.jpg",
+    "who": "gary"
+   }
+  }
+ ]
+}

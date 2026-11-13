@@ -1,0 +1,379 @@
+{
+ "_": "THE ITCH: the teaser. The world wakes up itching; something is coming to scratch it. See shorts/WORLD.md. Cut with: npm run film -- the-itch (stills stand in until each shot is filmed and dropped in clips/).",
+ "title": "The Itch",
+ "format": "vertical",
+ "look": "Keep the exact look of the starting picture: a photoreal, grotesque, wet and glossy 3D render, like a nature documentary on old VHS tape. No text, captions or logos.",
+ "card": {
+  "title": "THE ITCH",
+  "line": "hairypopsicles.com"
+ },
+ "range": 16,
+ "sounds": {
+  "drip": {
+   "make": "a single drop of water falling into a still puddle in a silent cave, very close, with a short echo",
+   "seconds": 2,
+   "peak": -7
+  },
+  "wind": {
+   "make": "a soft low wind over a vast empty plain at dawn, hollow and distant, no music",
+   "seconds": 20,
+   "loop": true,
+   "loudness": -27
+  },
+  "heart": {
+   "make": "a very slow deep heartbeat, muffled, as if heard from inside an enormous body, steady, no music",
+   "seconds": 12,
+   "loop": true,
+   "loudness": -24
+  },
+  "sprout": {
+   "make": "something soft slowly pushing up out of wet mud with a sticky stretching squelch, then a small pop",
+   "seconds": 4,
+   "peak": -9
+  },
+  "itch": {
+   "make": "many fingernails scratching dry rough skin all at once, dry rasping scratching, getting faster and louder",
+   "seconds": 8,
+   "peak": -8
+  },
+  "rumble": {
+   "make": "a deep low rumble rolling across the ground like a slow distant earthquake, sub bass, no music",
+   "seconds": 6,
+   "peak": -6
+  },
+  "stir": {
+   "make": "a metal spoon slowly stirring thick soup in a pot, scraping the sides, close",
+   "seconds": 5,
+   "peak": -14
+  },
+  "eye": {
+   "make": "a soft sticky click, like a heavy eyelid slowly peeling open, very close microphone",
+   "seconds": 2,
+   "peak": -6
+  },
+  "drone": {
+   "make": "a huge deep drone slowly descending in pitch, growing louder and heavier like something enormous coming down from the sky, then cutting off suddenly",
+   "seconds": 7,
+   "peak": -5
+  },
+  "bedroom": {
+   "file": "sounds/ep5-four-sheep-13c4eb6c.mp3",
+   "loudness": -24
+  },
+  "dining": {
+   "file": "sounds/ep6-sunday-roast-3d2ca3f3.mp3",
+   "loudness": -26
+  },
+  "parlour": {
+   "file": "sounds/ep9-the-reunion-b7c99546.mp3",
+   "loudness": -26
+  },
+  "hit": {
+   "file": "sounds/hit-hit-bcf1137c.mp3",
+   "peak": -5
+  },
+  "box": {
+   "music": "creepy-box",
+   "loudness": -19
+  }
+ },
+ "beds": [
+  {
+   "name": "wind",
+   "from": "01-skin",
+   "to": "02-plot",
+   "fadeIn": 3,
+   "fadeOut": 0.3
+  },
+  {
+   "name": "bedroom",
+   "from": "03-nerm",
+   "to": "03-nerm",
+   "fadeIn": 0.2,
+   "fadeOut": 0.2
+  },
+  {
+   "name": "wind",
+   "from": "04-flats",
+   "to": "05-hairs",
+   "fadeIn": 0.3,
+   "fadeOut": 0.2
+  },
+  {
+   "name": "dining",
+   "from": "06-nana",
+   "to": "06-nana",
+   "fadeIn": 0.2,
+   "fadeOut": 0.2
+  },
+  {
+   "name": "heart",
+   "from": "07-eye",
+   "to": "09-nail",
+   "fadeIn": 1.5,
+   "fadeOut": 0.05
+  },
+  {
+   "name": "parlour",
+   "from": "08-aunties",
+   "to": "08-aunties",
+   "fadeIn": 0.2,
+   "fadeOut": 0.2
+  },
+  {
+   "name": "wind",
+   "from": "09-nail",
+   "to": "09-nail",
+   "fadeIn": 0.3,
+   "fadeOut": 0.05,
+   "volume": 1.3
+  }
+ ],
+ "shots": [
+  {
+   "id": "00-black",
+   "black": true,
+   "seconds": 1.4,
+   "sound": [
+    {
+     "name": "drip",
+     "at": 0.45
+    }
+   ]
+  },
+  {
+   "id": "01-skin",
+   "seconds": 6.5,
+   "fadeIn": 2.5,
+   "speed": 0.77,
+   "frame": {
+    "paint": "Aerial view, flying low over a vast landscape at dawn where the ground is the sunburnt skin of something enormous, stretching to the horizon: pores like small craters, freckles like dark lakes, deep wrinkles like dry riverbeds, a few coarse black hairs standing like bare dead trees, fine white flakes drifting through the air like snow, low mist pooled in the folds, pale pink sunrise light raking across it."
+   },
+   "camera": "slow aerial drift forward, low over the ground",
+   "prompt": "The camera glides slowly forward over the landscape of skin. White flakes drift down like snow, mist moves in the folds, the far-off hairs sway a little. The whole ground very faintly rises and falls, as if breathing."
+  },
+  {
+   "id": "02-plot",
+   "seconds": 5,
+   "frame": {
+    "paint": "Macro shot at ground level in a field of small round garden plots, each a low mound of dark wet soil set in soft pink wrinkled ground like skin, in neat rows going out of focus; from the nearest mound the top half of this exact creature's bald head is pushing up out of the soil like a sprouting bulb, its eyes shut, glistening wet, beads of blue sweat on it; dawn light, dew, extremely shallow depth of field.",
+    "with": [
+     "sweats"
+    ]
+   },
+   "camera": "slow macro push in",
+   "prompt": "The mound in the nearest plot bulges and splits. The bald head slowly pushes up out of the soil, slime stretching off it, eyes still shut. At the very end one eyelid twitches.",
+   "sound": [
+    {
+     "name": "sprout",
+     "at": 0.7
+    }
+   ]
+  },
+  {
+   "id": "03-nerm",
+   "seconds": 5,
+   "staticIn": 0.2,
+   "frame": {
+    "set": "backgrounds/ep5-four-sheep-995d0d77.jpg",
+    "who": "redeye",
+    "height": 0.4,
+    "bottom": 0.93,
+    "across": 0.36
+   },
+   "camera": "locked off, then a very slow push in",
+   "prompt": "Three in the morning. He lies awake, wide-eyed, never blinking; only his pupils twitch. Behind him, the dark shape of a sheep at the end of the bed stands perfectly still; then its head turns very slightly toward the camera."
+  },
+  {
+   "id": "04-flats",
+   "seconds": 5,
+   "staticIn": 0.2,
+   "frame": {
+    "paint": "Wide shot at eye level of a flat open plain of freckled, sunburnt skin under a hazy pale sky, fine white flakes drifting down like snow; these exact creatures stand scattered about the plain at different distances, all quite small in the frame, each exactly as in its picture, none touching, a few coarse black hairs growing out of the ground here and there like bare trees; morning light, long shadows.",
+    "with": [
+     "conehead",
+     "bigeye",
+     "pimples",
+     "droopy",
+     "stubble",
+     "melter"
+    ]
+   },
+   "camera": "slow crane down and forward through them",
+   "prompt": "The creatures go about their morning. Then, one by one, each stops and starts scratching itself, faster and faster. White flakes keep falling.",
+   "sound": [
+    {
+     "name": "itch",
+     "at": 1.6,
+     "volume": 0.5,
+     "seconds": 3.4,
+     "fadeIn": 1.2,
+     "fadeOut": 0.1
+    }
+   ]
+  },
+  {
+   "id": "05-hairs",
+   "seconds": 4.5,
+   "frame": {
+    "paint": "Very low angle at ground level across a plain of pink skin covered in goosebumps: giant coarse black hairs rise out of swollen pores like tree trunks, every one standing stiffly upright, the skin between them rippling in a slow wave, dust and white flakes shaken into the air, strong backlight from a low sun, ominous."
+   },
+   "camera": "low tracking shot, sliding sideways past the hairs",
+   "prompt": "A slow wave ripples through the ground toward the camera. Goosebumps swell; every hair stiffens and stands straight up, quivering. Flakes are shaken into the air.",
+   "sound": [
+    {
+     "name": "itch",
+     "at": 0,
+     "volume": 1,
+     "seconds": 4.5,
+     "from": 3,
+     "fadeIn": 0.05,
+     "fadeOut": 0.05
+    },
+    {
+     "name": "rumble",
+     "at": 0.2,
+     "seconds": 4.3,
+     "fadeOut": 0.05
+    }
+   ]
+  },
+  {
+   "id": "06-nana",
+   "seconds": 5,
+   "staticIn": 0.15,
+   "frame": {
+    "set": "backgrounds/ep6-sunday-roast-0c04b306.jpg",
+    "who": "spoon-nana"
+   },
+   "camera": "locked off, close, a slight handheld sway",
+   "prompt": "The grandmother slowly stirs with her spoon, unbothered, eyes half shut. The room trembles very slightly and the lamp sways. She glances toward the window and mutters three words.",
+   "note": "She speaks (voices/06-nana.mp3). If Higgsfield can lip-sync to an audio file, use it; otherwise film her with the kit (a script line, lip-synced) and keep this for the room.",
+   "sound": [
+    {
+     "name": "stir",
+     "at": 0.1,
+     "seconds": 4.6
+    },
+    {
+     "name": "rumble",
+     "at": 0,
+     "volume": 0.25,
+     "seconds": 5,
+     "from": 0.5,
+     "fadeIn": 0.05,
+     "fadeOut": 0.3
+    }
+   ],
+   "voice": {
+    "who": "spoon-nana",
+    "say": "Mother's restless.",
+    "how": "wheezing, unbothered",
+    "at": 1.7
+   }
+  },
+  {
+   "id": "07-eye",
+   "seconds": 5,
+   "frame": {
+    "paint": "Extreme close-up, looking down at a huge eyeball set into the ground at the bottom of a shallow hollow of wrinkled pink skin like a navel: thick heavy eyelids of skin almost shut, only a thin wet slit showing a sliver of yellow-green iris, coarse black hairs around it like eyelashes, a few candle stubs burning on the rim of the hollow, red dusk light, wet and glossy."
+   },
+   "camera": "crash zoom into the slit of the eye",
+   "prompt": "The heavy eyelid slowly peels open with a wet stretch. The iris rolls, searching, then snaps to look straight into the camera. The candle flames lean away from it.",
+   "sound": [
+    {
+     "name": "eye",
+     "at": 2.4
+    }
+   ]
+  },
+  {
+   "id": "08-aunties",
+   "seconds": 5,
+   "frame": {
+    "set": "backgrounds/ep9-the-reunion-2989c45f.jpg",
+    "who": "head-bloom"
+   },
+   "camera": "slow orbit around them",
+   "prompt": "All the tiny skulls turn at once to face the camera, their jaws moving together as they whisper. The moth wings slowly open.",
+   "note": "They speak, with their chorus (voices/08-aunties.mp3). No lip-sync needed: the jaws only have to move together.",
+   "voice": {
+    "who": "head-bloom",
+    "say": "We remember the last one.",
+    "how": "whispering",
+    "at": 1.0
+   }
+  },
+  {
+   "id": "09-nail",
+   "seconds": 6,
+   "speed": 0.83,
+   "fadeOut": 0.6,
+   "frame": {
+    "paint": "Looking up from ground level on a wide plain of freckled skin, tiny coarse hairs in the foreground bending in a rising wind: the sky is going dark as the colossal curved tip of a giant fingernail, pale, ridged and chipped, as wide as a mountain range, comes down through the clouds overhead, its shadow swallowing the plain; awe-inspiring scale, ominous storm light."
+   },
+   "camera": "wide, locked off, looking up from the ground; a slight tremble",
+   "prompt": "The sky darkens. The colossal fingernail comes slowly down through the clouds, its shadow sweeping across the plain toward the camera until the picture is black. The hairs in the foreground flatten in the wind.",
+   "still": "pull",
+   "sound": [
+    {
+     "name": "drone",
+     "at": 0,
+     "seconds": 6,
+     "fadeIn": 0.4,
+     "fadeOut": 0.03
+    },
+    {
+     "name": "rumble",
+     "at": 2.2,
+     "volume": 0.8,
+     "seconds": 3.8,
+     "fadeIn": 0.6,
+     "fadeOut": 0.03
+    }
+   ]
+  },
+  {
+   "id": "10-oh",
+   "black": true,
+   "seconds": 3,
+   "voice": {
+    "who": "screamer",
+    "say": "Oh.",
+    "how": "very calm, quietly",
+    "at": 1.2
+   }
+  },
+  {
+   "id": "11-static",
+   "black": true,
+   "seconds": 0.5,
+   "static": true
+  },
+  {
+   "id": "12-title",
+   "black": true,
+   "seconds": 3.6,
+   "card": true,
+   "sound": [
+    {
+     "name": "hit",
+     "at": 0
+    },
+    {
+     "name": "box",
+     "at": 0.25,
+     "seconds": 3.35,
+     "from": 2,
+     "fadeIn": 0.3,
+     "fadeOut": 1.2
+    },
+    {
+     "name": "drip",
+     "at": 2.5,
+     "volume": 0.8
+    }
+   ]
+  }
+ ]
+}

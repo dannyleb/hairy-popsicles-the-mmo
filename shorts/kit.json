@@ -189,6 +189,11 @@
     ],
     "volume": 0.32
   },
+  "film": {
+    "_": "Films (shorts/film.mjs, shorts/films/): shots made elsewhere, cut with the kit's sound. `style` goes after every painted key frame's description (painted by scene.model, or edit.model when characters are in it, at scene.price); `drift` is how far a key frame pushes in while it stands in for a shot not filmed yet.",
+    "style": "Photoreal cinematic film still of a grotesque, wet, glossy, organic world where the land itself is skin, flesh, hair and goo: macro nature photography, soft atmospheric haze, shallow depth of field, moody natural light, muted fleshy colours, 35mm. No text, lettering, logos or borders anywhere.",
+    "drift": 0.07
+  },
   "endcard": {
     "title": "Hairy Popsicles",
     "line": "hairypopsicles.com",
