@@ -183,7 +183,9 @@ So the shots are filmed in a chat and cut here:
    paste into a Claude chat: every shot not filmed yet, its key frame's GitHub
    address, its prompt, and the settings (`kit.json`, `film.chat`). The chat
    imports each key frame (`media_import_url`), films it with `use_unlim: true`
-   and never on credits, and answers with the job ids.
+   and never on credits, and answers with the job ids without waiting for
+   the videos (waiting spends the chat's usage limit for nothing). One take
+   of each: ask again for the shots that need another.
 2. In the Code session, find the finished jobs (`show_generations`, or
    `show_generation_by_ids` with the ids), pick a take of each, download it
    into `clips/<id>.mp4` (its host has to be allowed in the environment's

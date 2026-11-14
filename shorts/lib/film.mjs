@@ -91,13 +91,13 @@ export function chatBrief(film, { shots, frames, how }) {
     '',
     'Rules:',
     '- Every generate_video call has use_unlim: true. Never spend credits. If a call can\'t run on unlimited, stop and tell me exactly what it said.',
-    '- Nothing to ask me and nothing to preview: work through the list (the batch tool is fine).',
+    '- Nothing to ask me and nothing to preview: work through the list (the batch tool is fine). If Higgsfield only lets some run at once, say how many and stop there.',
     '',
     'For each shot:',
     '1. media_import_url its key frame.',
     `2. generate_video, ${how.takes} take${how.takes === 1 ? '' : 's'}: model ${how.model}, mode ${how.mode}, the key frame as start_image, aspect_ratio ${film.format === 'wide' ? '16:9' : '9:16'}, resolution ${how.resolution}, generate_audio false, and the seconds and prompt below.`,
     '',
-    'When every job has finished, give me one table: shot, take, job id, status.',
+    'Don\'t wait for the videos or check on them (they\'re collected elsewhere): once every job is submitted, list shot, take and job id, and stop.',
   ];
   for (const shot of shots) {
     const seconds = Math.max(4, Math.ceil(shot.seconds * (shot.speed ?? 1) - 0.05));
